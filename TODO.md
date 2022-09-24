@@ -1,3 +1,5 @@
 ## TODO
 
-- [ ] Windows x64 window creation
+- [x] Windows x64 window creation
+- [ ] Renderer Abstraction
+- [ ] Text rendering

@@ -1,0 +1,5 @@
+/bin/
+/.vscode
+*.o
+*.d
+/builds/ver_0_1_0.zip

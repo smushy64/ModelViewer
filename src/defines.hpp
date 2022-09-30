@@ -1,4 +1,5 @@
 #pragma once
+#include "debug.hpp"
 #include <cstdint>
 
 #define usize uintptr_t
@@ -18,3 +19,14 @@
 #define f64 double
 
 #define loop while( true )
+
+#define ARRAY_COUNT(array) ( sizeof(array) / sizeof( (array)[0] ) )
+
+#define KILOBYTES(expr) ( expr * 1024LL )
+#define MEGABYTES(expr) ( KILOBYTES(expr) * 1024LL )
+#define GIGABYTES(expr) ( MEGABYTES(expr) * 1024LL )
+#define TERABYTES(expr) ( GIGABYTES(expr) * 1024LL )
+
+typedef i32 FontID;
+typedef i32 UniformID;
+typedef u32 RendererID;

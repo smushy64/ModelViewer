@@ -1,5 +1,7 @@
 # Desired compiler and C++ version
 CC = g++ -std=c++17
+DD = gdb
+
 # Change between DEBUG/RELEASE
 # Change target path as well
 # comment out -mwindows for debug builds
@@ -11,7 +13,7 @@ TARGETDIR = ./bin/debug
 EXE = ModelViewer.exe
 
 # Source code paths
-DIR = ./src ./src/platform ./src/core
+DIR = ./src ./src/platform/gl ./src/platform ./src/core
 
 # Resources path
 RES = ./resources
@@ -20,22 +22,23 @@ RES = ./resources
 MINGWINC = C:/msys64/mingw64/include
 
 # defines
-DEF = -D UNICODE -D WINDOWS
+DEF = -D UNICODE -D WINDOWS 
 
 # linker flags
 LNK = -static-libstdc++ -static-libgcc -lmingw32 -lopengl32 -lgdi32
 
 # DONOT EDIT BEYOND THIS POINT!!! ===============================================
 
-DEBUG   = $(DFLAGS) $(foreach D, $(INC), -I$(D)) $(DEPFLAGS)
+DEBUG   = $(DFLAGS) $(foreach D, $(INC), -I$(D)) $(DEPFLAGS) 
 RELEASE = $(RFLAGS) $(foreach D, $(INC), -I$(D)) $(DEPFLAGS)
 
 BINARY = $(TARGETDIR)/$(EXE)
 
 WARN     = -Wall -Wextra
-OPT      = -O0 -g
-DFLAGS   = $(WARN) $(DEF) $(OPT) -D DEBUG
-RFLAGS   = $(DEF) -O2
+DOPT     = -O0 -g
+ROPT     = -O2
+DFLAGS   = $(WARN) $(DEF) $(DOPT) -D DEBUG
+RFLAGS   = $(DEF) $(ROPT)
 DEPFLAGS = -MP -MD
 INC      = ./src $(MINGWINC)
 
@@ -48,6 +51,9 @@ all: $(BINARY)
 
 run: all copy rm_nul
 	$(BINARY)
+
+debug:
+	$(DD) $(BINARY)
 
 -include $(DEPS)
 $(BINARY): $(OBJ)

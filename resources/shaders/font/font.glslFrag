@@ -1,0 +1,22 @@
+#version 460 core
+
+in vec2 v2f_uv;
+
+uniform sampler2D u_texture;
+uniform vec4      u_color;
+uniform vec4      u_fontCoords;
+
+out vec4 FRAG_COLOR;
+void main() {
+    // flip v because stbtt loads it in flipped
+    vec2 uv = vec2( v2f_uv.x, 1.0 - v2f_uv.y );
+
+    vec2 atlasCoord = vec2(
+        mix( u_fontCoords.x, u_fontCoords.x + u_fontCoords.z, uv.x ),
+        mix( u_fontCoords.y, u_fontCoords.y + u_fontCoords.w, uv.y )
+    );
+
+    float alpha = texture(u_texture, atlasCoord).r;
+
+    FRAG_COLOR = vec4(u_color.rgb, u_color.a * alpha);
+}

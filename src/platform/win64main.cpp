@@ -1,10 +1,19 @@
 #ifdef WINDOWS
 
+// ignore compiler warning
+// casting function pointers from GetProcAddress/wglGetProcAddress is the intended usage
+#pragma GCC diagnostic ignored "-Wcast-function-type"
 #include <windows.h>
 #include "defines.hpp"
+#include "renderer.hpp"
+#include "io.hpp"
+#include "globals.hpp"
+#include "utils.hpp"
+#include "core/text.hpp"
+
 // TODO: Define this struct elsewhere so it's generic and not tied to win64
 struct WindowDefinition {
-    LPCWSTR name;
+    const wchar_t* name;
     i32 width;
     i32 height;
 };
@@ -16,9 +25,26 @@ HGLRC Win64CreateOpenGLContext( HDC );
 HINSTANCE glModule;
 void* Win64LoadOpenGLFunctions( const char* functionName );
 
-bool PROGRAM_RUNNING = true;
+struct WindowSizeChanged {
+    bool handled;
+    f32 w; f32 h;
+};
+WindowSizeChanged g_WINDOW_SIZE_CHANGE;
+
+using namespace Platform;
 
 int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE, PSTR, int) {
+    // initialize windowSizeChange struct
+    g_WINDOW_SIZE_CHANGE = {};
+    g_WINDOW_SIZE_CHANGE.handled = true;
+    // initialize color output
+#ifdef DEBUG
+    HANDLE hConsole = GetStdHandle( STD_OUTPUT_HANDLE );
+    DWORD dwMode = 0;
+    GetConsoleMode( hConsole, &dwMode );
+    dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+    SetConsoleMode( hConsole, dwMode );
+#endif
 
     WindowDefinition windowDefinition = {};
     windowDefinition.name   = L"Model Viewer";
@@ -27,37 +53,111 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE, PSTR, int) {
 
     HWND windowHandle = Win64CreateWindow(hInst, windowDefinition);
     if(!windowHandle) {
-        // TODO: Logging!
+        LOG_ERROR("Windows x64 > Failed to create window!");
         return -1;
     }
 
     ShowWindow(windowHandle, SW_SHOWDEFAULT);
     HDC deviceContext = GetDC( windowHandle );
     if(!deviceContext) {
-        // TODO: Logging!
+        LOG_ERROR("Windows x64 > Failed to get hardware device context!");
         return -1;
     }
 
-    // TODO: abstraction for handling other renderer APIs
-    HGLRC hglrc = Win64CreateOpenGLContext( deviceContext );
-    if(!hglrc) {
-        // TODO: Logging!
-        return -1;
+    IO::File settingsINI = IO::LoadFile("./resources/settings.ini");
+    if( settingsINI.contents ) {
+        IO::FreeFile(settingsINI);
     }
-    glModule = LoadLibrary( L"opengl32.dll" );
-    if(!glModule) {
-        // TODO: logging!
-        return -1;
-    }
-    // TODO: glad loader
-    FreeLibrary( glModule );
 
-    while(PROGRAM_RUNNING) {
+    HGLRC hglrc;
+    switch( g_CURRENT_BACKEND ) {
+        case Renderer::API::OPENGL: {
+            LOG_INFO("Current Backend: OpenGL Core 4.6");
+
+            hglrc = Win64CreateOpenGLContext( deviceContext );
+            if(!hglrc) {
+                LOG_ERROR("Windows x64 > Failed to create OpenGL context!");
+                return -1;
+            }
+
+            glModule = LoadLibrary( L"opengl32.dll" );
+            if(glModule) {
+                bool loadResult = Renderer::LoadOpenGLFunctions( Win64LoadOpenGLFunctions );
+                FreeLibrary( glModule );
+                if(!loadResult) {
+                    LOG_ERROR("Windows x64 > Failed to load OpenGL functions!");
+                    return -1;
+                }
+            } else {
+                LOG_ERROR("Windows x64 > Failed to load OpenGL module!");
+                return -1;
+            }
+        } break;
+    }
+
+    Renderer::API* renderer = Renderer::API::Create( g_CURRENT_BACKEND );
+    if(!renderer->Initialize()) {
+        return -1;
+    }
+
+    renderer->SetViewport( glm::vec2( (f32)windowDefinition.width, (f32)windowDefinition.height ) );
+    renderer->SetClearColor( glm::vec4(0.1f) );
+
+    FontID openSans; {
+        using namespace Core::Text;
+
+        Core::Text::AtlasSettings settings = {};
+        settings.fromChar = ' ';
+        settings.toChar   = '~';
+        settings.scaleX   = 512;
+        settings.scaleY   = 256;
+        settings.fontSize = 64.0f;
+
+        openSans = renderer->LoadFont("./resources/open_sans/OpenSans-Regular.ttf", settings);
+    }
+
+    renderer->UseFont( openSans );
+
+    g_PROGRAM_RUNNING = true;
+    while(g_PROGRAM_RUNNING) {
         Win64ProcessMessages( windowHandle );
-        // TODO: run program
-        SwapBuffers(deviceContext);
+        if( !g_WINDOW_SIZE_CHANGE.handled ) {
+            glm::vec2 newSize( g_WINDOW_SIZE_CHANGE.w, g_WINDOW_SIZE_CHANGE.h );
+            renderer->SetViewport( newSize );
+            LOG_INFO("Windows x64 > Window size changed to (%.0f, %.0f)", newSize.x, newSize.y);
+            g_WINDOW_SIZE_CHANGE.handled = true;
+        }
+
+        // render
+        renderer->ClearScreen();
+
+        renderer->SetTextScale(0.8f);
+        renderer->SetTextAnchor( Core::Text::AnchorHorizontal::CENTER, Core::Text::AnchorVertical::CENTER );
+
+        renderer->SetTextPosition( glm::vec2( 0.5f, 0.5f ) );
+        renderer->SetTextColor( glm::vec3( 1.0f, 0.1f, 0.2f ) );
+        renderer->RenderText( "the quick brown fox jumps over the lazy dog" );
+
+        renderer->SetTextPosition( glm::vec2( 0.5f, 0.4f ) );
+        renderer->SetTextColor( glm::vec4( 0.1f, 1.0f, 0.2f, 0.8f ) );
+        renderer->RenderText( "THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG" );
+
+        renderer->SetTextPosition( glm::vec2( 0.5f, 0.3f ) );
+        renderer->SetTextColor( glm::vec4( 0.1f, 0.2f, 1.0f, 0.6f ) );
+        renderer->RenderText( "0123456789~!@#$%^&*()_-+=[]{}|\\.,/;':\"" );
+
+        if( g_CURRENT_BACKEND == Renderer::API::OPENGL ) {
+            SwapBuffers(deviceContext);
+        }
     }
 
+    delete( renderer );
+    switch(g_CURRENT_BACKEND) {
+        case Renderer::API::OPENGL: {
+            wglDeleteContext( hglrc );
+            wglMakeCurrent( nullptr, nullptr );
+        } break;
+    }
     ReleaseDC( windowHandle, deviceContext );
     return 0;
 }
@@ -74,7 +174,7 @@ HWND Win64CreateWindow(HINSTANCE hInst, const WindowDefinition& definition) {
     windowClass.lpszClassName = L"ModelViewerWindowClass";
 
     if(RegisterClassEx( &windowClass ) == FALSE) {
-        // TODO: Logging!
+        LOG_ERROR("Windows x64 > Failed to register window class!");
         return nullptr;
     }
 
@@ -86,7 +186,7 @@ HWND Win64CreateWindow(HINSTANCE hInst, const WindowDefinition& definition) {
     windowRect.bottom = definition.height;
 
     if( AdjustWindowRectEx( &windowRect, dwStyle, FALSE, dwExStyle ) == FALSE ) {
-        // TODO: Logging!
+        LOG_ERROR("Windows x64 > Failed to adjust window rect!");
         return nullptr;
     }
 
@@ -127,7 +227,19 @@ void Win64ProcessMessages( HWND windowHandle ) {
 LRESULT Win64WindowProc( HWND windowHandle, UINT message, WPARAM wParam, LPARAM lParam ) {
     switch( message ) {
         case WM_CLOSE: {
-            PROGRAM_RUNNING = false;
+            g_PROGRAM_RUNNING = false;
+        } return TRUE;
+        case WM_WINDOWPOSCHANGED: {
+            RECT rect = {};
+            if( GetClientRect( windowHandle, &rect ) == TRUE ) {
+                if( (f32)rect.right != g_WINDOW_SIZE_CHANGE.w ||
+                    (f32)rect.bottom != g_WINDOW_SIZE_CHANGE.h
+                ) {
+                    g_WINDOW_SIZE_CHANGE.handled = false;
+                    g_WINDOW_SIZE_CHANGE.w = (f32)rect.right;
+                    g_WINDOW_SIZE_CHANGE.h = (f32)rect.bottom;
+                }
+            }
         } return TRUE;
         default:
             return DefWindowProc( windowHandle, message, wParam, lParam );
@@ -162,25 +274,25 @@ HGLRC Win64CreateOpenGLContext( HDC deviceContext ) {
     );
 
     if( SetPixelFormat(deviceContext, pixelFormatIndex, &suggestedPixelFormat) == FALSE ) {
-        // TODO: logging!
+        LOG_ERROR("Windows x64 > Failed to set pixel format!");
         return nullptr;
     }
 
     HGLRC temp = wglCreateContext( deviceContext );
     if(!temp) {
-        // TODO: logging!
+        LOG_ERROR("Windows x64 > Failed to create temp OpenGL context!");
         return nullptr;
     }
 
     if( wglMakeCurrent( deviceContext, temp ) == FALSE ) {
-        // TODO: logging!
+        LOG_ERROR("Windows x64 > Failed to make temp OpenGL context current!");
         return nullptr;
     }
 
     wglCreateContextAttribsARBptr wglCreateContextAttribsARB =
         (wglCreateContextAttribsARBptr)wglGetProcAddress("wglCreateContextAttribsARB");
     if(!wglCreateContextAttribsARB) {
-        // TODO: logging!
+        LOG_ERROR("Windows x64 > Failed to load wglCreateContextAttribsARB!");
         return nullptr;
     }
 
@@ -195,7 +307,7 @@ HGLRC Win64CreateOpenGLContext( HDC deviceContext ) {
     HGLRC result = wglCreateContextAttribsARB( deviceContext, nullptr, attribs );
     wglDeleteContext( temp );
     if(!result) {
-        // TODO: logging!
+        LOG_ERROR("Windows x64 > wglCreateContextAttribsARB failed to create OpenGL context!");
         return nullptr;
     }
     wglMakeCurrent( deviceContext, result );
@@ -212,6 +324,62 @@ void* Win64LoadOpenGLFunctions( const char* functionName ) {
         }
     }
     return (void*)glfnptr;
+}
+
+IO::File IO::LoadFile( const char* filePath ) {
+    File result     = {};
+    result.size     = 0;
+    result.contents = nullptr;
+
+    std::wstring wfilePath = Utils::CStringToWString( filePath );
+    if( wfilePath.empty() ) {
+        return result;
+    }
+
+    HANDLE fileHandle = CreateFile(
+        wfilePath.c_str(),
+        GENERIC_READ,
+        FILE_SHARE_READ,
+        NULL,
+        OPEN_EXISTING,
+        0, 0
+    );
+
+    if(fileHandle != INVALID_HANDLE_VALUE) {
+        LARGE_INTEGER fileSize;
+        if( GetFileSizeEx( fileHandle, &fileSize ) == TRUE ) {
+            result.size     = (usize)fileSize.QuadPart;
+            result.contents = malloc( result.size );
+
+            if( result.contents ) {
+                DWORD bytesRead;
+                bool readResult = ReadFile(
+                    fileHandle,
+                    result.contents,
+                    result.size,
+                    &bytesRead,
+                    NULL
+                ) && bytesRead == result.size;
+
+                if(!readResult) {
+                    LOG_ERROR("Windows x64 > Failed to read file \"%s\"!", filePath);
+                    FreeFile( result );
+                    result.size = 0;
+                }
+            }
+        }
+        CloseHandle( fileHandle );
+    } else {
+        LOG_ERROR("Windows x64 > Failed to create file handle!");
+    }
+
+    return result;
+}
+
+void IO::FreeFile( File file ) {
+    if(file.contents) {
+        free( file.contents );
+    }
 }
 
 #endif

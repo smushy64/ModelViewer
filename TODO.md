@@ -1,5 +1,7 @@
 ## TODO
 
 - [x] Windows x64 window creation
-- [ ] Renderer Abstraction
-- [ ] Text rendering
+- [x] Loading file from disk abstraction
+- [x] Logging
+- [x] Renderer abstraction
+- [x] Text rendering

@@ -8,6 +8,7 @@
 #include <map>
 #include <string>
 #include "core/text.hpp"
+#include "core/font.hpp"
 
 namespace Platform {
 
@@ -29,14 +30,11 @@ public:
     virtual void SetViewport( const glm::vec2& viewport ) = 0;
     virtual void ClearScreen() = 0;
     virtual void SetClearColor(const glm::vec4& clearColor) = 0;
-    // returns -1 if unsuccessful
-    virtual FontID LoadFont( const char* fontPath, const Core::Text::AtlasSettings& settings ) = 0;
     virtual void RenderText( const std::string& text ) = 0;
     virtual bool GetUniform( RendererID shaderID, const std::string& uniformName, UniformID& uniform ) = 0;
 
-    // returns -1 if not found
-    FontID GetFontID( const std::string& fontName );
-    virtual void UseFont( FontID fontID ) = 0;
+    virtual void LoadFontAtlas( Core::Font::Atlas& fontAtlas );
+    void UseFont( const Core::Font::Atlas& fontAtlas );
 
     // 0.0-1.0 RGB
     virtual void SetTextColor( const glm::vec4& color ) = 0;
@@ -48,20 +46,15 @@ public:
     void SetTextScale( f32 scale );
 
 protected:
-    bool ValidateFontID( const FontID& fontID );
-    
-    std::vector<Core::Text::FontAtlas> m_fonts;
-    FontID m_currentFont = 0;
-    isize  m_fontCount = 0;
+
+    Core::Font::Atlas const* m_fontAtlas;
 
     glm::vec2 m_textScreenSpacePosition = glm::vec2(0.0f);
-    glm::vec2 m_textPosition = glm::vec2(0.0f);
-    f32       m_textScale    = 1.0f;
-    glm::vec4 m_textColor    = glm::vec4(1.0f);
+    glm::vec2 m_textPosition            = glm::vec2(0.0f);
+    f32       m_textScale               = 1.0f;
+    glm::vec4 m_textColor               = glm::vec4(1.0f);
     Core::Text::AnchorHorizontal m_textAnchorHorizontal = Core::Text::AnchorHorizontal::LEFT;
     Core::Text::AnchorVertical   m_textAnchorVertical   = Core::Text::AnchorVertical::BOTTOM;
-
-    std::string FormatFontName(const char* fontPath);
 
     const f32 DEFAULT_FONT_SIZE = 32.0f;
     const f32 SCALE_FACTOR = 0.2f;

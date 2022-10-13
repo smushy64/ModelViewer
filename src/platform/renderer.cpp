@@ -32,54 +32,6 @@ void Renderer::API::SetTextAnchor( Core::Text::AnchorHorizontal h, Core::Text::A
     m_textAnchorHorizontal = h;
     m_textAnchorVertical   = v;
 }
-
-FontID Renderer::API::GetFontID( const std::string& fontName ) {
-    FontID result = -1;
-    if(m_fontCount == 0) {
-        LOG_ERROR("Renderer > Attempted to get font while there are no fonts loaded!");
-        return result;
-    }
-
-    for( isize i = 0; i < m_fontCount; i++ ) {
-        if( m_fonts[i].fontName == fontName ) {
-            result = i;
-            break;
-        }
-    }
-
-    if(result == -1) {
-        LOG_ERROR("Renderer > Font \"%s\" not found!", fontName.c_str());
-    }
-
-    return result;
-}
-bool Renderer::API::ValidateFontID( const FontID& fontID ) {
-    if( !m_fontCount ) {
-        LOG_ERROR("Renderer > Attempted to set font while there are no fonts loaded!");
-        return false;
-    }
-    if( fontID < 0 || fontID >= m_fontCount ) {
-        LOG_ERROR("Renderer > Failed to set font, font id is invalid!");
-        return false;
-    }
-
-    return true;
-}
-
-std::string Renderer::API::FormatFontName(const char* fontPath) {
-    // TODO: rewrite this to be more sensible
-    std::stringstream stream(fontPath);
-    std::string segment;
-    std::vector<std::string> seglist;
-    
-    while(std::getline( stream, segment, '/' )) {
-        seglist.push_back( segment );
-    }
-
-    std::string result = seglist.back();
-
-    Utils::EraseSubString( result, ".ttf" );
-    Utils::EraseSubString( result, ".otf" );
-
-    return result;
+void Renderer::API::UseFont( const Core::Font::Atlas& fontAtlas ) {
+    m_fontAtlas = &fontAtlas;
 }

@@ -14,10 +14,9 @@ public:
     virtual void SetClearColor(const glm::vec4& clearColor) override;
     virtual void RenderText( const std::string& text ) override;
     virtual bool GetUniform( RendererID shaderID, const std::string& uniformName, UniformID& uniform ) override;
-    virtual void UseFont( FontID fontID ) override;
     virtual void SetTextColor( const glm::vec4& color ) override;
 
-    virtual FontID LoadFont( const char* fontPath, const Core::Text::AtlasSettings& settings ) override;
+    virtual void LoadFontAtlas( Core::Font::Atlas& fontAtlas ) override;
 
 private:
     void RenderCharacter( const Core::Text::CharMetrics& character, f32 originX, f32 yOffset);

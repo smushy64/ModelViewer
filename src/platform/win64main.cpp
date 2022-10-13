@@ -10,6 +10,7 @@
 #include "globals.hpp"
 #include "utils.hpp"
 #include "core/text.hpp"
+#include "core/font.hpp"
 
 // TODO: Define this struct elsewhere so it's generic and not tied to win64
 struct WindowDefinition {
@@ -103,20 +104,20 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE, PSTR, int) {
     renderer->SetViewport( glm::vec2( (f32)windowDefinition.width, (f32)windowDefinition.height ) );
     renderer->SetClearColor( glm::vec4(0.1f) );
 
-    FontID openSans; {
-        using namespace Core::Text;
-
-        Core::Text::AtlasSettings settings = {};
-        settings.fromChar = ' ';
-        settings.toChar   = '~';
-        settings.scaleX   = 512;
-        settings.scaleY   = 256;
-        settings.fontSize = 64.0f;
-
-        openSans = renderer->LoadFont("./resources/open_sans/OpenSans-Regular.ttf", settings);
+    Core::Font::Atlas openSansAtlas = {}; {
+        if(!Core::Font::LoadFontAtlas(
+            "./resources/open_sans/OpenSans-Regular.ttf",
+            64.0f, ' ', '~',
+            512, openSansAtlas
+        )) {
+            LOG_ERROR("Failed to load OpenSans Atlas!");
+            return -1;
+        }
     }
 
-    renderer->UseFont( openSans );
+    LOG_INFO( "Font \"%s\" loaded!", openSansAtlas.fontName.c_str() );
+
+    // renderer->UseFont( openSans );
 
     g_PROGRAM_RUNNING = true;
     while(g_PROGRAM_RUNNING) {

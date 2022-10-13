@@ -68,6 +68,7 @@ struct FontAtlas {
     f32 fontSize;
     i32 scaleX, scaleY;   // atlas scale
     RendererID textureID; // atlas texture id
+    u8* bitmap; // pointer to bitmap, used to load into renderer
 };
 
 } // namespace Core::Text

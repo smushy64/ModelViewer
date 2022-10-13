@@ -1,6 +1,8 @@
 ## TODO
 
-- [ ] Refactor font loading (move out of OpenGL layer into Core API)
+### Total Rewrite
+
+- [ ] no more nested namespaces, really confusing to follow
 
 ### > Completed - 9/30/2022
 

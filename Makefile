@@ -13,7 +13,7 @@ TARGETDIR = ./bin/debug
 EXE = ModelViewer.exe
 
 # Source code paths
-DIR = ./src ./src/platform/gl ./src/platform ./src/core
+DIR = ./src ./src/platform ./src/platform/win64 ./src/core
 
 # Resources path
 RES = ./resources

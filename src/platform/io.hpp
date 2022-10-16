@@ -5,6 +5,7 @@
 namespace Platform
 {
     struct File {
+        const char* filePath;
         usize size;
         void* contents;
     };

@@ -10,6 +10,7 @@
 
 Platform::File Platform::LoadFile( const char* filePath ) {
     File result     = {};
+    result.filePath = filePath;
     result.size     = 0;
     result.contents = nullptr;
 

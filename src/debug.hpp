@@ -40,14 +40,16 @@
         printf(__VA_ARGS__);\
         printf("\n");\
     })
-    #define DEBUG_ASSERT(expr) { if(!expr){ *(int*)0 = 0;} }
+    #define DEBUG_ASSERT(expr) { if(!(expr)){ *(int*)0 = 0;} }
     #define DEBUG_ASSERT_LOG(expr, ...) ({\
-        CONSOLE_COLOR_RED();\
-        printf( "ASSERTION FAILED " );\
-        CONSOLE_COLOR_RESET();\
-        printf(__VA_ARGS__);\
-        printf("\n");\
-        DEBUG_ASSERT(expr);\
+        if( !(expr) ) {\
+            CONSOLE_COLOR_RED();\
+            printf( "ASSERTION FAILED " );\
+            CONSOLE_COLOR_RESET();\
+            printf(__VA_ARGS__);\
+            printf("\n");\
+            *(int*)0 = 0;\
+        }\
     })
     #define DEBUG_UNIMPLEMENTED(...) ({\
         CONSOLE_COLOR_RED();\

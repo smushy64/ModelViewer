@@ -5,6 +5,7 @@ namespace Platform {
     
 class RendererOpenGL : public Renderer {
 public: // NOTE: virtual
+    virtual ~RendererOpenGL() override;
     virtual bool Initialize()  override;
     virtual void ClearBuffer() override;
     virtual void SwapBuffer()  override;
@@ -19,8 +20,10 @@ public: // NOTE: virtual
 
 protected:
     virtual void RenderCharacter( const Core::CharMetrics& metrics, const glm::vec2& origin ) override;
+    virtual void RenderBoundingBox( const glm::vec4& bounds ) override;
 private:
-    RendererID m_fontVAO;
+    RendererID m_fontVAO, m_fontVBO, m_fontEBO;
+    RendererID m_boundsVAO, m_boundsVBO, m_boundsEBO;
 };
 
 class ShaderOpenGL : public Shader {

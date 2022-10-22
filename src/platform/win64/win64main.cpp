@@ -4,20 +4,19 @@
 // casting function pointers from GetProcAddress/wglGetProcAddress is the intended usage
 #pragma GCC diagnostic ignored "-Wcast-function-type"
 #include <windows.h>
+#include <windowsx.h>
 
 #include "alias.hpp"
 #include "debug.hpp"
 #include "global.hpp"
 #include "consts.hpp"
+#include "utils.hpp"
 
 #include "core/app.hpp"
+#include "core/event.hpp"
 #include "platform/event.hpp"
 #include "platform/renderer.hpp"
-
 using namespace Platform;
-
-// TODO: remove from win64 layer, should be platform-independent
-const wchar_t* WINDOW_NAME = L"Model Viewer";
 
 void Win64InitConsole();
 HWND Win64CreateWindow( HINSTANCE hInst, const wchar_t* windowName, i32 width, i32 height );
@@ -32,14 +31,21 @@ HWND  WINDOW_HANDLE;
 HDC   DEVICE_CONTEXT;
 HGLRC OPENGL_CONTEXT;
 
+Core::AppData APP_DATA;
+
 int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE, PSTR, int) {
-    Core::AppData appData = {};
+    APP_DATA = {};
+    APP_DATA.screenResolution = glm::vec2( DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT );
 
     // setup
     Win64InitConsole();
+    LOG_INFO("Windows x64 > Creating Window at resolution %ix%i . . .",
+        (i32)DEFAULT_WINDOW_WIDTH,
+        (i32)DEFAULT_WINDOW_HEIGHT
+    );
     WINDOW_HANDLE = Win64CreateWindow(
         hInst,
-        WINDOW_NAME,
+        Utils::StringtoWString( PROGRAM_TITLE ).c_str(),
         (i32)DEFAULT_WINDOW_WIDTH,
         (i32)DEFAULT_WINDOW_HEIGHT
     );
@@ -47,6 +53,7 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE, PSTR, int) {
         LOG_ERROR("Window x64 > Failed to create window!");
         return -1;
     }
+    LOG_INFO("Windows x64 > Window successfully created.");
 
     DEVICE_CONTEXT = GetDC( WINDOW_HANDLE );
     if(!DEVICE_CONTEXT) {
@@ -54,35 +61,39 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE, PSTR, int) {
         return -1;
     }
 
-    PROGRAM_RUNNING = true;
+    APP_DATA.isRunning = true;
 
+    // TODO: Parameterize backend
     switch( CURRENT_BACKEND ) {
         case Renderer::Backend::OPENGL: {
+            LOG_INFO("Window x64 > Creating OpenGL Context . . .");
             OPENGL_CONTEXT = Win64CreateOpenGLContext( DEVICE_CONTEXT );
             if( !OPENGL_CONTEXT ) {
                 return -1;
             }
+            LOG_INFO("Window x64 > OpenGL Context Successfully created");
         } break;
     }
 
-    appData.renderer = Renderer::New( Renderer::Backend::OPENGL );
-    // TODO: Parameterize backend
-    if( !appData.renderer ) {
+    APP_DATA.renderer = Renderer::New( Renderer::Backend::OPENGL );
+    if( !APP_DATA.renderer ) {
         return -1;
     }
 
     switch( CURRENT_BACKEND ) {
         case Renderer::Backend::OPENGL: {
-            appData.renderer->OpenGLSwapBufferFn = Win64OpenGLSwapBuffer;
+            LOG_INFO("Windows x64 > Loading OpenGL Functions . . .");
+            APP_DATA.renderer->OpenGLSwapBufferFn = Win64OpenGLSwapBuffer;
 
             OPENGL_MODULE = LoadLibrary( L"opengl32.dll" );
             if( OPENGL_MODULE ) {
-                bool loadResult = appData.renderer->LoadOpenGLFunctions( Win64LoadOpenGLFunctions );
+                bool loadResult = APP_DATA.renderer->LoadOpenGLFunctions( Win64LoadOpenGLFunctions );
                 FreeLibrary( OPENGL_MODULE );
                 if(!loadResult) {
                     LOG_ERROR("Windows x64 > Failed to load OpenGL functions!");
                     return -1;
                 }
+                LOG_INFO("Windows x64 > Successfully Loaded OpenGL Functions.");
             } else {
                 LOG_ERROR("Windows x64 > Failed to load OpenGL module!");
                 return -1;
@@ -91,17 +102,20 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE, PSTR, int) {
     }
 
     // run app
-    Core::RunApp(appData);
+    LOG_INFO("Windows x64 > Running App . . .");
+    Core::RunApp(APP_DATA);
 
     // cleanup
+    LOG_INFO("Windows x64 > Cleaning up resources . . .");
     if( OPENGL_CONTEXT ) {
         Win64DeleteOpenGLContext( OPENGL_CONTEXT );
     }
     ReleaseDC( WINDOW_HANDLE, DEVICE_CONTEXT );
+    LOG_INFO("Windows x64 > Program ran with no errors!");
     return 0;
 }
 
-void Platform::ProcessWindowEvents() {
+void Platform::ProcessWindowEvents( Core::AppData& appData ) {
     MSG message = {};
     if(PeekMessage(
         &message,
@@ -111,6 +125,68 @@ void Platform::ProcessWindowEvents() {
     ) == FALSE) { return; }
 
     switch( message.message ) {
+        case WM_KEYDOWN: {
+            Core::KeyCode keycode = Core::WinKeyToKeyCode( (u32)message.wParam );
+            appData.events.Push( new Core::KeyDown( keycode ) );
+        } break;
+        case WM_KEYUP: {
+            Core::KeyCode keycode = Core::WinKeyToKeyCode( (u32)message.wParam );
+            appData.events.Push( new Core::KeyUp( keycode ) );
+        } break;
+        case WM_MOUSEMOVE: {
+            glm::ivec2 pixelPosition = glm::ivec2(
+                GET_X_LPARAM(message.lParam),
+                GET_Y_LPARAM(message.lParam)
+            );
+            glm::vec2 screenPosition = glm::vec2(
+                (f32)pixelPosition.x / appData.screenResolution.x,
+                (f32)pixelPosition.y / appData.screenResolution.y
+            );
+            appData.events.Push( new Core::MousePositionEvent( pixelPosition, screenPosition ) );
+        } break;
+
+        case WM_LBUTTONDOWN: {
+            appData.events.Push( new Core::MouseDown( Core::MouseCode::LEFT ) );
+        } break;
+        case WM_RBUTTONDOWN: {
+            appData.events.Push( new Core::MouseDown( Core::MouseCode::RIGHT ) );
+        } break;
+        case WM_MBUTTONDOWN: {
+            appData.events.Push( new Core::MouseDown( Core::MouseCode::MIDDLE ) );
+        } break;
+        case WM_XBUTTONDOWN: {
+            u16 xButton = GET_XBUTTON_WPARAM( message.wParam );
+            if( xButton == XBUTTON1 ) {
+                appData.events.Push( new Core::MouseDown( Core::MouseCode::EXTRA1 ) );
+            } else if( xButton == XBUTTON2 ) {
+                appData.events.Push( new Core::MouseDown( Core::MouseCode::EXTRA2 ) );
+            }
+        } break;
+
+        case WM_LBUTTONUP: {
+            appData.events.Push( new Core::MouseUp( Core::MouseCode::LEFT ) );
+        } break;
+        case WM_RBUTTONUP: {
+            appData.events.Push( new Core::MouseUp( Core::MouseCode::RIGHT ) );
+        } break;
+        case WM_MBUTTONUP: {
+            appData.events.Push( new Core::MouseUp( Core::MouseCode::MIDDLE ) );
+        } break;
+        case WM_XBUTTONUP: {
+            u16 xButton = GET_XBUTTON_WPARAM( message.wParam );
+            if( xButton == XBUTTON1 ) {
+                appData.events.Push( new Core::MouseUp( Core::MouseCode::EXTRA1 ) );
+            } else if( xButton == XBUTTON2 ) {
+                appData.events.Push( new Core::MouseUp( Core::MouseCode::EXTRA2 ) );
+            }
+        } break;
+
+        case WM_MOUSEWHEEL: {
+            appData.events.Push( new Core::MouseScroll(
+                GET_WHEEL_DELTA_WPARAM( message.wParam ) / WHEEL_DELTA
+            ) );
+        } break;
+
         default: {
             TranslateMessage(&message);
             DispatchMessage(&message);
@@ -118,24 +194,33 @@ void Platform::ProcessWindowEvents() {
     }
 }
 
+i32 lastWidth = 0, lastHeight = 0;
+i32 lastX = 0, lastY = 0;
 LRESULT Win64WindowProc( HWND windowHandle, UINT message, WPARAM wParam, LPARAM lParam ) {
     switch( message ) {
         case WM_CLOSE: {
-            PROGRAM_RUNNING = false;
+            APP_DATA.events.Push( new Core::QuitEvent() );
         } return TRUE;
         case WM_WINDOWPOSCHANGED: {
-            // TODO: Event system
+            WINDOWPOS* windowPosition = (WINDOWPOS*)lParam;
+            if( lastX != windowPosition->x || lastY != windowPosition->y ) {
+                APP_DATA.events.Push( new Core::WindowMoveEvent( windowPosition->x, windowPosition->y ) );
+            }
+            lastX = windowPosition->x;
+            lastY = windowPosition->y;
 
-            // RECT rect = {};
-            // if( GetClientRect( windowHandle, &rect ) == TRUE ) {
-            //     if( (f32)rect.right != g_WINDOW_SIZE_CHANGE.w ||
-            //         (f32)rect.bottom != g_WINDOW_SIZE_CHANGE.h
-            //     ) {
-            //         g_WINDOW_SIZE_CHANGE.handled = false;
-            //         g_WINDOW_SIZE_CHANGE.w = (f32)rect.right;
-            //         g_WINDOW_SIZE_CHANGE.h = (f32)rect.bottom;
-            //     }
-            // }
+            RECT rect = {};
+            if( GetClientRect( windowHandle, &rect ) == TRUE ) {
+                i32 newWidth  = rect.right;
+                i32 newHeight = rect.bottom;
+                if( lastWidth != newWidth || lastHeight != newHeight ) {
+                    APP_DATA.events.Push( new Core::WindowResizeEvent( newWidth, newHeight ) );
+                }
+                SCREEN_WIDTH  = newWidth;
+                SCREEN_HEIGHT = newHeight;
+                lastWidth  = newWidth;
+                lastHeight = newHeight;
+            }
         } return TRUE;
         default:
             return DefWindowProc( windowHandle, message, wParam, lParam );
@@ -287,6 +372,8 @@ void Win64InitConsole() {
     GetConsoleMode( g_hConsole, &dwMode );
     dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
     SetConsoleMode( g_hConsole, dwMode );
+
+    LOG_INFO("Windows x64 > Debug Console initialized");
 
 #endif
 }

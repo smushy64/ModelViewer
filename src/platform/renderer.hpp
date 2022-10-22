@@ -5,8 +5,10 @@
 #include <glm/vec4.hpp>
 #include <glm/mat4x4.hpp>
 #include "core/text.hpp"
+#include "core/ui.hpp"
 #include "consts.hpp"
 #include "alias.hpp"
+#include "debug.hpp"
 
 namespace Platform
 {
@@ -21,6 +23,7 @@ public:
     static Shader* New( const std::string& vertex, const std::string& fragment );
 
     RendererID GetID() { return m_id; }
+    bool CompilationSucceeded() { return m_success; }
 
 public: // virtual
     virtual void UseShader() = 0;
@@ -35,6 +38,7 @@ public: // virtual
 
 protected:
     RendererID m_id;
+    bool m_success = false;
 
 public:
     virtual ~Shader() = default;
@@ -56,7 +60,8 @@ public:
     const glm::vec4& GetClearColor()   { return m_clearColor; }
     const glm::vec2& GetViewport()     { return m_viewport;   }
 
-    const glm::vec2&     GetTextPosition() { return m_textPosition; }
+    const glm::vec2&     GetTextPixelPosition()  { return m_textPosition; }
+    const glm::vec2&     GetTextScreenPosition() { return m_textScreenPosition; }
     const glm::vec4&     GetTextColor()    { return m_textColor; }
     const f32&           GetTextScale()    { return m_textScale; }
     const Core::XAnchor& GetTextXAnchor()  { return m_textXAnchor; }
@@ -87,9 +92,15 @@ public: // NOTE: virtual
 public:
     // Set clear screen color, RGB 0.0-1.0
     void SetClearColor( const glm::vec3& clearColor );
+    // Render a label
+    void RenderText( const Core::UI::Label& label );
+    // Render a label button
+    void RenderTextButton( const Core::UI::LabelButton& button );
 
     // Sets internal font atlas pointer to this font atlas
     void UseFontAtlas( const Core::FontAtlas& fontAtlas );
+    // Sets internal font atlas pointer to this font atlas
+void UseFontAtlas( const Core::FontAtlas* fontAtlas );
     // Set text color, RGB 0.0-1.0
     void SetTextColor( const glm::vec3& color );
     // Set text anchor on x axis
@@ -101,24 +112,52 @@ public:
     // Set text scale in screen space
     void SetTextScale( f32 scale );
     // Set text position in screen space
-    void SetTextPosition( const glm::vec2& position );
+    void SetTextPosition( const glm::vec2& screenSpacePosition );
+    // Reset all text parameters
+    void ResetTextParameters();
+    // Set Viewport scale
+    void SetViewport( const glm::ivec2& viewport );
+
+    // Enable rendering bounding boxes
+    void EnableBoundingBox() {
+#ifdef DEBUG
+        LOG_DEBUG("Renderer > Bounding Box enabled.");
+        m_renderBoundingBoxes = true;
+#endif
+    }
+    // Disable rendering bounding boxes
+    void DisableBoundingBox() {
+#ifdef DEBUG
+        LOG_DEBUG("Renderer > Bounding Box disabled.");
+        m_renderBoundingBoxes = false;
+#endif
+    }
 
 protected:
     virtual void RenderCharacter( const Core::CharMetrics& metrics, const glm::vec2& origin ) = 0;
+#ifdef DEBUG
+    virtual void RenderBoundingBox( const glm::vec4& bounds ) = 0;
+    bool m_renderBoundingBoxes = false;
+#endif
 
     glm::vec4 m_clearColor = glm::vec4( 0.0f, 0.0f, 0.0f, 1.0f );
     glm::vec2 m_viewport   = glm::vec2( DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT );
 
     const Core::FontAtlas* m_fontAtlas = nullptr;
-    glm::vec4 m_textColor        = glm::vec4( 1.0f );
-    Core::XAnchor m_textXAnchor  = Core::DEFAULT_X_ANCHOR;
-    Core::YAnchor m_textYAnchor  = Core::DEFAULT_Y_ANCHOR;
+    glm::vec4 m_textColor        = Core::UI::DEFAULT_TEXT_COLOR;
+    Core::XAnchor m_textXAnchor  = Core::UI::DEFAULT_TEXT_X_ANCHOR;
+    Core::YAnchor m_textYAnchor  = Core::UI::DEFAULT_TEXT_Y_ANCHOR;
     const f32 DEFAULT_TEXT_SCALE = 1.0f;
     f32 m_textScale = DEFAULT_TEXT_SCALE;
-    glm::vec2 m_textPosition = glm::vec2(0.0f);
+
+    glm::vec2 m_textPosition       = Core::UI::DEFAULT_TEXT_POSITION;
+    glm::vec2 m_textScreenPosition = Core::UI::DEFAULT_TEXT_POSITION;
 
     Shader* m_fontShader = nullptr;
     UniformID m_fontColorID, m_fontProjID, m_fontTransformID, m_fontCoordsID;
+
+    Shader* m_boundsShader = nullptr;
+    UniformID m_boundsProjID, m_boundsTransformID;
 public:
     OpenGLSwapBuffer OpenGLSwapBufferFn;
 

@@ -1,10 +1,19 @@
 ## TODO
 
-### UI
-- [ ] Event system
-  - [ ] Update Viewport when screen resolution changes
-- [ ] Memory Leaks?
-  - [ ] Font shader not being deleted when renderer is deleted?
+### Renderer Improvements
+- [ ] Uniform Block Buffer
+
+### UI - Completed 10/22/2022
+- [x] Delta time
+- [x] Event system
+  - [x] Update Viewport when screen resolution changes
+  - [x] Capture Input
+  - [x] Text Button
+- [x] Program crashes when quitting?
+  - It was something to do with the default font atlas bitmap, not sure why it crashed when freeing that data but the issue is fixed now
+- [x] Memory Leaks?
+  - [x] Font shader not being deleted when renderer is deleted?
+  - [x] Shader Files not being cleaned up
 
 ### Total Rewrite - Completed 10/16/2022
 

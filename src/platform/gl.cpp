@@ -10,7 +10,40 @@ using namespace Platform;
 const char* FONT_VERT_PATH = "./resources/shaders/font/font.glslVert";
 const char* FONT_FRAG_PATH = "./resources/shaders/font/font.glslFrag";
 
+const char* BOUNDS_VERT_PATH = "./resources/shaders/bounds/bounds.glslVert";
+const char* BOUNDS_FRAG_PATH = "./resources/shaders/bounds/bounds.glslFrag";
+
 const GLint DEFAULT_UNPACK_ALIGNMENT = 4;
+
+void RendererOpenGL::RenderBoundingBox( const glm::vec4& bounds ) {
+    if( !m_renderBoundingBoxes ) {
+        return;
+    }
+
+    glm::mat4 transform = glm::scale(
+        glm::translate( glm::mat4(1.0f), glm::vec3(
+            bounds.x,
+            bounds.y,
+            0.0f
+        ) ),
+        glm::vec3( bounds.z, bounds.w, 0.0f )
+    );
+
+    m_boundsShader->UseShader();
+    m_boundsShader->UniformMat4( m_boundsTransformID, transform );
+
+    glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+
+    glBindVertexArray( m_boundsVAO );
+    glDrawElements(
+        GL_TRIANGLES,
+        6,
+        GL_UNSIGNED_INT,
+        nullptr
+    );
+
+    glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
+}
 
 void RendererOpenGL::SetTextColor( const glm::vec4& color ) {
     m_fontShader->UniformVec4( m_fontColorID, color );
@@ -170,6 +203,9 @@ void RendererOpenGL::SetClearColor( const glm::vec4& clearColor ) {
 void RendererOpenGL::SetViewport( const glm::vec2& viewport ) {
     m_viewport = viewport;
     glViewport( 0, 0, (GLsizei)viewport.x, (GLsizei)viewport.y );
+    glm::mat4 uiProj = glm::ortho( 0.0f, viewport.x, 0.0f, viewport.y );
+    m_fontShader->UniformMat4( m_fontProjID, uiProj );
+    m_boundsShader->UniformMat4( m_boundsProjID, uiProj );
 }
 
 void OpenGLDebugMessageCallback(
@@ -205,10 +241,8 @@ bool RendererOpenGL::Initialize() {
         glGenVertexArrays( 1, &m_fontVAO );
         glBindVertexArray( m_fontVAO );
 
-        GLuint fontVBO, fontEBO;
-
-        glGenBuffers(1, &fontVBO);
-        glBindBuffer(GL_ARRAY_BUFFER, fontVBO);
+        glGenBuffers(1, &m_fontVBO);
+        glBindBuffer(GL_ARRAY_BUFFER, m_fontVBO);
         glBufferData(
             GL_ARRAY_BUFFER,
             sizeof(f32) * FONT_VERTEX_COUNT,
@@ -225,8 +259,8 @@ bool RendererOpenGL::Initialize() {
         );
         glEnableVertexAttribArray(0);
 
-        glGenBuffers( 1, &fontEBO );
-        glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, fontEBO );
+        glGenBuffers( 1, &m_fontEBO );
+        glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, m_fontEBO );
         glBufferData(
             GL_ELEMENT_ARRAY_BUFFER,
             sizeof(u32) * FONT_INDEX_COUNT,
@@ -237,21 +271,19 @@ bool RendererOpenGL::Initialize() {
     }
 
     /* Create Font Shader */ {
-        File fontVertSrc = LoadFile( FONT_VERT_PATH );
-        if( !fontVertSrc.contents ) {
-            LOG_ERROR("OpenGL > Failed to load font vertex shader source from disk!");
+        TextFile fontVertSrc = LoadTextFile( FONT_VERT_PATH );
+        TextFile fontFragSrc = LoadTextFile( FONT_FRAG_PATH );
+        if( fontVertSrc.size == 0 || fontFragSrc.size == 0 ) {
+            LOG_ERROR("OpenGL > Failed to load font shaders from disk!");
             return false;
         }
-        File fontFragSrc = LoadFile( FONT_FRAG_PATH );
-        if( !fontFragSrc.contents ) {
-            LOG_ERROR("OpenGL > Failed to load font fragment shader source from disk!");
-            return false;
-        }
+        
+        m_fontShader = Shader::New( fontVertSrc.contents, fontFragSrc.contents );
 
-        m_fontShader = Shader::New(
-            (char*)fontVertSrc.contents,
-            (char*)fontFragSrc.contents
-        );
+        if( !m_fontShader->CompilationSucceeded() ) {
+            LOG_ERROR( "OpenGL > Failed to create font shader!" );
+            return false;
+        }
 
         m_fontShader->UseShader();
         m_fontShader->GetUniform( "u_transform", m_fontTransformID );
@@ -264,6 +296,73 @@ bool RendererOpenGL::Initialize() {
         m_fontShader->UniformInt( texSamplerID, 0 );
         m_fontShader->UniformVec4( m_fontColorID, m_textColor );
         m_fontShader->UniformMat4( m_fontProjID, glm::ortho( 0.0f, DEFAULT_WINDOW_WIDTH, 0.0f, DEFAULT_WINDOW_HEIGHT ) );
+    }
+
+    /* Create Bounds Mesh */ {
+        f32 boundsVertices[] = {
+            /*POSITION*/ 0.0f, 1.0f,
+            /*POSITION*/ 1.0f, 1.0f,
+            /*POSITION*/ 0.0f, 0.0f,
+            /*POSITION*/ 1.0f, 0.0f
+        };
+        const usize BOUNDS_VERTEX_COUNT = 8;
+        u32 boundsIndices[] = {
+            0, 1, 2,
+            1, 2, 3
+        };
+        const usize BOUNDS_INDEX_COUNT = 6;
+
+        glGenVertexArrays( 1, &m_boundsVAO );
+        glBindVertexArray( m_boundsVAO );
+
+        glGenBuffers(1, &m_boundsVBO);
+        glBindBuffer(GL_ARRAY_BUFFER, m_boundsVBO);
+        glBufferData(
+            GL_ARRAY_BUFFER,
+            sizeof(f32) * BOUNDS_VERTEX_COUNT,
+            &boundsVertices,
+            GL_STATIC_DRAW
+        );
+        glVertexAttribPointer(
+            0, // index
+            2, // size
+            GL_FLOAT, // type
+            GL_FALSE, // normalized
+            sizeof(f32) * 2, // stride
+            0 // pointer
+        );
+        glEnableVertexAttribArray(0);
+
+        glGenBuffers( 1, &m_boundsEBO );
+        glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, m_boundsEBO );
+        glBufferData(
+            GL_ELEMENT_ARRAY_BUFFER,
+            sizeof(u32) * BOUNDS_INDEX_COUNT,
+            &boundsIndices,
+            GL_STATIC_DRAW
+        );
+
+    }
+
+    /* Create Bounds Shader */ {
+        TextFile boundsVertSrc = LoadTextFile( BOUNDS_VERT_PATH );
+        TextFile boundsFragSrc = LoadTextFile( BOUNDS_FRAG_PATH );
+        if( boundsVertSrc.size == 0 || boundsFragSrc.size == 0 ) {
+            LOG_ERROR("OpenGL > Failed to load bounds shaders from disk!");
+            return false;
+        }
+        
+        m_boundsShader = Shader::New( boundsVertSrc.contents, boundsFragSrc.contents );
+
+        if( !m_boundsShader->CompilationSucceeded() ) {
+            LOG_ERROR( "OpenGL > Failed to create bounds shader!" );
+            return false;
+        }
+
+        m_boundsShader->UseShader();
+        m_boundsShader->GetUniform( "u_transform", m_boundsTransformID );
+        m_boundsShader->GetUniform( "u_viewProjection", m_boundsProjID );
+        m_boundsShader->UniformMat4( m_boundsProjID, glm::ortho( 0.0f, DEFAULT_WINDOW_WIDTH, 0.0f, DEFAULT_WINDOW_HEIGHT ) );
     }
 
     return true;
@@ -345,6 +444,15 @@ void OpenGLDebugMessageCallback(
 
 #endif
 
+RendererOpenGL::~RendererOpenGL() {
+    u32 vao[] = { m_fontVAO, m_boundsVAO };
+    glDeleteVertexArrays( 2, vao );
+    u32 bo[] = { m_fontVBO, m_fontEBO, m_boundsVBO, m_boundsEBO };
+    glDeleteBuffers( 4, bo );
+    delete( m_fontShader );
+    delete( m_boundsShader );
+}
+
 bool CompileShader( const char* source, i32 sourceLen, GLenum shaderType, RendererID& shaderID ) {
     shaderID = glCreateShader( shaderType );
     glShaderSource(
@@ -416,26 +524,25 @@ bool ShaderOpenGL::GetUniform( const std::string& uniformName, UniformID& id ) {
 }
 
 void ShaderOpenGL::UniformFloat( const UniformID& id, f32 value ) {
-    glUniform1f( id, value );
+    glProgramUniform1f( m_id, id, value );
 }
 void ShaderOpenGL::UniformInt( const UniformID& id, i32 value )   {
-    glUniform1i( id, value );
+    glProgramUniform1i( m_id, id, value );
 }
 void ShaderOpenGL::UniformVec2( const UniformID& id, const glm::vec2& value ) {
-    glUniform2fv( id, 1, glm::value_ptr(value) );
+    glProgramUniform2fv( m_id, id, 1, glm::value_ptr(value) );
 }
 void ShaderOpenGL::UniformVec3( const UniformID& id, const glm::vec3& value ) {
-    glUniform3fv( id, 1, glm::value_ptr(value) );
+    glProgramUniform3fv( m_id, id, 1, glm::value_ptr(value) );
 }
 void ShaderOpenGL::UniformVec4( const UniformID& id, const glm::vec4& value ) {
-    glUniform4fv( id, 1, glm::value_ptr(value) );
+    glProgramUniform4fv( m_id, id, 1, glm::value_ptr(value) );
 }
 void ShaderOpenGL::UniformMat4( const UniformID& id, const glm::mat4x4& value ) {
-    glUniformMatrix4fv( id, 1, GL_FALSE, glm::value_ptr(value) );
+    glProgramUniformMatrix4fv( m_id, id, 1, GL_FALSE, glm::value_ptr(value) );
 }
 
 ShaderOpenGL::ShaderOpenGL( const std::string& vertex, const std::string& fragment ) {
-    LOG_DEBUG("Creating OpenGL shader");
     RendererID vert, frag;
     if(!CompileShader( vertex.c_str(), vertex.length(), GL_VERTEX_SHADER, vert )) {
         LOG_ERROR("OpenGL > Failed to create vertex shader!");
@@ -447,6 +554,8 @@ ShaderOpenGL::ShaderOpenGL( const std::string& vertex, const std::string& fragme
     RendererID shaders[] = { vert, frag };
     if( !LinkShaders( shaders, 2, m_id ) ) {
         LOG_ERROR("OpenGL > Failed to link shaders!");
+    } else {
+        m_success = true;
     }
 }
 

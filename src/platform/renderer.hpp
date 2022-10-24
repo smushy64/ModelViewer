@@ -1,5 +1,4 @@
 #pragma once
-#include <string>
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
@@ -10,22 +9,189 @@
 #include "alias.hpp"
 #include "debug.hpp"
 
+#include <string>
+#include <vector>
+
 namespace Platform
 {
 typedef void (*OpenGLSwapBuffer)(void);
 typedef void* (*OpenGLLoader)(const char* functionName);
 
-class Shader {
+class UniformBuffer {
+public:
+    // TODO: usage?
 
+    // Create a new GPU Buffer
+    static UniformBuffer* New( usize size, void* data );
+
+public: // NOTE: virtual
+    // Buffer Data, size must match total buffer size
+    virtual void BufferData( usize size, void* data ) = 0;
+    // Buffer Sub Data, offset + size must be less than total buffer size
+    virtual void BufferSubData( usize offset, usize size, void* data ) = 0;
+    // Set buffer binding point for entire buffer
+    virtual void SetBindingPoint( usize point ) = 0;
+    // Set buffer binding point for range, offset + size must be less than total buffer size
+    virtual void SetBindingPointRange( usize offset, usize size, usize point ) = 0;
+
+    virtual ~UniformBuffer() = default;
+
+public: // NOTE: Getters
+    usize Size() const { return m_size; }
+    RendererID ID() const { return m_bufferID; }
+
+protected:
+    usize      m_size;
+    RendererID m_bufferID;
+};
+
+enum class BufferDataType {
+    FLOAT,
+    DOUBLE,
+    UBYTE,
+    USHORT,
+    UINT,
+    BYTE,
+    SHORT,
+    INT,
+    BOOL
+};
+
+// Get byte size of buffer data type
+usize BufferDataTypeByteSize( BufferDataType dataType );
+
+enum class BufferDataStructure {
+    SCALAR,
+    VEC2,
+    VEC3,
+    VEC4,
+    MAT2,
+    MAT3,
+    MAT4
+};
+
+// Get number of components of buffer data structure
+usize BufferDataStructureCount( BufferDataStructure structure );
+
+struct BufferElement {
+    bool                normalized;
+    BufferDataType      dataType;
+    BufferDataStructure dataStructure;
+    usize               size;
+    usize               offset;
+    std::string         name;
+}; // struct Buffer Element
+
+BufferElement NewBufferElement(
+    const std::string&  name,
+    BufferDataType      dataType,
+    BufferDataStructure dataStructure,
+    bool                normalized
+);
+
+class BufferLayout {
+public:
+    BufferLayout( std::vector<BufferElement> elements )
+    : m_elements(elements) { CalculateOffsetsAndStride(); }
+    BufferLayout() {}
+
+    const std::vector<BufferElement>& Elements() const { return m_elements; }
+    usize Stride() const { return m_stride; }
+private:
+    void CalculateOffsetsAndStride();
+
+    std::vector<BufferElement> m_elements;
+    usize m_stride = 0;
+}; // class Buffer Layout
+
+class VertexBuffer {
+public:
+    static VertexBuffer* New( usize size, const void* data );
+public: // Getters
+    // Get byte size of buffer
+    usize Size() const { return m_size; }
+    // Get GPU ID
+    RendererID ID() const { return m_id; }
+    // Get pointer to buffer layout, can be a nullptr so check
+    const BufferLayout* GetLayout() const { return &m_bufferLayout; }
+
+public: // NOTE: virtual
+    // Bind buffer for use
+    virtual void UseBuffer() = 0;
+    // Set the memory layout of this buffer
+    virtual void SetLayout( BufferLayout layout ) = 0;
+
+    virtual ~VertexBuffer() = default;
+protected:
+    usize m_size;
+    RendererID m_id;
+    BufferLayout m_bufferLayout;
+}; // class Vertex Buffer
+
+class IndexBuffer {
+public:
+    static IndexBuffer* New( BufferDataType type, usize count, const void* data );
+
+public: // Getters
+    // Get byte size of buffer
+    usize Size() const { return m_size; }
+    // Get count of indices
+    usize Count() const { return m_count; }
+    // Get GPU ID
+    RendererID ID() const { return m_id; }
+    // Get data type of indices
+    BufferDataType DataType() const { return m_type; }
+
+public: // NOTE: virtual
+    // Bind buffer for use
+    virtual void UseBuffer() = 0;
+
+    virtual ~IndexBuffer() = default;
+protected:
+    usize m_size;
+    usize m_count;
+    RendererID m_id;
+    BufferDataType m_type;
+}; // class Index Buffer
+
+class VertexArray {
+public:
+    static VertexArray* New();
+public: // Getters
+    RendererID ID() const { return m_id; }
+    usize VertexBufferCount() const { return m_vertexBuffers.size(); }
+    bool HasIndexBuffer() const { return m_indexBuffer != nullptr; }
+    const std::vector<VertexBuffer*>& GetVertexBuffers() const { return m_vertexBuffers; }
+    const IndexBuffer* GetIndexBuffer() const { return m_indexBuffer; }
+
+public: // NOTE: virtual
+    // Bind array for use
+    virtual void UseArray() = 0;
+    // Unbind array
+    virtual void Unbind() = 0;
+    // Add a vertex buffer to this vertex array, this assumes that the vertex array is in use
+    virtual void AddVertexBuffer( VertexBuffer* vertexBuffer ) = 0;
+    // Set an index buffer to this vertex array, this assumes that the vertex array is in use
+    virtual void SetIndexBuffer( IndexBuffer* indexBuffer ) = 0;
+
+    virtual ~VertexArray() = default;
+protected:
+    std::vector<VertexBuffer*> m_vertexBuffers;
+    IndexBuffer* m_indexBuffer;
+    RendererID m_id;
+}; // class Vertex Array
+
+class Shader {
 public:
 
     // Create new shader from vertex + fragment source
     static Shader* New( const std::string& vertex, const std::string& fragment );
 
-    RendererID GetID() { return m_id; }
+public: // Getters
+    RendererID ID() { return m_id; }
     bool CompilationSucceeded() { return m_success; }
 
-public: // virtual
+public: // NOTE: virtual
     virtual void UseShader() = 0;
     virtual bool GetUniform( const std::string& uniformName, UniformID& id ) = 0;
 
@@ -100,7 +266,7 @@ public:
     // Sets internal font atlas pointer to this font atlas
     void UseFontAtlas( const Core::FontAtlas& fontAtlas );
     // Sets internal font atlas pointer to this font atlas
-void UseFontAtlas( const Core::FontAtlas* fontAtlas );
+    void UseFontAtlas( const Core::FontAtlas* fontAtlas );
     // Set text color, RGB 0.0-1.0
     void SetTextColor( const glm::vec3& color );
     // Set text anchor on x axis
@@ -154,10 +320,14 @@ protected:
     glm::vec2 m_textScreenPosition = Core::UI::DEFAULT_TEXT_POSITION;
 
     Shader* m_fontShader = nullptr;
-    UniformID m_fontColorID, m_fontProjID, m_fontTransformID, m_fontCoordsID;
+    UniformID m_fontColorID, m_fontTransformID, m_fontCoordsID;
 
     Shader* m_boundsShader = nullptr;
-    UniformID m_boundsProjID, m_boundsTransformID;
+    UniformID m_boundsTransformID;
+
+    UniformBuffer* m_matrices2D = nullptr;
+
+    VertexArray* m_fontMesh = nullptr;
 public:
     OpenGLSwapBuffer OpenGLSwapBufferFn;
 

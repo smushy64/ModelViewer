@@ -204,8 +204,7 @@ void RendererOpenGL::SetViewport( const glm::vec2& viewport ) {
     m_viewport = viewport;
     glViewport( 0, 0, (GLsizei)viewport.x, (GLsizei)viewport.y );
     glm::mat4 uiProj = glm::ortho( 0.0f, viewport.x, 0.0f, viewport.y );
-    m_fontShader->UniformMat4( m_fontProjID, uiProj );
-    m_boundsShader->UniformMat4( m_boundsProjID, uiProj );
+    m_matrices2D->BufferData( sizeof(glm::mat4), glm::value_ptr(uiProj) );
 }
 
 void OpenGLDebugMessageCallback(
@@ -223,6 +222,10 @@ bool RendererOpenGL::Initialize() {
     glEnable( GL_DEBUG_OUTPUT );
     glDebugMessageCallback( OpenGLDebugMessageCallback, nullptr );
 #endif
+
+    auto ortho = glm::ortho( 0.0f, DEFAULT_WINDOW_WIDTH, 0.0f, DEFAULT_WINDOW_HEIGHT );
+    m_matrices2D = UniformBuffer::New( sizeof( glm::mat4 ), glm::value_ptr(ortho) );
+    m_matrices2D->SetBindingPoint( 0 );
 
     /* Create Font Mesh */ {
         f32 fontVertices[] = {
@@ -289,13 +292,11 @@ bool RendererOpenGL::Initialize() {
         m_fontShader->GetUniform( "u_transform", m_fontTransformID );
         m_fontShader->GetUniform( "u_color", m_fontColorID );
         m_fontShader->GetUniform( "u_fontCoords", m_fontCoordsID );
-        m_fontShader->GetUniform( "u_viewProjection", m_fontProjID );
         UniformID texSamplerID;
         m_fontShader->GetUniform( "u_texture", texSamplerID );
 
         m_fontShader->UniformInt( texSamplerID, 0 );
         m_fontShader->UniformVec4( m_fontColorID, m_textColor );
-        m_fontShader->UniformMat4( m_fontProjID, glm::ortho( 0.0f, DEFAULT_WINDOW_WIDTH, 0.0f, DEFAULT_WINDOW_HEIGHT ) );
     }
 
     /* Create Bounds Mesh */ {
@@ -361,8 +362,6 @@ bool RendererOpenGL::Initialize() {
 
         m_boundsShader->UseShader();
         m_boundsShader->GetUniform( "u_transform", m_boundsTransformID );
-        m_boundsShader->GetUniform( "u_viewProjection", m_boundsProjID );
-        m_boundsShader->UniformMat4( m_boundsProjID, glm::ortho( 0.0f, DEFAULT_WINDOW_WIDTH, 0.0f, DEFAULT_WINDOW_HEIGHT ) );
     }
 
     return true;
@@ -451,6 +450,7 @@ RendererOpenGL::~RendererOpenGL() {
     glDeleteBuffers( 4, bo );
     delete( m_fontShader );
     delete( m_boundsShader );
+    delete( m_matrices2D );
 }
 
 bool CompileShader( const char* source, i32 sourceLen, GLenum shaderType, RendererID& shaderID ) {
@@ -561,4 +561,168 @@ ShaderOpenGL::ShaderOpenGL( const std::string& vertex, const std::string& fragme
 
 ShaderOpenGL::~ShaderOpenGL() {
     glDeleteProgram( m_id );
+}
+
+UniformBufferOpenGL::UniformBufferOpenGL( usize size, void* data ) {
+    glGenBuffers( 1, &m_bufferID );
+    glBindBuffer( GL_UNIFORM_BUFFER, m_bufferID );
+    glBufferData(
+        GL_UNIFORM_BUFFER,
+        (GLsizeiptr)size,
+        data,
+        GL_STATIC_DRAW // TODO: usage
+    );
+    m_size = size;
+}
+
+void UniformBufferOpenGL::BufferData( usize size, void* data ) {
+#ifdef DEBUG
+    if( size != m_size ) {
+        LOG_WARN("OpenGL > Attempted to buffer data with a size that does not match the buffer size!");
+        return;
+    }
+#endif
+    glBindBuffer( GL_UNIFORM_BUFFER, m_bufferID );
+    glBufferData(
+        GL_UNIFORM_BUFFER,
+        (GLsizeiptr)size,
+        data,
+        GL_STATIC_DRAW // TODO: usage
+    );
+}
+void UniformBufferOpenGL::BufferSubData( usize offset, usize size, void* data ) {
+#ifdef DEBUG
+    if( offset + size > m_size ) {
+        LOG_WARN("OpenGL > Attempted to buffer sub data with a size that is larger than the buffer size!");
+        return;
+    }
+#endif
+    glBindBuffer( GL_UNIFORM_BUFFER, m_bufferID );
+    glBufferSubData(
+        GL_UNIFORM_BUFFER,
+        (GLintptr)offset,
+        (GLsizeiptr)size,
+        data
+    );
+}
+void UniformBufferOpenGL::SetBindingPoint( usize point ) {
+    glBindBufferBase( GL_UNIFORM_BUFFER, point, m_bufferID );
+}
+void UniformBufferOpenGL::SetBindingPointRange( usize offset, usize size, usize point ) {
+#ifdef DEBUG
+    if( offset + size > m_size ) {
+        LOG_WARN("OpenGL > Attempted to set binding point range that is larger than the buffer size!");
+        return;
+    }
+#endif
+    glBindBufferRange(
+        GL_UNIFORM_BUFFER,
+        point,
+        m_bufferID,
+        offset,
+        size
+    );
+}
+
+UniformBufferOpenGL::~UniformBufferOpenGL() {
+    glDeleteBuffers( 1, &m_bufferID );
+}
+
+u32 Platform::BufferDataTypeToGLenum( BufferDataType dataType ) {
+    switch( dataType ) {
+        case BufferDataType::FLOAT:  return GL_FLOAT;
+        case BufferDataType::DOUBLE: return GL_DOUBLE;
+        case BufferDataType::UBYTE:  return GL_UNSIGNED_BYTE;
+        case BufferDataType::USHORT: return GL_UNSIGNED_SHORT;
+        case BufferDataType::UINT:   return GL_UNSIGNED_INT;
+        case BufferDataType::BYTE:   return GL_BYTE;
+        case BufferDataType::SHORT:  return GL_SHORT;
+        case BufferDataType::INT:    return GL_INT;
+        case BufferDataType::BOOL:   return GL_BOOL;
+        default: return 0;
+    }
+}
+
+VertexBufferOpenGL::VertexBufferOpenGL( usize size, const void* data ) {
+    m_size = size;
+    glGenBuffers( 1, &m_id );
+    glBindBuffer( GL_ARRAY_BUFFER, m_id );
+    glBufferData(
+        GL_ARRAY_BUFFER,
+        m_size,
+        data,
+        GL_STATIC_DRAW // TODO: usage?
+    );
+}
+
+void VertexBufferOpenGL::UseBuffer() {
+    glBindBuffer( GL_ARRAY_BUFFER, m_id );
+}
+void VertexBufferOpenGL::SetLayout( BufferLayout layout ) {
+    m_bufferLayout = layout;
+    u32 index = 0;
+    for( auto const& element : m_bufferLayout.Elements() ) {
+        GLboolean normalized;
+        if( element.normalized ) {
+            normalized = GL_TRUE;
+        } else {
+            normalized = GL_FALSE;
+        }
+        glVertexAttribPointer(
+            index,
+            element.size,
+            BufferDataTypeToGLenum( element.dataType ),
+            normalized,
+            m_bufferLayout.Stride(),
+            (const void*)element.offset
+        );
+        glEnableVertexAttribArray(index);
+        index++;
+    }
+}
+VertexBufferOpenGL::~VertexBufferOpenGL() {
+    glDeleteBuffers( 1, &m_id );
+}
+
+IndexBufferOpenGL::IndexBufferOpenGL( BufferDataType type, usize count, const void* data ) {
+    m_type  = type;
+    m_count = count;
+    m_size = count * BufferDataTypeByteSize( m_type );
+    glGenBuffers( 1, &m_id );
+    glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, m_id );
+    glBufferData(
+        GL_ELEMENT_ARRAY_BUFFER,
+        m_size,
+        data,
+        GL_STATIC_DRAW
+    );
+}
+IndexBufferOpenGL::~IndexBufferOpenGL() {
+    glDeleteBuffers( 1, &m_id );
+}
+void IndexBufferOpenGL::UseBuffer() {
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_id);
+}
+
+VertexArrayOpenGL::VertexArrayOpenGL() {
+    glGenVertexArrays( 1, &m_id );
+}
+VertexArrayOpenGL::~VertexArrayOpenGL() {
+    for( auto& vbuffer : m_vertexBuffers ) {
+        delete(vbuffer);
+    }
+    delete(m_indexBuffer);
+    glDeleteVertexArrays( 1, &m_id );
+}
+void VertexArrayOpenGL::UseArray() {
+    glBindVertexArray(m_id);
+}
+void VertexArrayOpenGL::Unbind() {
+    glBindVertexArray(0);
+}
+void VertexArrayOpenGL::AddVertexBuffer( VertexBuffer* vertexBuffer ) {
+    m_vertexBuffers.push_back(vertexBuffer);
+}
+void VertexArrayOpenGL::SetIndexBuffer( IndexBuffer* indexBuffer ) {
+    m_indexBuffer = indexBuffer;
 }

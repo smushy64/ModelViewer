@@ -1,7 +1,11 @@
 #version 460 core
 layout(location = 0) in vec4 v_vertex;
 
-uniform mat4 u_viewProjection;
+layout (std140, binding = 0) uniform Matrices {
+    mat4 u_viewProjection;
+};
+
+// uniform mat4 u_viewProjection;
 uniform mat4 u_transform;
 
 out vec2 v2f_uv;

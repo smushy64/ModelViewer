@@ -24,7 +24,7 @@ enum class ElementState {
 
 const char* ElementStateToString( ElementState state );
 
-typedef void (*ButtonCallback)();
+typedef void (*ButtonCallback)(void*);
 
 class Label {
 public:
@@ -108,8 +108,11 @@ public: // NOTE: Setters
     void SetText( const std::string& text ) { m_text = text; UpdateBounds(); }
     // Set callback to run when button is pressed
     void SetCallback( ButtonCallback callback ) { m_callback = callback; }
-private:
+    // Set pointer to parameter for callback function
+    void SetCallbackParameter( void* param ) { m_callbackParameter = param; }
+    // Update Bounding Box
     void UpdateBounds();
+private:
     void UpdateScreenSpaceBounds();
     f32           m_scale   = DEFAULT_TEXT_SCALE;
     Core::XAnchor m_anchorX = DEFAULT_TEXT_X_ANCHOR;
@@ -131,6 +134,7 @@ private:
     const Core::FontAtlas* m_fontPtr = nullptr;
 
     ButtonCallback m_callback = nullptr;
+    void* m_callbackParameter = nullptr;
 }; // Class Label Button
 
 } // namespace Core::UI

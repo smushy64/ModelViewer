@@ -18,46 +18,16 @@ bool LoadDefaultFont();
 
 struct AppUI {
     Core::UI::Label*       versionLabel;
-    Core::UI::LabelButton* testButton;
+    Core::UI::LabelButton* loadButton;
+    Core::UI::LabelButton* quitButton;
 };
 AppUI USER_INTERFACE;
 void UICleanUp( AppUI ui );
-
-void InitializeApp( Core::AppData& data ) {
-    if( !Platform::InitializeTimer() ) {
-        LOG_ERROR("App > Failed to initialize timer!");
-        data.isRunning = false;
-        return;
-    }
-
-    if(!data.renderer->Initialize()) {
-        LOG_ERROR("App > Failed to initialize renderer!");
-        data.isRunning = false;
-        return;
-    }
-
-    if( !LoadDefaultFont() ) {
-        LOG_ERROR( "App > Failed to load default font!" );
-        data.isRunning = false;
-        return;
-    }
-
-    USER_INTERFACE.versionLabel = new Core::UI::Label( PROGRAM_TITLE, DEFAULT_FONT );
-    USER_INTERFACE.versionLabel->SetAnchorY( Core::YAnchor::BOTTOM );
-    USER_INTERFACE.versionLabel->SetPosition( glm::vec2(0.01f, 0.0125f) );
-    USER_INTERFACE.versionLabel->SetScale( 0.35f );
-
-    USER_INTERFACE.testButton = new Core::UI::LabelButton( "Test Button", DEFAULT_FONT );
-    USER_INTERFACE.testButton->SetAnchors( Core::XAnchor::CENTER, Core::YAnchor::CENTER );
-    USER_INTERFACE.testButton->SetPosition( glm::vec2( 0.5f, 0.5f ) );
-
-    data.renderer->LoadFontAtlasBitmap( DEFAULT_FONT );
-    data.renderer->UseFontAtlas( DEFAULT_FONT );
-    data.renderer->SetClearColor( glm::vec4( 0.2f ) );
-}
+void InitializeApp( Core::AppData& data );
 
 void UpdateApp( Core::AppData& data ) {
-    USER_INTERFACE.testButton->UpdateState( data.input );
+    USER_INTERFACE.loadButton->UpdateState( data.input );
+    USER_INTERFACE.quitButton->UpdateState( data.input );
 }
 
 void RenderScene( Platform::Renderer* ) {
@@ -65,13 +35,13 @@ void RenderScene( Platform::Renderer* ) {
 
 void RenderUI( Platform::Renderer* renderer ) {
     renderer->RenderText( *USER_INTERFACE.versionLabel );
-    renderer->RenderTextButton( *USER_INTERFACE.testButton );
+    renderer->RenderTextButton( *USER_INTERFACE.loadButton );
+    renderer->RenderTextButton( *USER_INTERFACE.quitButton );
 }
 
 void RenderApp( Platform::Renderer* renderer ) {
     renderer->ClearBuffer();{
 
-        // render scene
         RenderScene( renderer );
         RenderUI( renderer );
 
@@ -114,6 +84,9 @@ void HandleEvents( Core::AppData& data ) {
             WindowResizeEvent* resizeEvent = (WindowResizeEvent*)event;
             data.screenResolution = resizeEvent->GetResolution();
             data.renderer->SetViewport( data.screenResolution );
+
+            USER_INTERFACE.loadButton->UpdateBounds(); 
+            USER_INTERFACE.quitButton->UpdateBounds(); 
         } break;
         case Event::Type::KEY_DOWN: {
             KeyDown* keydown = (KeyDown*)event;
@@ -164,5 +137,64 @@ bool LoadDefaultFont() {
 void UICleanUp( AppUI ui ) {
     LOG_INFO( "App > Cleaning up UI . . ." );
     delete( ui.versionLabel );
-    delete( ui.testButton );
+    delete( ui.loadButton );
+    delete( ui.quitButton );
+}
+
+void QuitCallback( void* param ) {
+
+#ifdef DEBUG
+    if( param == nullptr ) {
+        LOG_ERROR( "Quit Button Callback > Parameter is null!" );
+        return;
+    }
+#endif
+
+    Core::AppData* appData = (Core::AppData*)param;
+    appData->isRunning = false;
+}
+
+void InitializeApp( Core::AppData& data ) {
+
+    if( !Platform::InitializeTimer() ) {
+        LOG_ERROR("App > Failed to initialize timer!");
+        data.isRunning = false;
+        return;
+    }
+
+    if(!data.renderer->Initialize()) {
+        LOG_ERROR("App > Failed to initialize renderer!");
+        data.isRunning = false;
+        return;
+    }
+
+    if( !LoadDefaultFont() ) {
+        LOG_ERROR( "App > Failed to load default font!" );
+        data.isRunning = false;
+        return;
+    }
+
+    USER_INTERFACE.versionLabel = new Core::UI::Label( PROGRAM_TITLE, DEFAULT_FONT );
+    USER_INTERFACE.versionLabel->SetAnchorY( Core::YAnchor::BOTTOM );
+    USER_INTERFACE.versionLabel->SetPosition( glm::vec2(0.01f, 0.0125f) );
+    USER_INTERFACE.versionLabel->SetScale( 0.35f );
+
+    f32 menuXOffset = 0.99f;
+    f32 menuScale = 0.65f;
+
+    USER_INTERFACE.loadButton = new Core::UI::LabelButton( "Load Mesh", DEFAULT_FONT );
+    USER_INTERFACE.loadButton->SetAnchorX( Core::XAnchor::RIGHT );
+    USER_INTERFACE.loadButton->SetPosition( glm::vec2( menuXOffset, 0.1f ) );
+    USER_INTERFACE.loadButton->SetScale( menuScale );
+
+    USER_INTERFACE.quitButton = new Core::UI::LabelButton( "Quit Program", DEFAULT_FONT );
+    USER_INTERFACE.quitButton->SetAnchorX( Core::XAnchor::RIGHT );
+    USER_INTERFACE.quitButton->SetPosition( glm::vec2( menuXOffset, 0.05f ) );
+    USER_INTERFACE.quitButton->SetScale( menuScale );
+    USER_INTERFACE.quitButton->SetCallback( QuitCallback );
+    USER_INTERFACE.quitButton->SetCallbackParameter( (void*)&data );
+
+    data.renderer->LoadFontAtlasBitmap( DEFAULT_FONT );
+    data.renderer->UseFontAtlas( DEFAULT_FONT );
+    data.renderer->SetClearColor( glm::vec4( 0.15f ) );
 }

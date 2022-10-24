@@ -27,8 +27,8 @@ void LabelButton::UpdateState( const Core::Input& input ) {
             m_elementState = UI::ElementState::PRESSED;
             if( lastState != m_elementState ) {
                 if( m_callback != nullptr ) {
-                    m_callback();
-                }
+                    m_callback(m_callbackParameter);
+            }
             }
         } else {
             m_elementState = UI::ElementState::HOVERED;

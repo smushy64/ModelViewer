@@ -1,7 +1,9 @@
 ## TODO
 
 ### Renderer Improvements
-- [ ] Uniform Block Buffer
+- [x] Update Text Button Bounding Box on screen resolution change
+- [x] Uniform Block Buffer
+- [ ] Model loading abstraction
 
 ### UI - Completed 10/22/2022
 - [x] Delta time
@@ -31,7 +33,7 @@
   - [x] Load font atlas on GPU
   - [x] Render text
 
-### > Completed - 9/30/2022
+### > Completed 9/30/2022
 
 - [x] Windows x64 window creation
 - [x] Loading file from disk abstraction

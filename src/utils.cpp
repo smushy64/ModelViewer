@@ -22,7 +22,7 @@ void Utils::EraseSubString( std::string& string, const std::string& subString ) 
     }
 }
 
-std::wstring Utils::StringtoWString( std::string const& string ) {
+std::wstring Utils::StringtoWString( const std::string& string ) {
     isize strLen = mbstowcs( nullptr, &string[0], 0 );
     if( strLen == -1 ) {
         LOG_ERROR("Failed to convert std::string to std::wstring. Invalid source str!");

@@ -5,6 +5,7 @@
 #include "mousecode.hpp"
 #include <glm/vec2.hpp>
 #include <queue>
+#include "platform/io.hpp"
 
 namespace Core {
 
@@ -26,6 +27,8 @@ public:
 
         MOUSE_POSITION, // done
         MOUSE_SCROLL,   // done
+
+        FILE_LOADED
     };
 
     Type GetType()   const { return m_type; }
@@ -182,6 +185,17 @@ public:
     virtual void PrintEvent() override { LOG_DEBUG("Window Move Event: (%i, %i)", m_x, m_y); }
 private:
     i32 m_x, m_y;
+};
+
+// NOTE: FILE LOADED
+
+class FileLoadedEvent : public Event {
+public:
+    FileLoadedEvent( Platform::File file ) : m_file(file) { m_type = Type::FILE_LOADED; }
+    virtual void PrintEvent() override { LOG_DEBUG("File Load Event: %s", m_file.filePath.c_str()); }
+    Platform::File GetFile() { return m_file; }
+private:
+    Platform::File m_file;
 };
 
 } // namespace Core

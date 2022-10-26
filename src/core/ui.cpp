@@ -2,6 +2,7 @@
 #include "debug.hpp"
 #include "collision.hpp"
 #include "global.hpp"
+#include "platform/pointer.hpp"
 using namespace Core::UI;
 
 Label::Label( const std::string& text, const Core::FontAtlas& font )
@@ -23,12 +24,13 @@ void LabelButton::UpdateState( const Core::Input& input ) {
     UI::ElementState lastState = m_elementState;
     
     if( isHovering ) {
+        Platform::SetPointerStyle( Platform::PointerStyle::HAND );
         if( input.mouseButtons[(usize)Core::MouseCode::LEFT] ) {
             m_elementState = UI::ElementState::PRESSED;
             if( lastState != m_elementState ) {
                 if( m_callback != nullptr ) {
                     m_callback(m_callbackParameter);
-            }
+                }
             }
         } else {
             m_elementState = UI::ElementState::HOVERED;

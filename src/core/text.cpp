@@ -1,3 +1,4 @@
+#include "platform/renderer.hpp"
 #include "text.hpp"
 #include "debug.hpp"
 #include <sstream>
@@ -12,7 +13,7 @@
 #include "stb/stb_truetype.h"
 
 // TODO: rewrite this to be more sensible
-std::string FormatFontName( const char* fontPath ) {
+std::string FormatFontName( const std::string& fontPath ) {
     std::stringstream stream(fontPath);
     std::string segment;
     std::vector<std::string> seglist;
@@ -46,7 +47,7 @@ bool Core::CreateFontAtlas(
     // zero result
     result = {};
     result.name = FormatFontName( fontFile.filePath );
-    result.textureID = U32_MAX; // max u32 so that i know that it's uninitialized
+    result.texture = nullptr;
     if( settings.atlasScale == 0 ) {
         result.atlasScale = DEFAULT_ATLAS_SCALE;
     } else {

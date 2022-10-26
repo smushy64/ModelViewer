@@ -2,6 +2,9 @@
 #include "alias.hpp"
 #include "debug.hpp"
 
+#include <locale>
+#include <codecvt>
+
 std::wstring Utils::CStringToWString( const char* cstring ) {
     isize strLen = mbstowcs( nullptr, cstring, 0 );
     if( strLen == -1 ) {
@@ -33,4 +36,10 @@ std::wstring Utils::StringtoWString( const std::string& string ) {
     mbstowcs( &wstring[0], &string[0], wstring.size() );
 
     return wstring;
+}
+
+std::string Utils::WStringToString( const std::wstring& wstring ) {
+    using convert_type = std::codecvt_utf8<wchar_t>;
+    std::wstring_convert<convert_type, wchar_t> converter;
+    return converter.to_bytes( wstring );
 }

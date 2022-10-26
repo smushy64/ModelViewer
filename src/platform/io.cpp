@@ -7,6 +7,7 @@ void Platform::FreeFile( File file ) {
     if(file.contents) {
         free( file.contents );
     }
+    file.size = 0;
 }
 
 Platform::TextFile Platform::LoadTextFile( const char* filePath ) {

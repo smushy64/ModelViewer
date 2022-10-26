@@ -21,3 +21,4 @@
 
 typedef u32 RendererID;
 typedef i32 UniformID;
+typedef usize VertexArrayID;

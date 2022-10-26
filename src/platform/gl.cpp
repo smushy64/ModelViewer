@@ -7,205 +7,30 @@
 
 using namespace Platform;
 
-const char* FONT_VERT_PATH = "./resources/shaders/font/font.glslVert";
-const char* FONT_FRAG_PATH = "./resources/shaders/font/font.glslFrag";
+// void RendererOpenGL::RenderBoundingBox( const glm::vec4& bounds ) {
+//     if( !m_renderBoundingBoxes ) {
+//         return;
+//     }
 
-const char* BOUNDS_VERT_PATH = "./resources/shaders/bounds/bounds.glslVert";
-const char* BOUNDS_FRAG_PATH = "./resources/shaders/bounds/bounds.glslFrag";
+//     glm::mat4 transform = glm::scale(
+//         glm::translate( glm::mat4(1.0f), glm::vec3(
+//             bounds.x,
+//             bounds.y,
+//             0.0f
+//         ) ),
+//         glm::vec3( bounds.z, bounds.w, 0.0f )
+//     );
 
-const GLint DEFAULT_UNPACK_ALIGNMENT = 4;
+//     m_boundsShader->UseShader();
+//     m_boundsShader->UniformMat4( m_boundsTransformID, transform );
 
-void RendererOpenGL::RenderBoundingBox( const glm::vec4& bounds ) {
-    if( !m_renderBoundingBoxes ) {
-        return;
-    }
+//     glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 
-    glm::mat4 transform = glm::scale(
-        glm::translate( glm::mat4(1.0f), glm::vec3(
-            bounds.x,
-            bounds.y,
-            0.0f
-        ) ),
-        glm::vec3( bounds.z, bounds.w, 0.0f )
-    );
+//     GetVertexArray( m_boundsVAID )->UseArray();
+//     Renderer::RenderVertexArray( m_boundsVAID );
 
-    m_boundsShader->UseShader();
-    m_boundsShader->UniformMat4( m_boundsTransformID, transform );
-
-    glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
-
-    glBindVertexArray( m_boundsVAO );
-    glDrawElements(
-        GL_TRIANGLES,
-        6,
-        GL_UNSIGNED_INT,
-        nullptr
-    );
-
-    glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
-}
-
-void RendererOpenGL::SetTextColor( const glm::vec4& color ) {
-    m_fontShader->UniformVec4( m_fontColorID, color );
-    m_textColor = color;
-}
-void RendererOpenGL::RenderText( const std::string& text ) {
-    if( m_fontAtlas == nullptr ) {
-        LOG_ERROR( "OpenGL > Failed to render text, font atlas pointer is null!" );
-        return;
-    }
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-    m_fontShader->UseShader();
-
-    glActiveTexture( GL_TEXTURE0 );
-    glBindTexture( GL_TEXTURE_2D, m_fontAtlas->textureID );
-
-    glBindVertexArray( m_fontVAO );
-    
-    f32 originX = m_textPosition.x;
-    f32 yOffset = 0.0f;
-    switch(m_textXAnchor) {
-        case Core::XAnchor::CENTER: {
-            std::string::const_iterator iter;
-            f32 stringWidth = 0.0f;
-            for( iter = text.begin(); iter < text.end(); iter++ ) {
-                if( m_fontAtlas->characterMetrics.count(*iter) == 0 ) {
-                    // skip characters not found in character map
-                    LOG_WARN("OpenGL > Character \'%c\' not found in font \"%s\"",
-                        *iter, m_fontAtlas->name.c_str()
-                    );
-                    continue;
-                }
-                auto character = m_fontAtlas->characterMetrics.at( *iter );
-                stringWidth += character.advance * m_textScale;
-            }
-            originX -= stringWidth / 2.0f;
-        } break;
-        case Core::XAnchor::RIGHT: {
-            std::string::const_iterator iter;
-            f32 stringWidth = 0.0f;
-            for( iter = text.begin(); iter < text.end(); iter++ ) {
-                if( m_fontAtlas->characterMetrics.count(*iter) == 0 ) {
-                    // skip characters not found in character map
-                    LOG_WARN("OpenGL > Character \'%c\' not found in font \"%s\"",
-                        *iter, m_fontAtlas->name.c_str()
-                    );
-                    continue;
-                }
-                auto character = m_fontAtlas->characterMetrics.at( *iter );
-                stringWidth += character.advance * m_textScale;
-            }
-            originX -= stringWidth;
-        } break;
-        default: break;
-    }
-
-    switch(m_textYAnchor) {
-        case Core::YAnchor::CENTER: {
-            yOffset = -((m_fontAtlas->pointSize / 2.0f) * m_textScale);
-        } break;
-        case Core::YAnchor::TOP: {
-            yOffset = -(m_fontAtlas->pointSize * m_textScale);
-        } break;
-        default: break;
-    }
-
-    std::string::const_iterator iter;
-    for( iter = text.begin(); iter < text.end(); iter++ ) {
-        if( m_fontAtlas->characterMetrics.count(*iter) == 0 ) {
-            // skip characters not found in character map
-            LOG_WARN("OpenGL > Character \'%c\' not found in font \"%s\"",
-                *iter, m_fontAtlas->name.c_str()
-            );
-            continue;
-        }
-        auto character = m_fontAtlas->characterMetrics.at( *iter );
-        RenderCharacter( character, glm::vec2(originX, yOffset) );
-        originX += character.advance * m_textScale;
-    }
-
-    glDisable(GL_BLEND);
-}
-void RendererOpenGL::RenderCharacter( const Core::CharMetrics& metrics, const glm::vec2& origin ) {
-    glm::vec3 characterScale = glm::vec3( metrics.width, metrics.height, 0.0f ) * m_textScale;
-    glm::vec3 characterTranslate = glm::vec3(
-        origin.x + (metrics.leftBearing * m_textScale),
-        (m_textPosition.y + origin.y) - (metrics.topBearing * m_textScale),
-        0.0f
-    );
-
-    glm::mat4 transform = glm::scale(
-        glm::translate( glm::mat4(1.0f), characterTranslate ),
-        characterScale
-    );
-    m_fontShader->UniformMat4( m_fontTransformID, transform );
-
-    glm::vec4 fontCoords = glm::vec4(
-        metrics.atlasX,     // atlas x
-        metrics.atlasY,     // atlas y
-        metrics.atlasWidth, // width
-        metrics.atlasHeight // height
-    );
-
-    m_fontShader->UniformVec4( m_fontCoordsID, fontCoords );
-    glDrawElements(
-        GL_TRIANGLES,
-        6,
-        GL_UNSIGNED_INT,
-        nullptr
-    );
-}
-void RendererOpenGL::LoadFontAtlasBitmap( Core::FontAtlas& fontAtlas ) {
-    glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
-
-    glGenTextures( 1, &fontAtlas.textureID );
-    glBindTexture( GL_TEXTURE_2D, fontAtlas.textureID );
-    glTexImage2D(
-        GL_TEXTURE_2D,             // target
-        0,                         // mipmap level
-        GL_RED,                    // internal format
-        (i32)fontAtlas.atlasScale, // width
-        (i32)fontAtlas.atlasScale, // height
-        0,                         // border
-        GL_RED,                    // format
-        GL_UNSIGNED_BYTE,          // data type
-        fontAtlas.bitmap           // data
-    );
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    free(fontAtlas.bitmap);
-
-    glPixelStorei( GL_UNPACK_ALIGNMENT, DEFAULT_UNPACK_ALIGNMENT );
-}
-
-void RendererOpenGL::ClearBuffer() {
-    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-}
-
-void RendererOpenGL::SwapBuffer() {
-    OpenGLSwapBufferFn();
-}
-
-bool RendererOpenGL::LoadOpenGLFunctions( OpenGLLoader loader ) {
-    return gladLoadGLLoader( (GLADloadproc)loader ) != 0;
-}
-
-void RendererOpenGL::SetClearColor( const glm::vec4& clearColor ) {
-    m_clearColor = clearColor;
-    glClearColor( clearColor.r, clearColor.g, clearColor.b, clearColor.a );
-}
-
-void RendererOpenGL::SetViewport( const glm::vec2& viewport ) {
-    m_viewport = viewport;
-    glViewport( 0, 0, (GLsizei)viewport.x, (GLsizei)viewport.y );
-    glm::mat4 uiProj = glm::ortho( 0.0f, viewport.x, 0.0f, viewport.y );
-    m_matrices2D->BufferData( sizeof(glm::mat4), glm::value_ptr(uiProj) );
-}
+//     glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
+// }
 
 void OpenGLDebugMessageCallback(
     GLenum,        // source
@@ -217,155 +42,54 @@ void OpenGLDebugMessageCallback(
     const void*    // userParam
 );
 
-bool RendererOpenGL::Initialize() {
-#ifdef DEBUG
-    glEnable( GL_DEBUG_OUTPUT );
-    glDebugMessageCallback( OpenGLDebugMessageCallback, nullptr );
-#endif
+//     /* Create Bounds Mesh */ {
+//         f32 boundsVertices[] = {
+//             /*POSITION*/ 0.0f, 1.0f,
+//             /*POSITION*/ 1.0f, 1.0f,
+//             /*POSITION*/ 0.0f, 0.0f,
+//             /*POSITION*/ 1.0f, 0.0f
+//         };
+//         const usize BOUNDS_VERTEX_COUNT = 8;
+//         u32 boundsIndices[] = {
+//             0, 1, 2,
+//             1, 2, 3
+//         };
+//         const usize BOUNDS_INDEX_COUNT = 6;
 
-    auto ortho = glm::ortho( 0.0f, DEFAULT_WINDOW_WIDTH, 0.0f, DEFAULT_WINDOW_HEIGHT );
-    m_matrices2D = UniformBuffer::New( sizeof( glm::mat4 ), glm::value_ptr(ortho) );
-    m_matrices2D->SetBindingPoint( 0 );
+//         auto boundsVA = VertexArray::New();
+//         boundsVA->UseArray();
 
-    /* Create Font Mesh */ {
-        f32 fontVertices[] = {
-            /*POSITION*/ 0.0f, 1.0f, /*UV*/ 0.0f, 1.0f,
-            /*POSITION*/ 1.0f, 1.0f, /*UV*/ 1.0f, 1.0f,
-            /*POSITION*/ 0.0f, 0.0f, /*UV*/ 0.0f, 0.0f,
-            /*POSITION*/ 1.0f, 0.0f, /*UV*/ 1.0f, 0.0f
-        };
-        const usize FONT_VERTEX_COUNT = 16;
-        u32 fontIndices[] = {
-            0, 1, 2,
-            1, 2, 3
-        };
-        const usize FONT_INDEX_COUNT = 6;
+//         auto boundsVB = VertexBuffer::New( sizeof(f32) * BOUNDS_VERTEX_COUNT, &boundsVertices );
+//         boundsVB->SetLayout(BufferLayout({
+//             NewBufferElement( "Vertices", BufferDataType::FLOAT, BufferDataStructure::VEC2, false )
+//         }));
 
-        glGenVertexArrays( 1, &m_fontVAO );
-        glBindVertexArray( m_fontVAO );
+//         boundsVA->AddVertexBuffer( boundsVB );
 
-        glGenBuffers(1, &m_fontVBO);
-        glBindBuffer(GL_ARRAY_BUFFER, m_fontVBO);
-        glBufferData(
-            GL_ARRAY_BUFFER,
-            sizeof(f32) * FONT_VERTEX_COUNT,
-            &fontVertices,
-            GL_STATIC_DRAW
-        );
-        glVertexAttribPointer(
-            0, // index
-            4, // size
-            GL_FLOAT, // type
-            GL_FALSE, // normalized
-            sizeof(f32) * 4, // stride
-            0 // pointer
-        );
-        glEnableVertexAttribArray(0);
+//         auto boundsIB = IndexBuffer::New( BufferDataType::UINT, BOUNDS_INDEX_COUNT, &boundsIndices );
+//         boundsVA->SetIndexBuffer( boundsIB );
 
-        glGenBuffers( 1, &m_fontEBO );
-        glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, m_fontEBO );
-        glBufferData(
-            GL_ELEMENT_ARRAY_BUFFER,
-            sizeof(u32) * FONT_INDEX_COUNT,
-            &fontIndices,
-            GL_STATIC_DRAW
-        );
+//         m_boundsVAID = PushVertexArray( boundsVA );
+//     }
 
-    }
-
-    /* Create Font Shader */ {
-        TextFile fontVertSrc = LoadTextFile( FONT_VERT_PATH );
-        TextFile fontFragSrc = LoadTextFile( FONT_FRAG_PATH );
-        if( fontVertSrc.size == 0 || fontFragSrc.size == 0 ) {
-            LOG_ERROR("OpenGL > Failed to load font shaders from disk!");
-            return false;
-        }
+//     /* Create Bounds Shader */ {
+//         TextFile boundsVertSrc = LoadTextFile( BOUNDS_VERT_PATH );
+//         TextFile boundsFragSrc = LoadTextFile( BOUNDS_FRAG_PATH );
+//         if( boundsVertSrc.size == 0 || boundsFragSrc.size == 0 ) {
+//             LOG_ERROR("OpenGL > Failed to load bounds shaders from disk!");
+//             return false;
+//         }
         
-        m_fontShader = Shader::New( fontVertSrc.contents, fontFragSrc.contents );
+//         m_boundsShader = Shader::New( boundsVertSrc.contents, boundsFragSrc.contents );
 
-        if( !m_fontShader->CompilationSucceeded() ) {
-            LOG_ERROR( "OpenGL > Failed to create font shader!" );
-            return false;
-        }
+//         if( !m_boundsShader->CompilationSucceeded() ) {
+//             LOG_ERROR( "OpenGL > Failed to create bounds shader!" );
+//             return false;
+//         }
 
-        m_fontShader->UseShader();
-        m_fontShader->GetUniform( "u_transform", m_fontTransformID );
-        m_fontShader->GetUniform( "u_color", m_fontColorID );
-        m_fontShader->GetUniform( "u_fontCoords", m_fontCoordsID );
-        UniformID texSamplerID;
-        m_fontShader->GetUniform( "u_texture", texSamplerID );
-
-        m_fontShader->UniformInt( texSamplerID, 0 );
-        m_fontShader->UniformVec4( m_fontColorID, m_textColor );
-    }
-
-    /* Create Bounds Mesh */ {
-        f32 boundsVertices[] = {
-            /*POSITION*/ 0.0f, 1.0f,
-            /*POSITION*/ 1.0f, 1.0f,
-            /*POSITION*/ 0.0f, 0.0f,
-            /*POSITION*/ 1.0f, 0.0f
-        };
-        const usize BOUNDS_VERTEX_COUNT = 8;
-        u32 boundsIndices[] = {
-            0, 1, 2,
-            1, 2, 3
-        };
-        const usize BOUNDS_INDEX_COUNT = 6;
-
-        glGenVertexArrays( 1, &m_boundsVAO );
-        glBindVertexArray( m_boundsVAO );
-
-        glGenBuffers(1, &m_boundsVBO);
-        glBindBuffer(GL_ARRAY_BUFFER, m_boundsVBO);
-        glBufferData(
-            GL_ARRAY_BUFFER,
-            sizeof(f32) * BOUNDS_VERTEX_COUNT,
-            &boundsVertices,
-            GL_STATIC_DRAW
-        );
-        glVertexAttribPointer(
-            0, // index
-            2, // size
-            GL_FLOAT, // type
-            GL_FALSE, // normalized
-            sizeof(f32) * 2, // stride
-            0 // pointer
-        );
-        glEnableVertexAttribArray(0);
-
-        glGenBuffers( 1, &m_boundsEBO );
-        glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, m_boundsEBO );
-        glBufferData(
-            GL_ELEMENT_ARRAY_BUFFER,
-            sizeof(u32) * BOUNDS_INDEX_COUNT,
-            &boundsIndices,
-            GL_STATIC_DRAW
-        );
-
-    }
-
-    /* Create Bounds Shader */ {
-        TextFile boundsVertSrc = LoadTextFile( BOUNDS_VERT_PATH );
-        TextFile boundsFragSrc = LoadTextFile( BOUNDS_FRAG_PATH );
-        if( boundsVertSrc.size == 0 || boundsFragSrc.size == 0 ) {
-            LOG_ERROR("OpenGL > Failed to load bounds shaders from disk!");
-            return false;
-        }
-        
-        m_boundsShader = Shader::New( boundsVertSrc.contents, boundsFragSrc.contents );
-
-        if( !m_boundsShader->CompilationSucceeded() ) {
-            LOG_ERROR( "OpenGL > Failed to create bounds shader!" );
-            return false;
-        }
-
-        m_boundsShader->UseShader();
-        m_boundsShader->GetUniform( "u_transform", m_boundsTransformID );
-    }
-
-    return true;
-}
+//         m_boundsShader->UseShader();
+//         m_boundsShader->GetUniform( "u_transform", m_boundsTransformID );
+//     }
 
 #ifdef DEBUG
 
@@ -443,15 +167,132 @@ void OpenGLDebugMessageCallback(
 
 #endif
 
-RendererOpenGL::~RendererOpenGL() {
-    u32 vao[] = { m_fontVAO, m_boundsVAO };
-    glDeleteVertexArrays( 2, vao );
-    u32 bo[] = { m_fontVBO, m_fontEBO, m_boundsVBO, m_boundsEBO };
-    glDeleteBuffers( 4, bo );
-    delete( m_fontShader );
-    delete( m_boundsShader );
-    delete( m_matrices2D );
+void RendererAPIOpenGL::Initialize()  {
+#ifdef DEBUG
+    glEnable( GL_DEBUG_OUTPUT );
+    glDebugMessageCallback( OpenGLDebugMessageCallback, nullptr );
+#endif
 }
+void RendererAPIOpenGL::ClearBuffer() {
+    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+}
+void RendererAPIOpenGL::SwapBuffers() {
+    OpenGLSwapBufferFn();
+}
+void RendererAPIOpenGL::SetClearColor( const glm::vec4& color )  {
+    m_clearColor = color;
+    glClearColor( color.r, color.g, color.b, color.a );
+}
+void RendererAPIOpenGL::SetViewport( const glm::vec2& viewport ) {
+    m_viewport = viewport;
+    glViewport( 0, 0, (GLsizei)viewport.x, (GLsizei)viewport.y );
+}
+void RendererAPIOpenGL::EnableWireframe() {
+    m_wireframe = true;
+    glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+}
+void RendererAPIOpenGL::DisableWireframe() {
+    m_wireframe = false;
+    glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
+}
+void RendererAPIOpenGL::EnableBlending() {
+    m_blending = true;
+    glEnable( GL_BLEND );
+}
+void RendererAPIOpenGL::DisableBlending() {
+    m_blending = false;
+    glDisable( GL_BLEND );
+}
+void RendererAPIOpenGL::BlendEquation( BlendEq Color, BlendEq Alpha ) {
+    m_blendEqRGB   = Color;
+    m_blendEqAlpha = Alpha;
+    glBlendEquationSeparate(
+        RendererAPIOpenGL::BlendEqToGLenum( Color ),
+        RendererAPIOpenGL::BlendEqToGLenum( Alpha )
+    );
+}
+void RendererAPIOpenGL::SetConstantBlendColor( const glm::vec4& blendColor ) {
+    m_blendColor = blendColor;
+    glBlendColor( blendColor.r, blendColor.g, blendColor.b, blendColor.a );
+}
+bool RendererAPIOpenGL::LoadOpenGLFunctions( OpenGLLoader loader ) {
+    return gladLoadGLLoader( (GLADloadproc)loader ) != 0;
+}
+void RendererAPIOpenGL::BlendFunction(
+    BlendFactor srcColor,
+    BlendFactor dstColor,
+    BlendFactor srcAlpha,
+    BlendFactor dstAlpha
+) {
+    m_srcRGB   = srcColor;
+    m_srcAlpha = srcAlpha;
+    m_dstRGB   = dstColor;
+    m_dstAlpha = dstAlpha;
+    glBlendFuncSeparate(
+        BlendFactorToGLenum( srcColor ),
+        BlendFactorToGLenum( dstColor ),
+        BlendFactorToGLenum( srcAlpha ),
+        BlendFactorToGLenum( dstAlpha )
+    );
+}
+void RendererAPIOpenGL::SetPackAlignment( PixelAlignment alignment ) {
+    m_packAlignment = alignment;
+    glPixelStorei( GL_PACK_ALIGNMENT, (GLint)alignment );
+}
+void RendererAPIOpenGL::SetUnpackAlignment( PixelAlignment alignment ) {
+    m_unpackAlignment = alignment;
+    glPixelStorei( GL_UNPACK_ALIGNMENT, (GLint)alignment );
+}
+void RendererAPIOpenGL::SetActiveTexture( u32 activeTexture ) {
+    m_activeTexture = activeTexture;
+    glActiveTexture( GL_TEXTURE0 + activeTexture );
+}
+void RendererAPIOpenGL::DrawVertexArray( const VertexArray* va ) {
+    DEBUG_ASSERT_LOG( va->GetIndexBuffer() != nullptr, "OpenGL > Index Buffer is null!" );
+    glDrawElements(
+        GL_TRIANGLES,
+        va->GetIndexBuffer()->Count(),
+        BufferDataTypeToGLenum( va->GetIndexBuffer()->DataType() ),
+        nullptr
+    );
+}
+RendererAPIOpenGL::~RendererAPIOpenGL() {
+    
+}
+
+u32 RendererAPIOpenGL::BlendEqToGLenum( BlendEq glenum ) {
+    switch( glenum ) {
+        case BlendEq::SUB: return GL_FUNC_SUBTRACT;
+        case BlendEq::REV_SUB: return GL_FUNC_REVERSE_SUBTRACT;
+        case BlendEq::MIN: return GL_MIN;
+        case BlendEq::MAX: return GL_MAX;
+        default: return GL_FUNC_ADD;
+    }
+}
+u32 RendererAPIOpenGL::BlendFactorToGLenum( BlendFactor glenum ) {
+    switch( glenum ) {
+        case BlendFactor::ZERO: return GL_ZERO;
+        case BlendFactor::SRC_COLOR: return GL_SRC_COLOR;
+        case BlendFactor::ONE_MINUS_SRC_COLOR: return GL_ONE_MINUS_SRC_COLOR;
+        case BlendFactor::DST_COLOR: return GL_DST_COLOR;
+        case BlendFactor::ONE_MINUS_DST_COLOR: return GL_ONE_MINUS_DST_COLOR;
+        case BlendFactor::SRC_ALPHA: return GL_SRC_ALPHA;
+        case BlendFactor::ONE_MINUS_SRC_ALPHA: return GL_ONE_MINUS_SRC_ALPHA;
+        case BlendFactor::DST_ALPHA: return GL_DST_ALPHA;
+        case BlendFactor::ONE_MINUS_DST_ALPHA: return GL_ONE_MINUS_DST_ALPHA;
+        case BlendFactor::CONSTANT_COLOR: return GL_CONSTANT_COLOR;
+        case BlendFactor::ONE_MINUS_CONSTANT_COLOR: return GL_ONE_MINUS_CONSTANT_COLOR;
+        case BlendFactor::CONSTANT_ALPHA: return GL_CONSTANT_ALPHA;
+        case BlendFactor::ONE_MINUS_CONSTANT_ALPHA: return GL_ONE_MINUS_CONSTANT_ALPHA;
+        case BlendFactor::SRC_ALPHA_SATURATE: return GL_SRC_ALPHA_SATURATE;
+        case BlendFactor::SRC1_COLOR: return GL_SRC1_COLOR;
+        case BlendFactor::ONE_MINUS_SRC1_COLOR: return GL_ONE_MINUS_SRC1_COLOR;
+        case BlendFactor::SRC1_ALPHA: return GL_SRC1_ALPHA;
+        case BlendFactor::ONE_MINUS_SRC1_ALPHA: return GL_ONE_MINUS_SRC1_ALPHA;
+        default: return GL_ONE;
+    }
+}
+
 
 bool CompileShader( const char* source, i32 sourceLen, GLenum shaderType, RendererID& shaderID ) {
     shaderID = glCreateShader( shaderType );
@@ -510,10 +351,10 @@ bool LinkShaders( RendererID shaders[], usize count, RendererID& programID ) {
 
 }
 
-void ShaderOpenGL::UseShader() {
+void ShaderOpenGL::UseShader() const {
     glUseProgram( m_id );
 }
-bool ShaderOpenGL::GetUniform( const std::string& uniformName, UniformID& id ) {
+bool ShaderOpenGL::GetUniform( const std::string& uniformName, UniformID& id ) const {
     id = glGetUniformLocation( m_id, uniformName.c_str() );
     if( id < 0 ) {
         LOG_ERROR("OpenGL > Uniform \"%s\" could not be found!", uniformName.c_str() );
@@ -522,7 +363,6 @@ bool ShaderOpenGL::GetUniform( const std::string& uniformName, UniformID& id ) {
         return true;
     }
 }
-
 void ShaderOpenGL::UniformFloat( const UniformID& id, f32 value ) {
     glProgramUniform1f( m_id, id, value );
 }
@@ -541,7 +381,6 @@ void ShaderOpenGL::UniformVec4( const UniformID& id, const glm::vec4& value ) {
 void ShaderOpenGL::UniformMat4( const UniformID& id, const glm::mat4x4& value ) {
     glProgramUniformMatrix4fv( m_id, id, 1, GL_FALSE, glm::value_ptr(value) );
 }
-
 ShaderOpenGL::ShaderOpenGL( const std::string& vertex, const std::string& fragment ) {
     RendererID vert, frag;
     if(!CompileShader( vertex.c_str(), vertex.length(), GL_VERTEX_SHADER, vert )) {
@@ -558,7 +397,6 @@ ShaderOpenGL::ShaderOpenGL( const std::string& vertex, const std::string& fragme
         m_success = true;
     }
 }
-
 ShaderOpenGL::~ShaderOpenGL() {
     glDeleteProgram( m_id );
 }
@@ -574,7 +412,6 @@ UniformBufferOpenGL::UniformBufferOpenGL( usize size, void* data ) {
     );
     m_size = size;
 }
-
 void UniformBufferOpenGL::BufferData( usize size, void* data ) {
 #ifdef DEBUG
     if( size != m_size ) {
@@ -623,7 +460,6 @@ void UniformBufferOpenGL::SetBindingPointRange( usize offset, usize size, usize 
         size
     );
 }
-
 UniformBufferOpenGL::~UniformBufferOpenGL() {
     glDeleteBuffers( 1, &m_bufferID );
 }
@@ -654,8 +490,7 @@ VertexBufferOpenGL::VertexBufferOpenGL( usize size, const void* data ) {
         GL_STATIC_DRAW // TODO: usage?
     );
 }
-
-void VertexBufferOpenGL::UseBuffer() {
+void VertexBufferOpenGL::UseBuffer() const {
     glBindBuffer( GL_ARRAY_BUFFER, m_id );
 }
 void VertexBufferOpenGL::SetLayout( BufferLayout layout ) {
@@ -670,7 +505,7 @@ void VertexBufferOpenGL::SetLayout( BufferLayout layout ) {
         }
         glVertexAttribPointer(
             index,
-            element.size,
+            BufferDataStructureCount( element.dataStructure ),
             BufferDataTypeToGLenum( element.dataType ),
             normalized,
             m_bufferLayout.Stride(),
@@ -700,7 +535,7 @@ IndexBufferOpenGL::IndexBufferOpenGL( BufferDataType type, usize count, const vo
 IndexBufferOpenGL::~IndexBufferOpenGL() {
     glDeleteBuffers( 1, &m_id );
 }
-void IndexBufferOpenGL::UseBuffer() {
+void IndexBufferOpenGL::UseBuffer() const {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_id);
 }
 
@@ -714,10 +549,10 @@ VertexArrayOpenGL::~VertexArrayOpenGL() {
     delete(m_indexBuffer);
     glDeleteVertexArrays( 1, &m_id );
 }
-void VertexArrayOpenGL::UseArray() {
+void VertexArrayOpenGL::UseArray() const {
     glBindVertexArray(m_id);
 }
-void VertexArrayOpenGL::Unbind() {
+void VertexArrayOpenGL::Unbind() const {
     glBindVertexArray(0);
 }
 void VertexArrayOpenGL::AddVertexBuffer( VertexBuffer* vertexBuffer ) {
@@ -725,4 +560,116 @@ void VertexArrayOpenGL::AddVertexBuffer( VertexBuffer* vertexBuffer ) {
 }
 void VertexArrayOpenGL::SetIndexBuffer( IndexBuffer* indexBuffer ) {
     m_indexBuffer = indexBuffer;
+}
+
+u32 Platform::TextureFormatToGLenum( TextureFormat format ) {
+    switch( format ) {
+        case TextureFormat::DEPTH: return GL_DEPTH_COMPONENT;
+        case TextureFormat::DEPTH_STENCIL: return GL_DEPTH_STENCIL;
+        case TextureFormat::R: return GL_RED;
+        case TextureFormat::RG: return GL_RG;
+        case TextureFormat::RGB: return GL_RGB;
+        case TextureFormat::RGBA: return GL_RGBA;
+        default: return 0;
+    }
+}
+i32 Platform::TextureInternalFormatToGLint( TextureInternalFormat format ) {
+    switch( format ) {
+        case TextureInternalFormat::DEPTH: return GL_DEPTH_COMPONENT;
+        case TextureInternalFormat::DEPTH_STENCIL: return GL_DEPTH_STENCIL;
+        case TextureInternalFormat::R: return GL_RED;
+        case TextureInternalFormat::RG: return GL_RG;
+        case TextureInternalFormat::RGB: return GL_RGB;
+        case TextureInternalFormat::RGBA: return GL_RGBA;
+        default: return 0;
+    }
+}
+i32 Platform::TextureWrapModeToGLint( TextureWrapMode wrap ) {
+    switch( wrap ) {
+        case TextureWrapMode::CLAMP: return GL_CLAMP_TO_EDGE;
+        case TextureWrapMode::REPEAT: return GL_REPEAT;
+        case TextureWrapMode::MIRROR_REPEAT: return GL_MIRRORED_REPEAT;
+        case TextureWrapMode::MIRROR_CLAMP: return GL_MIRROR_CLAMP_TO_EDGE;
+        default: return 0;
+    }
+}
+i32 Platform::TextureFilterMinToGLint( TextureFilterMin filter ) {
+    switch( filter ) {
+        case TextureFilterMin::NEAREST: return GL_NEAREST;
+        case TextureFilterMin::LINEAR:  return GL_LINEAR;
+        case TextureFilterMin::LINEAR_MM_NEAREST:  return GL_LINEAR_MIPMAP_NEAREST;
+        case TextureFilterMin::LINEAR_MM_LINEAR:   return GL_LINEAR_MIPMAP_LINEAR;
+        case TextureFilterMin::NEAREST_MM_NEAREST: return GL_NEAREST_MIPMAP_NEAREST;
+        case TextureFilterMin::NEAREST_MM_LINEAR:  return GL_NEAREST_MIPMAP_LINEAR;
+        default: return 0;
+    }
+}
+i32 Platform::TextureFilterMagToGLint( TextureFilterMag filter ) {
+    switch( filter ) {
+        case TextureFilterMag::NEAREST: return GL_NEAREST;
+        case TextureFilterMag::LINEAR:  return GL_LINEAR;
+        default: return 0;
+    }
+}
+
+Texture2DOpenGL::Texture2DOpenGL(
+    const glm::ivec2& dimensions,
+    const void* data,
+    TextureFormat format,
+    TextureInternalFormat internalFormat,
+    BufferDataType dataType,
+    i32 mipmapLevel,
+    bool storeData
+) {
+    glGenTextures( 1, &m_id );
+    glBindTexture( GL_TEXTURE_2D, m_id );
+    glTexImage2D(
+        GL_TEXTURE_2D,
+        mipmapLevel,
+        TextureInternalFormatToGLint( internalFormat ),
+        dimensions.x,
+        dimensions.y,
+        0,
+        TextureFormatToGLenum( format ),
+        BufferDataTypeToGLenum( dataType ),
+        data
+    );
+    m_dimensions     = dimensions;
+    m_format         = format;
+    m_internalFormat = internalFormat;
+    m_dataType       = dataType;
+    m_mipmapLevel    = mipmapLevel;
+    m_storeData      = storeData;
+    if( storeData ) {
+        m_data = (void*)data;
+    }
+    m_horizontalWrap = TextureWrapMode::REPEAT;
+    m_verticalWrap   = TextureWrapMode::REPEAT;
+    m_minificationFilter  = TextureFilterMin::NEAREST_MM_LINEAR;
+    m_magnificationFilter = TextureFilterMag::LINEAR;
+}
+Texture2DOpenGL::~Texture2DOpenGL() {
+    if( m_storeData ) {
+        free( m_data );
+    }
+    glDeleteTextures( 1, &m_id );
+}
+void Texture2DOpenGL::SetHorizontalWrap( TextureWrapMode wrap ) {
+    m_horizontalWrap = wrap;
+    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, TextureWrapModeToGLint( wrap ) );
+}
+void Texture2DOpenGL::SetVerticalWrap( TextureWrapMode wrap ) {
+    m_verticalWrap = wrap;
+    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, TextureWrapModeToGLint( wrap ) );
+}
+void Texture2DOpenGL::SetMinificationFilter( TextureFilterMin filter ) {
+    m_minificationFilter = filter;
+    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, TextureFilterMinToGLint( filter ) );
+}
+void Texture2DOpenGL::SetMagnificationFilter( TextureFilterMag filter ) {
+    m_magnificationFilter = filter;
+    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, TextureFilterMagToGLint( filter ) );
+}
+void Texture2DOpenGL::UseTexture() const {
+    glBindTexture( GL_TEXTURE_2D, m_id );
 }

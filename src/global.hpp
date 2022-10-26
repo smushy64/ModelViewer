@@ -1,7 +1,8 @@
 #pragma once
-#include "platform/renderer.hpp"
+#include "alias.hpp"
+#include "platform/backend.hpp"
 
-inline Platform::Renderer::Backend CURRENT_BACKEND = Platform::Renderer::Backend::OPENGL;
+inline Platform::BackendAPI CURRENT_BACKEND = Platform::BackendAPI::OPENGL;
 
 inline f32 SCREEN_WIDTH  = 1280.0f;
 inline f32 SCREEN_HEIGHT = 720.0f;

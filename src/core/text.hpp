@@ -1,8 +1,13 @@
 #pragma once
+// #include "platform/renderer.hpp"
 #include "platform/io.hpp"
 #include "alias.hpp"
 #include <string>
 #include <map>
+
+namespace Platform {
+    class Texture2D;
+}
 
 namespace Core
 {
@@ -44,16 +49,16 @@ struct FontAtlas {
     f32 pointSize;
     // Pixel scale of atlas, uniform on x and y axis
     i32 atlasScale;
-    // GPU id of atlas texture
-    RendererID textureID;
     // Number of characters on atlas
     usize characterCount;
     // Name of font
     std::string name;
     // Metrics of each character on atlas
     std::map<char, CharMetrics> characterMetrics;
-    // Pointer to bitmap, set to null when bitmap loaded on GPU
+    // Pointer to bitmap, set to null when bitmap is uploaded to GPU
     u8* bitmap;
+    // GPU atlas texture
+    Platform::Texture2D* texture;
 };
 
 // Settings for creating a Font Atlas

@@ -1,9 +1,18 @@
 ## TODO
 
-### Renderer Improvements
+### Loading Meshes
+- [ ] Model Shader
+- [ ] Model loading abstraction
+
+### Renderer Improvements + Mouse Pointer + Load File pop up
 - [x] Update Text Button Bounding Box on screen resolution change
 - [x] Uniform Block Buffer
-- [ ] Model loading abstraction
+- [x] Mouse Pointer
+  - [x] Set style
+  - [x] Set visibility
+- [x] Separate Renderer API from Renderer
+- [x] Texture Loading Abstraction
+- [x] Load File from pop up
 
 ### UI - Completed 10/22/2022
 - [x] Delta time

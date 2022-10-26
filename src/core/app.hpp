@@ -10,10 +10,10 @@ namespace Core {
 struct AppData {
     bool isRunning;
     f32 deltaTime;
-    Platform::Renderer* renderer;
     glm::vec2 screenResolution;
     Input input;
-    EventQueue events;
+    Core::EventQueue events;
+    Platform::Renderer* renderer;
 };
 
 void RunApp( AppData& data );

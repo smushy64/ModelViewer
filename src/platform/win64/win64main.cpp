@@ -12,10 +12,14 @@
 #include "consts.hpp"
 #include "utils.hpp"
 
+#include "win64global.hpp"
+
 #include "core/app.hpp"
 #include "core/event.hpp"
 #include "platform/event.hpp"
 #include "platform/renderer.hpp"
+#include "platform/pointer.hpp"
+#include "platform/backend.hpp"
 using namespace Platform;
 
 void Win64InitConsole();
@@ -27,11 +31,13 @@ HINSTANCE OPENGL_MODULE;
 void* Win64LoadOpenGLFunctions( const char* functionName );
 void Win64OpenGLSwapBuffer();
 
-HWND  WINDOW_HANDLE;
-HDC   DEVICE_CONTEXT;
-HGLRC OPENGL_CONTEXT;
-
 Core::AppData APP_DATA;
+
+PointerStyle CURRENT_POINTER_STYLE = PointerStyle::ARROW;
+PointerStyle PLATFORM_POINTER_STYLE = PointerStyle::ARROW;
+LPCTSTR PointerStyleToWinResource( PointerStyle pointerStyle );
+
+bool POINTER_VISIBLE = true;
 
 int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE, PSTR, int) {
     APP_DATA = {};
@@ -65,7 +71,7 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE, PSTR, int) {
 
     // TODO: Parameterize backend
     switch( CURRENT_BACKEND ) {
-        case Renderer::Backend::OPENGL: {
+        case BackendAPI::OPENGL: {
             LOG_INFO("Window x64 > Creating OpenGL Context . . .");
             OPENGL_CONTEXT = Win64CreateOpenGLContext( DEVICE_CONTEXT );
             if( !OPENGL_CONTEXT ) {
@@ -75,19 +81,19 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE, PSTR, int) {
         } break;
     }
 
-    APP_DATA.renderer = Renderer::New( Renderer::Backend::OPENGL );
-    if( !APP_DATA.renderer ) {
+    APP_DATA.renderer = new Renderer( BackendAPI::OPENGL );
+    if( !APP_DATA.renderer->Successful() ) {
         return -1;
     }
 
     switch( CURRENT_BACKEND ) {
-        case Renderer::Backend::OPENGL: {
+        case BackendAPI::OPENGL: {
             LOG_INFO("Windows x64 > Loading OpenGL Functions . . .");
-            APP_DATA.renderer->OpenGLSwapBufferFn = Win64OpenGLSwapBuffer;
+            APP_DATA.renderer->API()->OpenGLSwapBufferFn = Win64OpenGLSwapBuffer;
 
             OPENGL_MODULE = LoadLibrary( L"opengl32.dll" );
             if( OPENGL_MODULE ) {
-                bool loadResult = APP_DATA.renderer->LoadOpenGLFunctions( Win64LoadOpenGLFunctions );
+                bool loadResult = APP_DATA.renderer->API()->LoadOpenGLFunctions( Win64LoadOpenGLFunctions );
                 FreeLibrary( OPENGL_MODULE );
                 if(!loadResult) {
                     LOG_ERROR("Windows x64 > Failed to load OpenGL functions!");
@@ -222,6 +228,27 @@ LRESULT Win64WindowProc( HWND windowHandle, UINT message, WPARAM wParam, LPARAM 
                 lastHeight = newHeight;
             }
         } return TRUE;
+        case WM_SETCURSOR: { switch( LOWORD( lParam ) ) {
+            case HTRIGHT:
+            case HTLEFT: {
+                PLATFORM_POINTER_STYLE = PointerStyle::SIZE_L_R;
+            } break;
+            case HTTOP:
+            case HTBOTTOM: {
+                PLATFORM_POINTER_STYLE = PointerStyle::SIZE_T_B;
+            } break;
+            case HTBOTTOMLEFT:
+            case HTTOPRIGHT: {
+                PLATFORM_POINTER_STYLE = PointerStyle::SIZE_TR_BL;
+            } break;
+            case HTBOTTOMRIGHT:
+            case HTTOPLEFT: {
+                PLATFORM_POINTER_STYLE = PointerStyle::SIZE_TL_BR;
+            } break;
+            default: {
+                PLATFORM_POINTER_STYLE = PointerStyle::ARROW;
+            } break;
+        } } return TRUE;
         default:
             return DefWindowProc( windowHandle, message, wParam, lParam );
     }
@@ -376,6 +403,41 @@ void Win64InitConsole() {
     LOG_INFO("Windows x64 > Debug Console initialized");
 
 #endif
+}
+
+LPCTSTR PointerStyleToWinResource( PointerStyle pointerStyle ) {
+switch( pointerStyle ) {
+    case PointerStyle::HAND:        return IDC_HAND;
+    case PointerStyle::TEXT:        return IDC_IBEAM;
+    case PointerStyle::WAIT:        return IDC_WAIT;
+    case PointerStyle::SIZE_ALL:    return IDC_SIZEALL;
+    case PointerStyle::SIZE_TR_BL:  return IDC_SIZENESW;
+    case PointerStyle::SIZE_TL_BR:  return IDC_SIZENWSE;
+    case PointerStyle::SIZE_T_B:    return IDC_SIZENS;
+    case PointerStyle::SIZE_L_R:    return IDC_SIZEWE;
+    case PointerStyle::NOT_ALLOWED: return IDC_NO;
+    default:                        return IDC_ARROW;
+}
+}
+
+void Platform::ResetPointerStyle() { SetPointerStyle( PLATFORM_POINTER_STYLE ); }
+void Platform::SetPointerStyle( PointerStyle pointerStyle ) {
+    CURRENT_POINTER_STYLE = pointerStyle;
+    SetCursor( LoadCursor(
+        nullptr,
+        PointerStyleToWinResource( pointerStyle )
+    ) );
+}
+PointerStyle Platform::CurrentPointerStyle() { return CURRENT_POINTER_STYLE; }
+
+bool Platform::IsPointerVisible() { return POINTER_VISIBLE; }
+void Platform::ShowPointer() {
+    POINTER_VISIBLE = true;
+    ShowCursor( TRUE );
+}
+void Platform::HidePointer() {
+    POINTER_VISIBLE = false;
+    ShowCursor( FALSE );
 }
 
 #endif

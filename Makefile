@@ -25,7 +25,7 @@ MINGWINC = C:/msys64/mingw64/include
 DEF = -D UNICODE -D WINDOWS 
 
 # linker flags
-LNK = -static-libstdc++ -static-libgcc -lmingw32 -lopengl32 -lgdi32
+LNK = -static-libstdc++ -static-libgcc -lmingw32 -lopengl32 -lgdi32 -lcomdlg32
 
 # DONOT EDIT BEYOND THIS POINT!!! ===============================================
 

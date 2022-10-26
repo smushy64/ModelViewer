@@ -1,0 +1,29 @@
+#version 460 core
+layout(location = 0) in vec3 v_pos;
+layout(location = 1) in vec2 v_uv;
+
+out struct {
+
+    vec3 localPos;
+    vec3 worldPos;
+
+    vec2 uv;
+
+} v2f;
+
+layout (std140, binding = 1) uniform Matrices {
+    // NOTE: it may be better to have these combined so they don't get recalculate per vertex
+    mat4 u_view;
+    mat4 u_projection;
+};
+uniform mat4 u_transform;
+
+void main() {
+    v2f.uv       = v_uv;
+    v2f.localPos = v_pos;
+
+    vec4 worldPos = u_transform * vec4( v_pos, 1.0 );
+    v2f.worldPos = worldPos.xyz;
+
+    gl_Position  = u_projection * u_view * worldPos;
+}

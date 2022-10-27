@@ -1,8 +1,22 @@
 ## TODO
 
 ### Loading Meshes
-- [ ] Model Shader
 - [ ] Model loading abstraction
+
+### Rendering Meshes + Settings Parsing
+- [x] Settings Parser
+- [ ] Camera Controls
+  - [x] Zoom          - Scroll Wheel
+  - [ ] Rotate Around - Right Click + Mouse
+  - [ ] Pan           - WASD
+- [ ] Lights
+  - [x] PODs
+  - [x] Uniform Buffer
+  - [ ] Shader Calculations
+- [ ] Model Shader - Blinn Phong
+  - [ ] Albedo Texture
+  - [ ] Specular Texture
+  - [ ] Normal Map
 
 ### Renderer Improvements + Mouse Pointer + Load File pop up
 - [x] Update Text Button Bounding Box on screen resolution change
@@ -42,7 +56,7 @@
   - [x] Load font atlas on GPU
   - [x] Render text
 
-### > Completed 9/30/2022
+### Project Created > Completed 9/30/2022
 
 - [x] Windows x64 window creation
 - [x] Loading file from disk abstraction

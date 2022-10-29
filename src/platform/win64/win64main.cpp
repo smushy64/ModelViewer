@@ -5,6 +5,7 @@
 #pragma GCC diagnostic ignored "-Wcast-function-type"
 #include <windows.h>
 #include <windowsx.h>
+// #include <hidusage.h>
 
 #include "alias.hpp"
 #include "debug.hpp"
@@ -16,6 +17,7 @@
 
 #include "core/app.hpp"
 #include "core/event.hpp"
+#include "core/parser.hpp"
 #include "platform/event.hpp"
 #include "platform/renderer.hpp"
 #include "platform/pointer.hpp"
@@ -38,22 +40,37 @@ PointerStyle PLATFORM_POINTER_STYLE = PointerStyle::ARROW;
 LPCTSTR PointerStyleToWinResource( PointerStyle pointerStyle );
 
 bool POINTER_VISIBLE = true;
+bool POINTER_LOCKED  = false;
+bool TRACKING_MOUSE  = true;
+void TrackMouse();
+void CenterPointer();
 
 int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE, PSTR, int) {
+
+    Win64InitConsole();
+    Core::SettingsINI settings = Core::DefaultSettings();
+    TextFile settingsFile = Platform::LoadTextFile( "./resources/settings.ini" );
+    if( settingsFile.size != 0 ) {
+        bool result = Core::ParseSettings( settingsFile.contents, settings );
+        if(!result) {
+            LOG_WARN("Windows x64 > Failed to parse settings!");
+        }
+    }
+    CURRENT_BACKEND = settings.backend;
+
     APP_DATA = {};
-    APP_DATA.screenResolution = glm::vec2( DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT );
+    APP_DATA.screenResolution = glm::vec2( (f32)settings.width, (f32)settings.height );
 
     // setup
-    Win64InitConsole();
     LOG_INFO("Windows x64 > Creating Window at resolution %ix%i . . .",
-        (i32)DEFAULT_WINDOW_WIDTH,
-        (i32)DEFAULT_WINDOW_HEIGHT
+        settings.width,
+        settings.height
     );
     WINDOW_HANDLE = Win64CreateWindow(
         hInst,
         Utils::StringtoWString( PROGRAM_TITLE ).c_str(),
-        (i32)DEFAULT_WINDOW_WIDTH,
-        (i32)DEFAULT_WINDOW_HEIGHT
+        settings.width,
+        settings.height
     );
     if(!WINDOW_HANDLE) {
         LOG_ERROR("Window x64 > Failed to create window!");
@@ -69,7 +86,8 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE, PSTR, int) {
 
     APP_DATA.isRunning = true;
 
-    // TODO: Parameterize backend
+    TrackMouse();
+
     switch( CURRENT_BACKEND ) {
         case BackendAPI::OPENGL: {
             LOG_INFO("Window x64 > Creating OpenGL Context . . .");
@@ -140,6 +158,9 @@ void Platform::ProcessWindowEvents( Core::AppData& appData ) {
             appData.events.Push( new Core::KeyUp( keycode ) );
         } break;
         case WM_MOUSEMOVE: {
+            if(!TRACKING_MOUSE) {
+                TrackMouse();
+            }
             glm::ivec2 pixelPosition = glm::ivec2(
                 GET_X_LPARAM(message.lParam),
                 GET_Y_LPARAM(message.lParam)
@@ -149,8 +170,12 @@ void Platform::ProcessWindowEvents( Core::AppData& appData ) {
                 (f32)pixelPosition.y / appData.screenResolution.y
             );
             appData.events.Push( new Core::MousePositionEvent( pixelPosition, screenPosition ) );
+            if( POINTER_LOCKED ) {
+                CenterPointer();
+                appData.input.lastScreenSpaceMouse = glm::vec2(0.5f);
+                appData.input.screenSpaceMouse = glm::vec2(0.5);
+            }
         } break;
-
         case WM_LBUTTONDOWN: {
             appData.events.Push( new Core::MouseDown( Core::MouseCode::LEFT ) );
         } break;
@@ -168,7 +193,6 @@ void Platform::ProcessWindowEvents( Core::AppData& appData ) {
                 appData.events.Push( new Core::MouseDown( Core::MouseCode::EXTRA2 ) );
             }
         } break;
-
         case WM_LBUTTONUP: {
             appData.events.Push( new Core::MouseUp( Core::MouseCode::LEFT ) );
         } break;
@@ -186,13 +210,11 @@ void Platform::ProcessWindowEvents( Core::AppData& appData ) {
                 appData.events.Push( new Core::MouseUp( Core::MouseCode::EXTRA2 ) );
             }
         } break;
-
         case WM_MOUSEWHEEL: {
             appData.events.Push( new Core::MouseScroll(
                 GET_WHEEL_DELTA_WPARAM( message.wParam ) / WHEEL_DELTA
             ) );
         } break;
-
         default: {
             TranslateMessage(&message);
             DispatchMessage(&message);
@@ -222,12 +244,14 @@ LRESULT Win64WindowProc( HWND windowHandle, UINT message, WPARAM wParam, LPARAM 
                 if( lastWidth != newWidth || lastHeight != newHeight ) {
                     APP_DATA.events.Push( new Core::WindowResizeEvent( newWidth, newHeight ) );
                 }
-                SCREEN_WIDTH  = newWidth;
-                SCREEN_HEIGHT = newHeight;
                 lastWidth  = newWidth;
                 lastHeight = newHeight;
             }
         } return TRUE;
+        case WM_MOUSELEAVE: {
+            TRACKING_MOUSE = false;
+            APP_DATA.events.Push( new Core::MouseLeaveEvent() );
+        } return FALSE;
         case WM_SETCURSOR: { switch( LOWORD( lParam ) ) {
             case HTRIGHT:
             case HTLEFT: {
@@ -432,12 +456,45 @@ PointerStyle Platform::CurrentPointerStyle() { return CURRENT_POINTER_STYLE; }
 
 bool Platform::IsPointerVisible() { return POINTER_VISIBLE; }
 void Platform::ShowPointer() {
+    if( POINTER_VISIBLE ) { return; }
     POINTER_VISIBLE = true;
     ShowCursor( TRUE );
 }
 void Platform::HidePointer() {
+    if( !POINTER_VISIBLE ) { return; }
     POINTER_VISIBLE = false;
     ShowCursor( FALSE );
+}
+
+bool Platform::IsPointerLocked() { return POINTER_LOCKED; }
+void Platform::LockPointer() {
+    POINTER_LOCKED = true;
+    Platform::HidePointer();
+    CenterPointer();
+}
+void Platform::UnlockPointer() {
+    POINTER_LOCKED = false;
+    Platform::ShowPointer();
+}
+
+void CenterPointer() {
+    POINT screen = {};
+    screen.x = (i32)APP_DATA.screenResolution.x / 2;
+    screen.y = (i32)APP_DATA.screenResolution.y / 2;
+    ClientToScreen( WINDOW_HANDLE, &screen );
+    SetCursorPos(
+        screen.x,
+        screen.y
+    );
+}
+
+void TrackMouse() {
+    TRACKING_MOUSE = true;
+    TRACKMOUSEEVENT tme;
+    tme.cbSize    = sizeof(TRACKMOUSEEVENT);
+    tme.dwFlags   = TME_LEAVE;
+    tme.hwndTrack = WINDOW_HANDLE;
+    DEBUG_ASSERT_LOG(TrackMouseEvent( &tme ) == TRUE, "Failed to Track Mouse Event");
 }
 
 #endif

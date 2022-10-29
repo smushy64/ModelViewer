@@ -52,17 +52,18 @@ public: // NOTE: virtual
     virtual void UniformVec3( const UniformID& id, const glm::vec3& value )   override;
     virtual void UniformVec4( const UniformID& id, const glm::vec4& value )   override;
     virtual void UniformMat4( const UniformID& id, const glm::mat4x4& value ) override;
+    virtual void UniformMat3( const UniformID& id, const glm::mat3x3& value ) override;
 
     virtual ~ShaderOpenGL() override;
 }; // class Shader
 
 class UniformBufferOpenGL : public UniformBuffer {
 public:
-    UniformBufferOpenGL( usize size, void* data );
+    UniformBufferOpenGL( usize size, const void* data );
 
 public: // NOTE: virtual
-    virtual void BufferData( usize size, void* data ) override;
-    virtual void BufferSubData( usize offset, usize size, void* data ) override;
+    virtual void BufferData( usize size, const void* data ) override;
+    virtual void BufferSubData( usize offset, usize size, const void* data ) override;
     virtual void SetBindingPoint( usize point ) override;
     virtual void SetBindingPointRange( usize offset, usize size, usize point ) override;
     virtual ~UniformBufferOpenGL() override;

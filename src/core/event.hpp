@@ -28,6 +28,8 @@ public:
         MOUSE_POSITION, // done
         MOUSE_SCROLL,   // done
 
+        MOUSE_LEAVE, // 
+
         FILE_LOADED
     };
 
@@ -196,6 +198,14 @@ public:
     Platform::File GetFile() { return m_file; }
 private:
     Platform::File m_file;
+};
+
+// NOTE: MOUSE LEAVE
+
+class MouseLeaveEvent : public Event {
+public:
+    MouseLeaveEvent() { m_type = Type::MOUSE_LEAVE; }
+    virtual void PrintEvent() override { LOG_DEBUG("Mouse Left Window"); }
 };
 
 } // namespace Core

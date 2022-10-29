@@ -1,0 +1,42 @@
+#version 460 core
+layout(location = 0) in vec3 v_position;
+layout(location = 1) in vec2 v_uv;
+layout(location = 2) in vec3 v_normal;
+layout(location = 3) in vec4 v_tangent;
+
+out struct {
+
+    vec3 localPosition;
+    vec3 worldPosition;
+
+    vec3 normal;
+    vec3 tangent;
+    vec3 bitangent;
+
+    vec2 uv;
+
+} v2f;
+
+// NOTE: Matrices Block | 128 bytes
+layout (std140, binding = 1) uniform Matrices {
+    // NOTE: it may be better to have these combined so they don't get recalculated per vertex
+    mat4 u_view;       // 64 | offset: 0
+    mat4 u_projection; // 64 | offset: 64
+};
+
+uniform mat4 u_transform;
+uniform mat3 u_normalMat;
+
+void main() {
+    v2f.uv            = v_uv;
+    v2f.localPosition = v_position;
+
+    vec4 worldPosition = u_transform * vec4( v_position, 1.0 );
+    v2f.worldPosition  = worldPosition.xyz;
+
+    v2f.normal    = u_normalMat * v_normal;
+    v2f.tangent   = u_normalMat * v_tangent.xyz;
+    v2f.bitangent = cross( v2f.tangent, v2f.normal );
+
+    gl_Position  = u_projection * u_view * worldPosition;
+}

@@ -1,9 +1,12 @@
 #pragma once
-#include <string>
 #include "text.hpp"
 #include "input.hpp"
+
 #include <glm/vec2.hpp>
 #include <glm/vec4.hpp>
+
+#include <string>
+#include <vector>
 
 namespace Core {
 namespace UI {
@@ -66,7 +69,7 @@ private:
 
 class LabelButton {
 public:
-    LabelButton( const std::string& text, const Core::FontAtlas& font );
+    LabelButton( const std::string& text, const Core::FontAtlas& font, const glm::vec2* resolution );
 
 public:
     // Update Button State
@@ -135,7 +138,31 @@ private:
 
     ButtonCallback m_callback = nullptr;
     void* m_callbackParameter = nullptr;
+    const glm::vec2* m_resolution;
 }; // Class Label Button
+
+class Canvas {
+public:
+    Canvas();
+    ~Canvas();
+
+public:
+    // Update UI Elements on resolution change
+    void OnResolutionChange( const glm::vec2& resolution );
+    // Push new label into canvas; returns index
+    usize PushLabel( Label label );
+    // Push new label button into canvas; returns index
+    usize PushLabelButton( LabelButton labelButton );
+    // Get label
+    Label& GetLabel(usize index);
+    // Get label button
+    LabelButton& GetLabelButton(usize index);
+
+private:
+    std::vector<Label> m_labels;
+    std::vector<LabelButton> m_labelButtons;
+
+}; // Class Canvas
 
 } // namespace Core::UI
 

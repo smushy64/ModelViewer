@@ -24,5 +24,9 @@ bool IsPointerVisible();
 void ShowPointer();
 void HidePointer();
 
+bool IsPointerLocked();
+void LockPointer();
+void UnlockPointer();
+
 } // namespace Platform
 

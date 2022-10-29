@@ -3,20 +3,21 @@
 ### Loading Meshes
 - [ ] Model loading abstraction
 
-### Rendering Meshes + Settings Parsing
+### Rendering Meshes + Settings Parsing + Camera Controls
 - [x] Settings Parser
-- [ ] Camera Controls
+- [x] Camera Controls
   - [x] Zoom          - Scroll Wheel
-  - [ ] Rotate Around - Right Click + Mouse
-  - [ ] Pan           - WASD
-- [ ] Lights
+  - [x] Rotate Around - Right Click + Mouse
+  - [x] Pan           - WASD
+- [x] Lights
   - [x] PODs
   - [x] Uniform Buffer
-  - [ ] Shader Calculations
-- [ ] Model Shader - Blinn Phong
-  - [ ] Albedo Texture
-  - [ ] Specular Texture
-  - [ ] Normal Map
+  - [x] Shader Calculations
+- [x] Model Shader - Blinn Phong
+  - [x] Surface Tint
+  - [x] Albedo Texture
+  - [x] Specular Texture
+  - [x] Shading
 
 ### Renderer Improvements + Mouse Pointer + Load File pop up
 - [x] Update Text Button Bounding Box on screen resolution change

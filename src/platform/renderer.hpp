@@ -26,19 +26,21 @@ public:
     // TODO: usage?
 
     // Create a new GPU Buffer
-    static UniformBuffer* New( usize size, void* data );
+    static UniformBuffer* New( usize size, const void* data );
 
 public: // NOTE: virtual
     // Buffer Data, size must match total buffer size
-    virtual void BufferData( usize size, void* data ) = 0;
+    virtual void BufferData( usize size, const void* data ) = 0;
     // Buffer Sub Data, offset + size must be less than total buffer size
-    virtual void BufferSubData( usize offset, usize size, void* data ) = 0;
+    virtual void BufferSubData( usize offset, usize size, const void* data ) = 0;
     // Set buffer binding point for entire buffer
     virtual void SetBindingPoint( usize point ) = 0;
     // Set buffer binding point for range, offset + size must be less than total buffer size
     virtual void SetBindingPointRange( usize offset, usize size, usize point ) = 0;
 
     virtual ~UniformBuffer() = default;
+
+public:
 
 public: // NOTE: Getters
     usize Size() const { return m_size; }
@@ -112,6 +114,9 @@ private:
 class VertexBuffer {
 public:
     static VertexBuffer* New( usize size, const void* data );
+    static VertexBuffer* New( BufferDataType dataType, usize count, const void* data ) {
+        return VertexBuffer::New( BufferDataTypeByteSize(dataType) * count, data );
+    }
 public: // Getters
     // Get byte size of buffer
     usize Size() const { return m_size; }
@@ -206,6 +211,7 @@ public: // NOTE: virtual
     virtual void UniformVec3( const UniformID& id, const glm::vec3& value )   = 0;
     virtual void UniformVec4( const UniformID& id, const glm::vec4& value )   = 0;
     virtual void UniformMat4( const UniformID& id, const glm::mat4x4& value ) = 0;
+    virtual void UniformMat3( const UniformID& id, const glm::mat3x3& value ) = 0;
 
 protected:
     RendererID m_id;
@@ -341,8 +347,6 @@ protected:
     glm::ivec2            m_dimensions;
     
 }; // class Texture2D
-
-const char* BackendToString( BackendAPI backend );
 
 class RendererAPI {
 public:
@@ -554,6 +558,8 @@ public:
     void SetCurrentFont( const Core::FontAtlas* font );
     void ResolutionChanged( const glm::vec2& newResolution );
     void UploadFontAtlasBitmap( Core::FontAtlas& fontAtlas );
+    void BufferCameraPosition( const glm::vec3& cameraPosition );
+    void BufferClippingFields( const glm::vec2& clippingFields );
 
 public: // Getters
     RendererAPI* API() { return m_api; }
@@ -581,6 +587,13 @@ private:
     UniformID m_fontColorID, m_fontTransformID, m_fontCoordsID;
 
     VertexArray* m_fontVA;
+
+    // 3D ---------------------------------------------
+
+    UniformBuffer* m_sharedData = nullptr;
+
+    VertexArray* m_modelVA = nullptr;
+    Shader* m_modelShader = nullptr;
 
 //     const VertexArray*   GetVertexArray( VertexArrayID id ) { return m_vertexArrays[id]; }
 

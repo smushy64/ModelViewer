@@ -19,6 +19,8 @@
 
 #define loop while( true )
 
+#define bool32 uint32_t
+
 typedef u32 RendererID;
 typedef i32 UniformID;
 typedef usize VertexArrayID;

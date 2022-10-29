@@ -8,12 +8,17 @@ using namespace Core::UI;
 Label::Label( const std::string& text, const Core::FontAtlas& font )
 : m_text(text), m_fontPtr(&font) {}
 
-LabelButton::LabelButton( const std::string& text, const Core::FontAtlas& font )
-: m_text(text), m_fontPtr(&font) {
+LabelButton::LabelButton( const std::string& text, const Core::FontAtlas& font, const glm::vec2* resolution )
+: m_text(text), m_fontPtr(&font), m_resolution(resolution) {
     UpdateBounds();
 }
 
 void LabelButton::UpdateState( const Core::Input& input ) {
+    if( input.mouseButtons[(usize)Core::MouseCode::RIGHT] ) {
+        m_elementState = UI::ElementState::NORMAL;
+        return;
+    }
+
     glm::vec2 mousePosition = input.screenSpaceMouse;
     mousePosition.y = 1.0f - mousePosition.y;
     bool isHovering = Core::PointInBoundingBox(
@@ -97,10 +102,10 @@ void LabelButton::UpdateBounds() {
 
 void LabelButton::UpdateScreenSpaceBounds() {
     m_screenSpaceBoundingBox = glm::vec4(
-        m_screenSpacePosition.x + ( m_boundingBoxOffset.x / SCREEN_WIDTH ),
-        m_screenSpacePosition.y + ( m_boundingBoxOffset.y / SCREEN_HEIGHT ),
-        m_boundingBox.x / SCREEN_WIDTH,
-        m_boundingBox.y / SCREEN_HEIGHT
+        m_screenSpacePosition.x + ( m_boundingBoxOffset.x / m_resolution->x ),
+        m_screenSpacePosition.y + ( m_boundingBoxOffset.y / m_resolution->y ),
+        m_boundingBox.x / m_resolution->x,
+        m_boundingBox.y / m_resolution->y
     );
 }
 
@@ -111,4 +116,28 @@ const char* Core::UI::ElementStateToString( ElementState state ) {
         case ElementState::PRESSED: return "PRESSED";
         default: return "UNKNOWN";
     }
+}
+
+Canvas::Canvas() { }
+Canvas::~Canvas() { }
+void Canvas::OnResolutionChange( const glm::vec2& ) {
+    for( auto labelButton : m_labelButtons ) {
+        labelButton.UpdateBounds();
+    }
+}
+usize Canvas::PushLabel( Label label ) {
+    usize last = m_labels.size();
+    m_labels.push_back(label);
+    return last;
+}
+usize Canvas::PushLabelButton( LabelButton labelButton ) {
+    usize last = m_labelButtons.size();
+    m_labelButtons.push_back(labelButton);
+    return last;
+}
+Label& Canvas::GetLabel(usize index) {
+    return m_labels[index];
+}
+LabelButton& Canvas::GetLabelButton(usize index) {
+    return m_labelButtons[index];
 }

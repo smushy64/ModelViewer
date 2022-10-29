@@ -13,8 +13,8 @@ const char* FONT_FRAG_PATH = "./resources/shaders/font/font.glslFrag";
 const char* BOUNDS_VERT_PATH = "./resources/shaders/bounds/bounds.glslVert";
 const char* BOUNDS_FRAG_PATH = "./resources/shaders/bounds/bounds.glslFrag";
 
-const char* MODEL_VERT_PATH = "./resources/shaders/model/model.glslVert";
-const char* MODEL_FRAG_PATH = "./resources/shaders/model/model.glslFrag";
+const char* BLINNPHONG_VERT_PATH = "./resources/shaders/blinn_phong/blinn_phong.glslVert";
+const char* BLINNPHONG_FRAG_PATH = "./resources/shaders/blinn_phong/blinn_phong.glslFrag";
 
 const char* Platform::BackendToString( BackendAPI backend ) {
     switch( backend ) {
@@ -133,9 +133,14 @@ void Renderer::Initialize() {
     m_api->Initialize();
     LOG_INFO("Renderer > API Initialized");
 
-    auto ortho = glm::ortho( 0.0f, DEFAULT_WINDOW_WIDTH, 0.0f, DEFAULT_WINDOW_HEIGHT );
+    auto ortho = glm::ortho( 0.0f, (f32)DEFAULT_WINDOW_WIDTH, 0.0f, (f32)DEFAULT_WINDOW_HEIGHT );
     m_matrices2D = UniformBuffer::New( sizeof( glm::mat4 ), glm::value_ptr(ortho) );
-    m_matrices2D->SetBindingPoint( 0 );
+    m_matrices2D->SetBindingPoint( MATRIX_2D_BINDING_POINT );
+
+    m_sharedData = UniformBuffer::New( SHARED_DATA_SIZE, nullptr );
+    m_sharedData->SetBindingPoint( SHARED_DATA_BINDING_POINT );
+    BufferCameraPosition( glm::vec3(0.0f) );
+    BufferClippingFields( glm::vec2( 0.001f, 1000.0f ) );
 
     LOG_INFO("Renderer > Buffers Created");
 
@@ -198,6 +203,12 @@ void Renderer::Initialize() {
     }
 
     LOG_INFO("Renderer > Font Shader Created");
+}
+void Renderer::BufferCameraPosition( const glm::vec3& cameraPosition ) {
+    m_sharedData->BufferSubData( 0, sizeof( glm::vec3 ), glm::value_ptr( cameraPosition ) );
+}
+void Renderer::BufferClippingFields( const glm::vec2& clippingFields ) {
+    m_sharedData->BufferSubData( sizeof( glm::vec4 ), sizeof( glm::vec2 ), glm::value_ptr( clippingFields ) );
 }
 void Renderer::RenderText( const Core::UI::Label& label ) {
     SetCurrentFont( label.Font() );
@@ -373,6 +384,10 @@ void Renderer::SetCurrentFont( const Core::FontAtlas* font ) {
     m_currentFont = font;
 }
 Renderer::~Renderer() {
+    if( m_modelVA != nullptr ) {
+        delete( m_modelVA );
+    }
+    delete( m_modelShader );
     delete( m_matrices2D );
     delete( m_fontShader );
     delete( m_fontVA );
@@ -407,7 +422,6 @@ void Renderer::UploadFontAtlasBitmap( Core::FontAtlas& fontAtlas ) {
     m_api->SetPackAlignment( RendererAPI::PixelAlignment::FOUR );
 }
 
-
 // #ifdef DEBUG
 //     RenderBoundingBox( glm::vec4(
 //         (button.ScreenSpacePosition().x * m_viewport.x) + button.BoundingBoxOffset().x,
@@ -416,27 +430,6 @@ void Renderer::UploadFontAtlasBitmap( Core::FontAtlas& fontAtlas ) {
 //         button.BoundingBox().y
 //     ) );
 // #endif
-// }
-
-// void Renderer::UpdateViewMatrix() {
-//     m_matrices3D->BufferSubData(
-//         0,
-//         sizeof(glm::mat4),
-//         (void*)glm::value_ptr(m_camera.ViewMatrix())
-//     );
-// }
-
-// void Renderer::RenderTestCube() {
-//     m_modelShader->UseShader();
-//     RenderVertexArray( m_modelTransformID );
-// }
-
-// void Renderer::UpdateProjectionMatrix() {
-//     m_matrices3D->BufferSubData(
-//         sizeof(glm::mat4),
-//         sizeof(glm::mat4),
-//         (void*)glm::value_ptr(m_camera.ProjectionMatrix())
-//     );
 // }
 
 Platform::Shader* Platform::Shader::New( const std::string& vertex, const std::string& fragment ) {
@@ -449,7 +442,7 @@ Platform::Shader* Platform::Shader::New( const std::string& vertex, const std::s
     }
 }
 
-Platform::UniformBuffer* Platform::UniformBuffer::New( usize size, void* data ) {
+Platform::UniformBuffer* Platform::UniformBuffer::New( usize size, const void* data ) {
     switch( CURRENT_BACKEND ) {
         case BackendAPI::OPENGL:
             return new UniformBufferOpenGL( size, data );

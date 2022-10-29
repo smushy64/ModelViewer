@@ -84,7 +84,7 @@ Platform::File Platform::LoadFilePopup() {
     openFileName.Flags           = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
 
     if( GetOpenFileName( &openFileName ) == FALSE ) {
-        LOG_ERROR("Windows x64 > Failed to Open File Name!");
+        LOG_WARN("Windows x64 > Did not open file name!");
         return result;
     }
 

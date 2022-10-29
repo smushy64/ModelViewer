@@ -172,6 +172,7 @@ void RendererAPIOpenGL::Initialize()  {
     glEnable( GL_DEBUG_OUTPUT );
     glDebugMessageCallback( OpenGLDebugMessageCallback, nullptr );
 #endif
+    glEnable( GL_DEPTH_TEST );
 }
 void RendererAPIOpenGL::ClearBuffer() {
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
@@ -381,6 +382,9 @@ void ShaderOpenGL::UniformVec4( const UniformID& id, const glm::vec4& value ) {
 void ShaderOpenGL::UniformMat4( const UniformID& id, const glm::mat4x4& value ) {
     glProgramUniformMatrix4fv( m_id, id, 1, GL_FALSE, glm::value_ptr(value) );
 }
+void ShaderOpenGL::UniformMat3( const UniformID& id, const glm::mat3x3& value ) {
+    glProgramUniformMatrix3fv( m_id, id, 1, GL_FALSE, glm::value_ptr(value) );
+}
 ShaderOpenGL::ShaderOpenGL( const std::string& vertex, const std::string& fragment ) {
     RendererID vert, frag;
     if(!CompileShader( vertex.c_str(), vertex.length(), GL_VERTEX_SHADER, vert )) {
@@ -401,7 +405,7 @@ ShaderOpenGL::~ShaderOpenGL() {
     glDeleteProgram( m_id );
 }
 
-UniformBufferOpenGL::UniformBufferOpenGL( usize size, void* data ) {
+UniformBufferOpenGL::UniformBufferOpenGL( usize size, const void* data ) {
     glGenBuffers( 1, &m_bufferID );
     glBindBuffer( GL_UNIFORM_BUFFER, m_bufferID );
     glBufferData(
@@ -412,7 +416,7 @@ UniformBufferOpenGL::UniformBufferOpenGL( usize size, void* data ) {
     );
     m_size = size;
 }
-void UniformBufferOpenGL::BufferData( usize size, void* data ) {
+void UniformBufferOpenGL::BufferData( usize size, const void* data ) {
 #ifdef DEBUG
     if( size != m_size ) {
         LOG_WARN("OpenGL > Attempted to buffer data with a size that does not match the buffer size!");
@@ -427,7 +431,7 @@ void UniformBufferOpenGL::BufferData( usize size, void* data ) {
         GL_STATIC_DRAW // TODO: usage
     );
 }
-void UniformBufferOpenGL::BufferSubData( usize offset, usize size, void* data ) {
+void UniformBufferOpenGL::BufferSubData( usize offset, usize size, const void* data ) {
 #ifdef DEBUG
     if( offset + size > m_size ) {
         LOG_WARN("OpenGL > Attempted to buffer sub data with a size that is larger than the buffer size!");

@@ -3,23 +3,28 @@
 Program written in CPP for loading + viewing .obj 3D models.
 
 Nearly all of the code is original with the exception of
-- STB
+- [stb](https://github.com/nothings/stb)
   - rect_pack
   - truetype
-- glad OpenGL loader
+  - image
+- [tinyobjloader](https://github.com/tinyobjloader/tinyobjloader)
+- [glad](https://glad.dav1d.de/)
 
 This project is written such that when I learn other rendering APIs I can come back to it and implement those APIs
+
+## Limitations
+- Only one mesh is loaded from OBJ
 
 ## Screenshots
 
 TODO: paste screenshot links here
 
 ## Camera Controls
-| Key            | Action             |
-|----------------|--------------------|
-| W/A/S/D        | Up/Left/Down/Right |
-| RClick + Mouse | Rotate Camera      |
-| Scroll Wheel   | Zoom In/Out        |
+| Key                 | Action                 |
+|---------------------|------------------------|
+| W/A/S/D             | Pan Up/Left/Down/Right |
+| Right Click + Mouse | Rotate Camera          |
+| Scroll Wheel        | Zoom In/Out            |
 
 ## Download and Installation
 

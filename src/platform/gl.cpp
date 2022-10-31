@@ -7,31 +7,6 @@
 
 using namespace Platform;
 
-// void RendererOpenGL::RenderBoundingBox( const glm::vec4& bounds ) {
-//     if( !m_renderBoundingBoxes ) {
-//         return;
-//     }
-
-//     glm::mat4 transform = glm::scale(
-//         glm::translate( glm::mat4(1.0f), glm::vec3(
-//             bounds.x,
-//             bounds.y,
-//             0.0f
-//         ) ),
-//         glm::vec3( bounds.z, bounds.w, 0.0f )
-//     );
-
-//     m_boundsShader->UseShader();
-//     m_boundsShader->UniformMat4( m_boundsTransformID, transform );
-
-//     glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
-
-//     GetVertexArray( m_boundsVAID )->UseArray();
-//     Renderer::RenderVertexArray( m_boundsVAID );
-
-//     glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
-// }
-
 void OpenGLDebugMessageCallback(
     GLenum,        // source
     GLenum,        // type
@@ -41,55 +16,6 @@ void OpenGLDebugMessageCallback(
     const GLchar*, // message
     const void*    // userParam
 );
-
-//     /* Create Bounds Mesh */ {
-//         f32 boundsVertices[] = {
-//             /*POSITION*/ 0.0f, 1.0f,
-//             /*POSITION*/ 1.0f, 1.0f,
-//             /*POSITION*/ 0.0f, 0.0f,
-//             /*POSITION*/ 1.0f, 0.0f
-//         };
-//         const usize BOUNDS_VERTEX_COUNT = 8;
-//         u32 boundsIndices[] = {
-//             0, 1, 2,
-//             1, 2, 3
-//         };
-//         const usize BOUNDS_INDEX_COUNT = 6;
-
-//         auto boundsVA = VertexArray::New();
-//         boundsVA->UseArray();
-
-//         auto boundsVB = VertexBuffer::New( sizeof(f32) * BOUNDS_VERTEX_COUNT, &boundsVertices );
-//         boundsVB->SetLayout(BufferLayout({
-//             NewBufferElement( "Vertices", BufferDataType::FLOAT, BufferDataStructure::VEC2, false )
-//         }));
-
-//         boundsVA->AddVertexBuffer( boundsVB );
-
-//         auto boundsIB = IndexBuffer::New( BufferDataType::UINT, BOUNDS_INDEX_COUNT, &boundsIndices );
-//         boundsVA->SetIndexBuffer( boundsIB );
-
-//         m_boundsVAID = PushVertexArray( boundsVA );
-//     }
-
-//     /* Create Bounds Shader */ {
-//         TextFile boundsVertSrc = LoadTextFile( BOUNDS_VERT_PATH );
-//         TextFile boundsFragSrc = LoadTextFile( BOUNDS_FRAG_PATH );
-//         if( boundsVertSrc.size == 0 || boundsFragSrc.size == 0 ) {
-//             LOG_ERROR("OpenGL > Failed to load bounds shaders from disk!");
-//             return false;
-//         }
-        
-//         m_boundsShader = Shader::New( boundsVertSrc.contents, boundsFragSrc.contents );
-
-//         if( !m_boundsShader->CompilationSucceeded() ) {
-//             LOG_ERROR( "OpenGL > Failed to create bounds shader!" );
-//             return false;
-//         }
-
-//         m_boundsShader->UseShader();
-//         m_boundsShader->GetUniform( "u_transform", m_boundsTransformID );
-//     }
 
 #ifdef DEBUG
 
@@ -244,18 +170,27 @@ void RendererAPIOpenGL::SetUnpackAlignment( PixelAlignment alignment ) {
     m_unpackAlignment = alignment;
     glPixelStorei( GL_UNPACK_ALIGNMENT, (GLint)alignment );
 }
-void RendererAPIOpenGL::SetActiveTexture( u32 activeTexture ) {
-    m_activeTexture = activeTexture;
+void RendererAPIOpenGL::SetActiveTexture( u32 activeTexture ) const {
     glActiveTexture( GL_TEXTURE0 + activeTexture );
 }
 void RendererAPIOpenGL::DrawVertexArray( const VertexArray* va ) {
-    DEBUG_ASSERT_LOG( va->GetIndexBuffer() != nullptr, "OpenGL > Index Buffer is null!" );
-    glDrawElements(
-        GL_TRIANGLES,
-        va->GetIndexBuffer()->Count(),
-        BufferDataTypeToGLenum( va->GetIndexBuffer()->DataType() ),
-        nullptr
-    );
+    if( va->GetIndexBuffer() != nullptr ) {
+        glDrawElements(
+            GL_TRIANGLES,
+            va->GetIndexBuffer()->Count(),
+            BufferDataTypeToGLenum( va->GetIndexBuffer()->DataType() ),
+            nullptr
+        );
+    } else {
+        LOG_DEBUG("Drawing Arrays");
+        // assuming all data in vertex buffer is f32
+        auto& vb = va->GetVertexBuffers()[0];
+        glDrawArrays(
+            GL_TRIANGLES,
+            0,
+            vb->Size()/vb->GetLayout()->Stride()
+        );
+    }
 }
 RendererAPIOpenGL::~RendererAPIOpenGL() {
     
@@ -526,7 +461,7 @@ VertexBufferOpenGL::~VertexBufferOpenGL() {
 IndexBufferOpenGL::IndexBufferOpenGL( BufferDataType type, usize count, const void* data ) {
     m_type  = type;
     m_count = count;
-    m_size = count * BufferDataTypeByteSize( m_type );
+    m_size  = count * BufferDataTypeByteSize( m_type );
     glGenBuffers( 1, &m_id );
     glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, m_id );
     glBufferData(
@@ -550,7 +485,9 @@ VertexArrayOpenGL::~VertexArrayOpenGL() {
     for( auto& vbuffer : m_vertexBuffers ) {
         delete(vbuffer);
     }
-    delete(m_indexBuffer);
+    if( m_indexBuffer != nullptr ) {
+        delete(m_indexBuffer);
+    }
     glDeleteVertexArrays( 1, &m_id );
 }
 void VertexArrayOpenGL::UseArray() const {
@@ -638,6 +575,9 @@ Texture2DOpenGL::Texture2DOpenGL(
         BufferDataTypeToGLenum( dataType ),
         data
     );
+    if( mipmapLevel == AUTO_MIPMAP ) {
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
     m_dimensions     = dimensions;
     m_format         = format;
     m_internalFormat = internalFormat;

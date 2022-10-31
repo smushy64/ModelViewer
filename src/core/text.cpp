@@ -7,10 +7,10 @@
 #include "consts.hpp"
 
 #define STB_RECT_PACK_IMPLEMENTATION 1
-#include "stb/stb_rect_pack.h"
+#include "include/stb/stb_rect_pack.h"
 
 #define STB_TRUETYPE_IMPLEMENTATION 1
-#include "stb/stb_truetype.h"
+#include "include/stb/stb_truetype.h"
 
 // TODO: rewrite this to be more sensible
 std::string FormatFontName( const std::string& fontPath ) {

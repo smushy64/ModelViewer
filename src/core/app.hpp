@@ -10,16 +10,15 @@
 
 namespace Core {
 
+namespace UI {
+    class Canvas;
+}
+
 struct AppData {
     bool isRunning;
     f32 deltaTime;
     Platform::Renderer* renderer;
-    Platform::VertexArray* va;
-    Platform::Texture2D* albedo;
-    Platform::Texture2D* specular;
-    Core::Camera* camera;
-    Core::Lights* lights;
-    Platform::Shader* sh;
+    Core::UI::Canvas canvas;
     glm::vec2 screenResolution;
     Input input;
     Core::EventQueue events;

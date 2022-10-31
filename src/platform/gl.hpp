@@ -30,7 +30,7 @@ public: // virtual
     virtual void SetConstantBlendColor( const glm::vec4& blendColor ) override;
     virtual void SetPackAlignment( PixelAlignment alignment ) override;
     virtual void SetUnpackAlignment( PixelAlignment alignment ) override;
-    virtual void SetActiveTexture( u32 activeTexture ) override;
+    virtual void SetActiveTexture( u32 activeTexture ) const override;
     virtual void DrawVertexArray( const VertexArray* va ) override;
 
     virtual bool LoadOpenGLFunctions( OpenGLLoader loader ) override;

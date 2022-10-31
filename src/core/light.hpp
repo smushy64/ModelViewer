@@ -144,6 +144,10 @@ public: // Getters
     DirectionalLight& GetDirectionalLight()      { return m_directional; }
     PointLight&       GetPointLight( usize idx ) { return m_pointLights[idx]; }
     usize Size() const { return m_totalSize; }
+
+public:
+    void SetAmbientColor( const glm::vec3& color ) { m_ambient.SetColor( color ); }
+
 private:
     void UploadPointLightsInitializer() const;
     AmbientLight     m_ambient;

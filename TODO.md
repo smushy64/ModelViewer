@@ -1,9 +1,11 @@
 ## TODO
 
-### Loading Meshes
-- [ ] Model loading abstraction
+### Loading Meshes - Completed 10/31/2022
+- [x] Fixed Label Button Bounding Box
+- [x] Image loading
+- [x] Model loading
 
-### Rendering Meshes + Settings Parsing + Camera Controls
+### Rendering Meshes + Settings Parsing + Camera Controls - Completed 10/29/2022
 - [x] Settings Parser
 - [x] Camera Controls
   - [x] Zoom          - Scroll Wheel
@@ -19,7 +21,7 @@
   - [x] Specular Texture
   - [x] Shading
 
-### Renderer Improvements + Mouse Pointer + Load File pop up
+### Renderer Improvements + Mouse Pointer + Load File pop up - Completed 10/26/2022
 - [x] Update Text Button Bounding Box on screen resolution change
 - [x] Uniform Block Buffer
 - [x] Mouse Pointer

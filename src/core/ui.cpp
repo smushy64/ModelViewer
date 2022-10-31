@@ -3,17 +3,16 @@
 #include "collision.hpp"
 #include "global.hpp"
 #include "platform/pointer.hpp"
+#include "platform/renderer.hpp"
 using namespace Core::UI;
 
 Label::Label( const std::string& text, const Core::FontAtlas& font )
 : m_text(text), m_fontPtr(&font) {}
-
 LabelButton::LabelButton( const std::string& text, const Core::FontAtlas& font, const glm::vec2* resolution )
 : m_text(text), m_fontPtr(&font), m_resolution(resolution) {
     UpdateBounds();
 }
-
-void LabelButton::UpdateState( const Core::Input& input ) {
+void LabelButton::UpdateState( Core::Input& input ) {
     if( input.mouseButtons[(usize)Core::MouseCode::RIGHT] ) {
         m_elementState = UI::ElementState::NORMAL;
         return;
@@ -34,6 +33,8 @@ void LabelButton::UpdateState( const Core::Input& input ) {
             m_elementState = UI::ElementState::PRESSED;
             if( lastState != m_elementState ) {
                 if( m_callback != nullptr ) {
+                    // set mouse to false so that it stops registering clicks
+                    input.mouseButtons[(usize)Core::MouseCode::LEFT] = false;
                     m_callback(m_callbackParameter);
                 }
             }
@@ -44,7 +45,6 @@ void LabelButton::UpdateState( const Core::Input& input ) {
         m_elementState = UI::ElementState::NORMAL;
     }
 }
-
 void LabelButton::UpdateBounds() {
     if( m_fontPtr == nullptr ) {
         LOG_WARN("UI > Could not calculate bounding box for Label Button, font pointer is null!");
@@ -62,8 +62,7 @@ void LabelButton::UpdateBounds() {
             continue;
         }
         auto character = m_fontPtr->characterMetrics.at( *iter );
-
-        pixelScale.x += (character.width * m_scale) + (character.leftBearing * m_scale);
+        pixelScale.x += (f32)character.advance * m_scale;
 
         f32 height = character.height * m_scale;
         if( pixelScale.y < height ) {
@@ -99,7 +98,6 @@ void LabelButton::UpdateBounds() {
 
     UpdateScreenSpaceBounds();
 }
-
 void LabelButton::UpdateScreenSpaceBounds() {
     m_screenSpaceBoundingBox = glm::vec4(
         m_screenSpacePosition.x + ( m_boundingBoxOffset.x / m_resolution->x ),
@@ -121,8 +119,21 @@ const char* Core::UI::ElementStateToString( ElementState state ) {
 Canvas::Canvas() { }
 Canvas::~Canvas() { }
 void Canvas::OnResolutionChange( const glm::vec2& ) {
-    for( auto labelButton : m_labelButtons ) {
+    for( auto& labelButton : m_labelButtons ) {
         labelButton.UpdateBounds();
+    }
+}
+void Canvas::UpdateState( Core::Input& input ) {
+    for( auto& labelButton : m_labelButtons ) {
+        labelButton.UpdateState( input );
+    }
+}
+void Canvas::Render( Platform::Renderer* renderer ) {
+    for( auto& label : m_labels ) {
+        renderer->RenderText( label );
+    }
+    for( auto& labelButton : m_labelButtons ) {
+        renderer->RenderTextButton( labelButton );
     }
 }
 usize Canvas::PushLabel( Label label ) {

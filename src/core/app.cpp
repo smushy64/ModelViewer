@@ -12,6 +12,8 @@
 #include "ui.hpp"
 #include "collision.hpp"
 #include "macro.hpp"
+#include "image.hpp"
+#include "obj.hpp"
 
 #include <glm/vec4.hpp>
 #include <glm/mat3x3.hpp>
@@ -19,18 +21,13 @@
 Core::FontAtlas DEFAULT_FONT;
 bool LoadDefaultFont();
 
-struct AppUI {
-    Core::UI::Canvas canvas;
-    usize versionLabelID, loadButtonID, quitButtonID;
-};
-AppUI APPUI;
 void InitializeApp( Core::AppData& data );
+void Cleanup( Core::AppData& data );
 
 f32 yaw = 0.0f;
 void UpdateApp( Core::AppData& data ) {
     Platform::ResetPointerStyle();
-    APPUI.canvas.GetLabelButton(APPUI.loadButtonID).UpdateState( data.input );
-    APPUI.canvas.GetLabelButton(APPUI.quitButtonID).UpdateState( data.input );
+    data.canvas.UpdateState( data.input );
 
     bool rightMouse = data.input.mouseButtons[(usize)Core::MouseCode::RIGHT];
     if( rightMouse ) {
@@ -39,17 +36,20 @@ void UpdateApp( Core::AppData& data ) {
         Platform::UnlockPointer();
     }
 
+    auto const& cameraUp = data.renderer->GetCamera()->Up();
+    auto const& cameraRight = data.renderer->GetCamera()->Right();
+
     if( rightMouse ) {
         auto vertical = glm::angleAxis(
             data.input.screenSpaceMouseDelta.x,
-            data.camera->Up()
+            cameraUp
         );
         auto horizontal = glm::angleAxis(
             data.input.screenSpaceMouseDelta.y,
-            data.camera->Right()
+            cameraRight
         );
         yaw += data.input.screenSpaceMouseDelta.x;
-        data.camera->Rotate( vertical * horizontal );
+        data.renderer->GetCamera()->Rotate( vertical * horizontal );
     }
 
     f32 panX = 0.0f, panY = 0.0f;
@@ -65,36 +65,20 @@ void UpdateApp( Core::AppData& data ) {
         panY = -1.0f;
     }
 
-    glm::vec3 vertical   = data.camera->Up()    * ( panY * data.deltaTime );
+    glm::vec3 vertical   = cameraUp * ( panY * data.deltaTime );
     glm::vec3 horizontal = glm::angleAxis( yaw, glm::vec3( 0.0f, 1.0f, 0.0f ) ) *
         ( glm::vec3( -panX, 0.0f, 0.0f ) * data.deltaTime );
-    data.camera->Move( vertical + horizontal );
+    data.renderer->GetCamera()->Move( vertical + horizontal );
 
-}
-
-void RenderScene( Core::AppData& data ) {
-    data.sh->UseShader();
-    data.va->UseArray();
-    data.renderer->API()->SetActiveTexture(0);
-    data.albedo->UseTexture();
-    data.renderer->API()->SetActiveTexture(1);
-    data.specular->UseTexture();
-    data.renderer->API()->DrawVertexArray( data.va );
-}
-
-void RenderUI( Platform::Renderer* renderer ) {
-    renderer->RenderText( APPUI.canvas.GetLabel(APPUI.versionLabelID) );
-    renderer->RenderTextButton( APPUI.canvas.GetLabelButton(APPUI.loadButtonID) );
-    renderer->RenderTextButton( APPUI.canvas.GetLabelButton(APPUI.quitButtonID) );
 }
 
 void RenderApp( Core::AppData& data ) {
-    data.renderer->API()->ClearBuffer();{
+    data.renderer->StartScene(); {
 
-        RenderScene( data );
-        RenderUI( data.renderer );
+        data.renderer->DrawMesh( Platform::Renderer::Material::BLINNPHONG );
+        data.canvas.Render( data.renderer );
 
-    } data.renderer->API()->SwapBuffers();
+    } data.renderer->EndScene();
 }
 
 void HandleEvents( Core::AppData& data );
@@ -111,24 +95,11 @@ void Core::RunApp( AppData& data ) {
         HandleEvents( data );
 
         UpdateApp( data );
-        data.camera->RecalculateView();
-        data.camera->RecalculateProjection();
-        data.camera->RecalculateBasisVectors();
-        data.renderer->BufferCameraPosition( data.camera->GetCameraPoint() );
-        data.renderer->BufferClippingFields( data.camera->GetClippingFields() );
-
         RenderApp( data );
     }
 
     // cleanup
-    delete( data.albedo );
-    delete( data.specular );
-    delete( data.lights );
-    delete( data.camera );
-    delete( data.renderer );
-    delete( data.va );
-    delete( data.sh );
-    delete( DEFAULT_FONT.texture );
+    Cleanup(data);
 }
 
 void HandleEvents( Core::AppData& data ) {
@@ -148,9 +119,7 @@ void HandleEvents( Core::AppData& data ) {
             WindowResizeEvent* resizeEvent = (WindowResizeEvent*)event;
             data.screenResolution = resizeEvent->GetResolution();
             data.renderer->ResolutionChanged( data.screenResolution );
-            data.camera->SetAspectRatio( data.screenResolution );
-
-            APPUI.canvas.OnResolutionChange( data.screenResolution );
+            data.canvas.OnResolutionChange( data.screenResolution );
         } break;
         case Event::Type::KEY_DOWN: {
             KeyDown* keydown = (KeyDown*)event;
@@ -182,7 +151,9 @@ void HandleEvents( Core::AppData& data ) {
         case Event::Type::MOUSE_SCROLL: {
             MouseScroll* mouseScroll = (MouseScroll*)event;
             data.input.mouseScroll = mouseScroll->GetMouseScrollDirection();
-            data.camera->Zoom( CAMERA_ZOOM_FACTOR * data.deltaTime * -(f32)mouseScroll->GetMouseScrollDirection() );
+            data.renderer->GetCamera()->Zoom(
+                CAMERA_ZOOM_FACTOR * data.deltaTime * -(f32)mouseScroll->GetMouseScrollDirection()
+            );
         } break;
         case Event::Type::FILE_LOADED: {
             Core::FileLoadedEvent* fileLoaded = (Core::FileLoadedEvent*)event;
@@ -219,51 +190,56 @@ bool LoadDefaultFont() {
 }
 
 void QuitCallback( void* param ) {
-
-#ifdef DEBUG
-    if( param == nullptr ) {
-        LOG_ERROR( "Quit Button Callback > Parameter is null!" );
-        return;
-    }
-#endif
-
     Core::AppData* appData = (Core::AppData*)param;
     appData->isRunning = false;
 }
 
-void LoadCallback( void* param ) {
-#ifdef DEBUG
-    if( param == nullptr ) {
-        LOG_ERROR( "Load Callback > Parameter is null!" );
-        return;
-    }
-#endif
-
+void LoadMeshCallback( void* param ) {
     Core::AppData* appData = (Core::AppData*)param;
-    // set mouse to false so that it stops registering clicks during the pop up
-    appData->input.mouseButtons[(usize)Core::MouseCode::LEFT] = false;
 
-    auto file = Platform::LoadFilePopup();
-    if( file.size == 0 ) {
-        LOG_WARN("Load Callback > No file loaded!");
-        return;
+    auto loadResult = Platform::LoadFilePopup();
+    if( loadResult.contents != nullptr ) {
+        auto text = Platform::FileToTextFile( loadResult );
+        auto mesh = Core::ParseOBJ( text );
+
+        if( mesh != nullptr ) {
+            appData->renderer->SetMesh( mesh );
+        }
     }
-    
-    appData->events.Push( new Core::FileLoadedEvent( file ) );
+
+}
+
+void LoadAlbedoCallback( void* param ) {
+    Core::AppData* appData = (Core::AppData*)param;
+
+    auto loadResult = Platform::LoadTexturePopup();
+    if( loadResult != nullptr ) {
+        appData->renderer->GetBlinnPhong()->SetAlbedo( loadResult );
+    }
+}
+
+void LoadSpecularCallback( void* param ) {
+    Core::AppData* appData = (Core::AppData*)param;
+
+    auto loadResult = Platform::LoadTexturePopup();
+    if( loadResult != nullptr ) {
+        appData->renderer->GetBlinnPhong()->SetSpecular( loadResult );
+    }
 }
 
 void InitializeApp( Core::AppData& data ) {
 
     data.renderer->Initialize();
-    data.camera = new Core::Camera();
-    data.lights = new Core::Lights();
-    data.lights->GetAmbientLight().SetColor( glm::vec3(0.1f, 0.05f, 0.08f) );
-    data.lights->UploadAmbient();
+    data.renderer->API()->ClearBuffer();
+    data.renderer->API()->SwapBuffers();
 
-    data.lights->GetPointLight(0).Activate();
-    data.lights->GetPointLight(0).SetPosition( glm::vec3( 2.0f, -3.0f, -1.5f ) );
-    data.lights->GetPointLight(0).SetDiffuse( glm::vec3( 0.0f, 0.0f, 0.5f ) );
-    data.lights->UploadPointLights();
+    data.renderer->GetLights()->SetAmbientColor( glm::vec3(0.15f) );
+    data.renderer->GetLights()->UploadAmbient();
+
+    data.renderer->GetLights()->GetPointLight(0).Activate();
+    data.renderer->GetLights()->GetPointLight(0).SetPosition( glm::vec3( 2.0f, 3.0f, -1.5f ) );
+    data.renderer->GetLights()->GetPointLight(0).SetDiffuse( glm::vec3( 1.0f, 1.0f, 1.0f ) );
+    data.renderer->GetLights()->UploadPointLights();
 
     if( !Platform::InitializeTimer() ) {
         LOG_ERROR("App > Failed to initialize timer!");
@@ -277,26 +253,40 @@ void InitializeApp( Core::AppData& data ) {
         return;
     }
 
-    APPUI.canvas = Core::UI::Canvas();
+    data.canvas = Core::UI::Canvas();
 
     auto versionLabel = Core::UI::Label( PROGRAM_TITLE, DEFAULT_FONT );
     versionLabel.SetAnchorY( Core::YAnchor::BOTTOM );
     versionLabel.SetPosition( glm::vec2(0.01f, 0.0125f) );
     versionLabel.SetScale( 0.35f );
-
-    APPUI.versionLabelID = APPUI.canvas.PushLabel( versionLabel );
+    data.canvas.PushLabel( versionLabel );
 
     f32 menuXOffset = 0.99f;
     f32 menuScale = 0.65f;
 
-    auto loadButton = Core::UI::LabelButton( "Load Mesh", DEFAULT_FONT, &data.screenResolution );
-    loadButton.SetAnchorX( Core::XAnchor::RIGHT );
-    loadButton.SetPosition( glm::vec2( menuXOffset, 0.1f ) );
-    loadButton.SetScale( menuScale );
-    loadButton.SetCallback( LoadCallback );
-    loadButton.SetCallbackParameter( (void*)&data );
+    auto loadMeshButton = Core::UI::LabelButton( "Load Mesh", DEFAULT_FONT, &data.screenResolution );
+    loadMeshButton.SetAnchorX( Core::XAnchor::RIGHT );
+    loadMeshButton.SetPosition( glm::vec2( menuXOffset, 0.1f ) );
+    loadMeshButton.SetScale( menuScale );
+    loadMeshButton.SetCallback( LoadMeshCallback );
+    loadMeshButton.SetCallbackParameter( (void*)&data );
+    data.canvas.PushLabelButton( loadMeshButton );
 
-    APPUI.loadButtonID = APPUI.canvas.PushLabelButton( loadButton );
+    auto loadAlbedoButton = Core::UI::LabelButton( "Load Albedo Texture", DEFAULT_FONT, &data.screenResolution );
+    loadAlbedoButton.SetAnchorX( Core::XAnchor::RIGHT );
+    loadAlbedoButton.SetPosition( glm::vec2( menuXOffset, 0.2f ) );
+    loadAlbedoButton.SetScale( menuScale );
+    loadAlbedoButton.SetCallback( LoadAlbedoCallback );
+    loadAlbedoButton.SetCallbackParameter( (void*)&data );
+    data.canvas.PushLabelButton( loadAlbedoButton );
+
+    auto loadSpecularButton = Core::UI::LabelButton( "Load Specular Texture", DEFAULT_FONT, &data.screenResolution );
+    loadSpecularButton.SetAnchorX( Core::XAnchor::RIGHT );
+    loadSpecularButton.SetPosition( glm::vec2( menuXOffset, 0.15f ) );
+    loadSpecularButton.SetScale( menuScale );
+    loadSpecularButton.SetCallback( LoadSpecularCallback );
+    loadSpecularButton.SetCallbackParameter( (void*)&data );
+    data.canvas.PushLabelButton( loadSpecularButton );
 
     auto quitButton = Core::UI::LabelButton( "Quit Program", DEFAULT_FONT, &data.screenResolution );
     quitButton.SetAnchorX( Core::XAnchor::RIGHT );
@@ -304,177 +294,20 @@ void InitializeApp( Core::AppData& data ) {
     quitButton.SetScale( menuScale );
     quitButton.SetCallback( QuitCallback );
     quitButton.SetCallbackParameter( (void*)&data );
-
-    APPUI.quitButtonID = APPUI.canvas.PushLabelButton( quitButton );
+    data.canvas.PushLabelButton( quitButton );
 
     data.renderer->UploadFontAtlasBitmap( DEFAULT_FONT );
     data.renderer->API()->SetClearColor( glm::vec4( 0.15f ) );
 
-    /* Cube */ {
-        f32 verts[] = {
-            // front
-            /* Positions */ -0.5,  0.5,  0.5,  /* UVs */  0.0,  1.0, /* Normals */  0.0, 0.0,  1.0,
-            /* Positions */  0.5,  0.5,  0.5,  /* UVs */  1.0,  1.0, /* Normals */  0.0, 0.0,  1.0,
-            /* Positions */ -0.5, -0.5,  0.5,  /* UVs */  0.0,  0.0, /* Normals */  0.0, 0.0,  1.0,
-            /* Positions */  0.5, -0.5,  0.5,  /* UVs */  1.0,  0.0, /* Normals */  0.0, 0.0,  1.0,
+    data.renderer->GetCamera()->SetRotation(
+        glm::vec3( TO_RAD( 30.0f ), TO_RAD( 30.0f ), 0.0f )
+    );
 
-            // back
-            /* Positions */ -0.5,  0.5, -0.5, /* UVs */  0.0,  1.0, /* Normals */  0.0, 0.0, -1.0,
-            /* Positions */  0.5,  0.5, -0.5, /* UVs */  1.0,  1.0, /* Normals */  0.0, 0.0, -1.0,
-            /* Positions */ -0.5, -0.5, -0.5, /* UVs */  0.0,  0.0, /* Normals */  0.0, 0.0, -1.0,
-            /* Positions */  0.5, -0.5, -0.5, /* UVs */  1.0,  0.0, /* Normals */  0.0, 0.0, -1.0,
+    // data.renderer->EnableBoundingBox();
 
-            // left
-            /* Positions */ -0.5,  0.5, -0.5, /* UVs */  0.0,  1.0, /* Normals */ -1.0, 0.0,  0.0,
-            /* Positions */ -0.5,  0.5,  0.5, /* UVs */  1.0,  1.0, /* Normals */ -1.0, 0.0,  0.0,
-            /* Positions */ -0.5, -0.5, -0.5, /* UVs */  0.0,  0.0, /* Normals */ -1.0, 0.0,  0.0,
-            /* Positions */ -0.5, -0.5,  0.5, /* UVs */  1.0,  0.0, /* Normals */ -1.0, 0.0,  0.0,
+}
 
-            // right
-            /* Positions */  0.5,  0.5, -0.5, /* UVs */  0.0,  1.0, /* Normals */  1.0, 0.0,  0.0,
-            /* Positions */  0.5,  0.5,  0.5, /* UVs */  1.0,  1.0, /* Normals */  1.0, 0.0,  0.0,
-            /* Positions */  0.5, -0.5, -0.5, /* UVs */  0.0,  0.0, /* Normals */  1.0, 0.0,  0.0,
-            /* Positions */  0.5, -0.5,  0.5, /* UVs */  1.0,  0.0, /* Normals */  1.0, 0.0,  0.0,
-
-            // top
-            /* Positions */ -0.5,  0.5,  0.5, /* UVs */  0.0,  1.0, /* Normals */  0.0, 1.0,  0.0,
-            /* Positions */  0.5,  0.5,  0.5, /* UVs */  1.0,  1.0, /* Normals */  0.0, 1.0,  0.0,
-            /* Positions */ -0.5,  0.5, -0.5, /* UVs */  0.0,  0.0, /* Normals */  0.0, 1.0,  0.0,
-            /* Positions */  0.5,  0.5, -0.5, /* UVs */  1.0,  0.0, /* Normals */  0.0, 1.0,  0.0,
-
-            // bottom
-            /* Positions */ -0.5, -0.5,  0.5, /* UVs */  0.0,  1.0, /* Normals */   0.0, -1.0, 0.0,
-            /* Positions */  0.5, -0.5,  0.5, /* UVs */  1.0,  1.0, /* Normals */   0.0, -1.0, 0.0,
-            /* Positions */ -0.5, -0.5, -0.5, /* UVs */  0.0,  0.0, /* Normals */   0.0, -1.0, 0.0,
-            /* Positions */  0.5, -0.5, -0.5, /* UVs */  1.0,  0.0, /* Normals */   0.0, -1.0, 0.0,
-        };
-        const usize VERT_COUNT = 192;
-
-        u16 idx[] = {
-            0, 1, 2,
-            1, 3, 2,
-
-            4, 5, 6,
-            5, 7, 6,
-
-            8,  9, 10,
-            9, 11, 10,
-
-            12, 13, 14,
-            13, 15, 14,
-
-            16, 17, 18,
-            17, 19, 18,
-
-            20, 21, 22,
-            21, 23, 22,
-        };
-        const usize IDX_COUNT = 36;
-
-        data.va = Platform::VertexArray::New();
-        data.va->UseArray();
-
-        auto vBuffer = Platform::VertexBuffer::New( VERT_COUNT * sizeof(f32), &verts );
-        vBuffer->SetLayout(Platform::BufferLayout({
-            Platform::NewBufferElement(
-                "Position",
-                Platform::BufferDataType::FLOAT,
-                Platform::BufferDataStructure::VEC3,
-                false
-            ),
-            Platform::NewBufferElement(
-                "UV",
-                Platform::BufferDataType::FLOAT,
-                Platform::BufferDataStructure::VEC2,
-                false
-            ),
-            Platform::NewBufferElement(
-                "Normal",
-                Platform::BufferDataType::FLOAT,
-                Platform::BufferDataStructure::VEC3,
-                false
-            )
-        }));
-
-        data.va->AddVertexBuffer( vBuffer );
-
-        auto iBuffer = Platform::IndexBuffer::New(
-            Platform::BufferDataType::USHORT,
-            IDX_COUNT,
-            &idx
-        );
-
-        data.va->SetIndexBuffer( iBuffer );
-    }
-
-    /* Blinn Phong Shader */ {
-        const char* vpath = "./resources/shaders/blinn_phong/blinn_phong.glslVert";
-        const char* fpath = "./resources/shaders/blinn_phong/blinn_phong.glslFrag";
-
-        Platform::TextFile vsrc = Platform::LoadTextFile( vpath );
-        Platform::TextFile fsrc = Platform::LoadTextFile( fpath );
-
-        if( vsrc.size == 0 || fsrc.size == 0 ) {
-            LOG_ERROR("App > Failed to load model shaders!");
-            data.isRunning = false;
-            return;
-        }
-
-        data.sh = Platform::Shader::New( vsrc.contents, fsrc.contents );
-        UniformID transformID;
-        data.sh->UseShader();
-        data.sh->GetUniform( "u_transform", transformID );
-        glm::mat4 transform = glm::mat4(1.0f);
-        data.sh->UniformMat4( transformID, transform );
-
-        glm::mat3 normalMat = glm::transpose( glm::inverse( transform ) );
-        UniformID normalMatID;
-        data.sh->GetUniform( "u_normalMat", normalMatID );
-        data.sh->UniformMat3( normalMatID, normalMat );
-
-        UniformID glossinessID;
-        data.sh->GetUniform( "u_glossiness", glossinessID );
-        data.sh->UniformFloat( glossinessID, 32.0f );
-
-        UniformID surfaceTintID;
-        data.sh->GetUniform( "u_surfaceTint", surfaceTintID );
-        data.sh->UniformVec3( surfaceTintID, glm::vec3(1.0f) );
-
-        UniformID albedoID, specularID;
-        data.sh->GetUniform( "u_albedoSampler", albedoID );
-        data.sh->GetUniform( "u_specularSampler", specularID );
-        data.sh->UniformInt( albedoID, 0 );
-        data.sh->UniformInt( specularID, 1 );
-
-        u32 albedo = 
-            (u8)255 << 0  |
-            (u8)255 << 8  |
-            (u8)255 << 16 |
-            (u8)255 << 24
-        ;
-        u32 specular = 
-            (u8)255 << 0  |
-            (u8)255 << 8  |
-            (u8)255 << 16 |
-            (u8)255 << 24
-        ;
-        data.albedo = Platform::Texture2D::New(
-            glm::ivec2( 1 ),
-            &albedo,
-            Platform::TextureFormat::RGBA,
-            Platform::TextureInternalFormat::RGBA,
-            Platform::BufferDataType::UBYTE
-        );
-        data.specular = Platform::Texture2D::New(
-            glm::ivec2( 1 ),
-            &specular,
-            Platform::TextureFormat::RGBA,
-            Platform::TextureInternalFormat::RGBA,
-            Platform::BufferDataType::UBYTE
-        );
-
-    }
-
-    data.camera->SetRotation( glm::vec3( TO_RAD( 30.0f ), TO_RAD( 30.0f ), 0.0f ) );
-
+void Cleanup( Core::AppData& data ) {
+    delete( data.renderer );
+    delete( DEFAULT_FONT.texture );
 }

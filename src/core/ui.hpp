@@ -8,6 +8,10 @@
 #include <string>
 #include <vector>
 
+namespace Platform {
+    class Renderer;
+}
+
 namespace Core {
 namespace UI {
 
@@ -73,7 +77,7 @@ public:
 
 public:
     // Update Button State
-    void UpdateState( const Core::Input& input );
+    void UpdateState( Core::Input& input );
 
 public: // NOTE: Getters
     f32                Scale()               const { return m_scale; }
@@ -149,6 +153,10 @@ public:
 public:
     // Update UI Elements on resolution change
     void OnResolutionChange( const glm::vec2& resolution );
+    // Update Canvas State
+    void UpdateState( Core::Input& input );
+    // Render Canvas
+    void Render( Platform::Renderer* renderer );
     // Push new label into canvas; returns index
     usize PushLabel( Label label );
     // Push new label button into canvas; returns index

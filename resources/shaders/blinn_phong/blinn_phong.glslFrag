@@ -6,8 +6,8 @@ in struct {
     vec3 worldPosition;
 
     vec3 normal;
-    vec3 tangent;
-    vec3 bitangent;
+    // vec3 tangent;
+    // vec3 bitangent;
 
     vec2 uv;
 
@@ -60,7 +60,7 @@ uniform float     u_glossiness;
 vec3 CalcDirectionalLight(
     vec3 surfaceNormal,
     vec3 surfaceAlbedo,
-    vec3 surfaceSpecular,
+    float surfaceSpecular,
 
     vec3 cameraDirection,
 
@@ -72,7 +72,7 @@ vec3 CalcPointLight(
     vec3 surfaceWorldPosition,
     vec3 surfaceNormal,
     vec3 surfaceAlbedo,
-    vec3 surfaceSpecular,
+    float surfaceSpecular,
 
     vec3 cameraDirection,
 
@@ -88,10 +88,10 @@ float CalcSpecular( vec3 lightDirection, vec3 surfaceNormal, vec3 cameraDirectio
 
 out vec4 FRAG_COLOR;
 void main() {
-    vec3 surfaceAlbedo   = texture2D( u_albedoSampler, v2f.uv ).rgb * u_surfaceTint;
-    vec3 surfaceSpecular = texture2D( u_specularSampler, v2f.uv ).rgb;
-    vec3 surfaceNormal   = normalize( v2f.normal );
-    vec3 surfaceColor    = u_ambientLight.u_color.rgb;
+    vec3 surfaceAlbedo    = texture2D( u_albedoSampler, v2f.uv ).rgb * u_surfaceTint;
+    float surfaceSpecular = texture2D( u_specularSampler, v2f.uv ).r;
+    vec3 surfaceNormal    = normalize( v2f.normal );
+    vec3 surfaceColor     = u_ambientLight.u_color.rgb;
 
     vec3 cameraDirection = normalize( u_cameraPosition.xyz - v2f.worldPosition );
 
@@ -136,7 +136,7 @@ float CalcSpecular( vec3 lightDirection, vec3 surfaceNormal, vec3 cameraDirectio
 vec3 CalcDirectionalLight(
     vec3 surfaceNormal,
     vec3 surfaceAlbedo,
-    vec3 surfaceSpecular,
+    float surfaceSpecular,
 
     vec3 cameraDirection,
     
@@ -158,7 +158,7 @@ vec3 CalcPointLight(
     vec3 surfaceWorldPosition,
     vec3 surfaceNormal,
     vec3 surfaceAlbedo,
-    vec3 surfaceSpecular,
+    float surfaceSpecular,
 
     vec3 cameraDirection,
 

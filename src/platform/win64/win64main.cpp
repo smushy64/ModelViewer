@@ -135,7 +135,6 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE, PSTR, int) {
         Win64DeleteOpenGLContext( OPENGL_CONTEXT );
     }
     ReleaseDC( WINDOW_HANDLE, DEVICE_CONTEXT );
-    LOG_INFO("Windows x64 > Program ran with no errors!");
     return 0;
 }
 

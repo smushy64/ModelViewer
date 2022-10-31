@@ -3,6 +3,8 @@
 #include "debug.hpp"
 #include "global.hpp"
 #include "consts.hpp"
+#include "core/image.hpp"
+#include "core/light.hpp"
 #include <glm/gtc/type_ptr.hpp>
 
 using namespace Platform;
@@ -133,6 +135,9 @@ void Renderer::Initialize() {
     m_api->Initialize();
     LOG_INFO("Renderer > API Initialized");
 
+    m_camera = new Core::Camera();
+    m_lights = new Core::Lights();
+
     auto ortho = glm::ortho( 0.0f, (f32)DEFAULT_WINDOW_WIDTH, 0.0f, (f32)DEFAULT_WINDOW_HEIGHT );
     m_matrices2D = UniformBuffer::New( sizeof( glm::mat4 ), glm::value_ptr(ortho) );
     m_matrices2D->SetBindingPoint( MATRIX_2D_BINDING_POINT );
@@ -178,7 +183,7 @@ void Renderer::Initialize() {
         TextFile fontVertSrc = LoadTextFile( FONT_VERT_PATH );
         TextFile fontFragSrc = LoadTextFile( FONT_FRAG_PATH );
         if( fontVertSrc.size == 0 || fontFragSrc.size == 0 ) {
-            LOG_ERROR("OpenGL > Failed to load font shaders from disk!");
+            LOG_ERROR("Renderer > Failed to load font shaders from disk!");
             m_success = false;
             return;
         }
@@ -186,7 +191,7 @@ void Renderer::Initialize() {
         m_fontShader = Shader::New( fontVertSrc.contents, fontFragSrc.contents );
 
         if( !m_fontShader->CompilationSucceeded() ) {
-            LOG_ERROR( "OpenGL > Failed to create font shader!" );
+            LOG_ERROR( "Renderer > Failed to create font shader!" );
             m_success = false;
             return;
         }
@@ -203,6 +208,179 @@ void Renderer::Initialize() {
     }
 
     LOG_INFO("Renderer > Font Shader Created");
+
+    /* Create Bounds Mesh */ {
+        f32 boundsVertices[] = {
+            /*POSITION*/ 0.0f, 1.0f,
+            /*POSITION*/ 1.0f, 1.0f,
+            /*POSITION*/ 0.0f, 0.0f,
+            /*POSITION*/ 1.0f, 0.0f
+        };
+        const usize BOUNDS_VERTEX_COUNT = 8;
+        u32 boundsIndices[] = {
+            0, 1, 2,
+            1, 2, 3
+        };
+        const usize BOUNDS_INDEX_COUNT = 6;
+
+        m_boundsVA = VertexArray::New();
+        m_boundsVA->UseArray();
+
+        auto boundsVB = VertexBuffer::New( sizeof(f32) * BOUNDS_VERTEX_COUNT, &boundsVertices );
+        boundsVB->SetLayout(BufferLayout({
+            NewBufferElement( "Vertices", BufferDataType::FLOAT, BufferDataStructure::VEC2, false )
+        }));
+        m_boundsVA->AddVertexBuffer( boundsVB );
+
+        auto boundsIB = IndexBuffer::New( BufferDataType::UINT, BOUNDS_INDEX_COUNT, &boundsIndices );
+        m_boundsVA->SetIndexBuffer( boundsIB );
+
+    };
+
+    LOG_INFO("Renderer > Bounds Mesh Created");
+
+    /* Create Bounds Shader */ {
+        TextFile vsrc = LoadTextFile( BOUNDS_VERT_PATH );
+        TextFile fsrc = LoadTextFile( BOUNDS_FRAG_PATH );
+
+        if( vsrc.size == 0 || fsrc.size == 0 ) {
+            LOG_ERROR("Renderer > Failed to load bounds source!");
+            m_success = false;
+            return;
+        }
+
+        m_boundsShader = Shader::New( vsrc.contents, fsrc.contents );
+        if( !m_boundsShader->CompilationSucceeded() ) {
+            m_success = false;
+            return;
+        }
+
+        m_boundsShader->UseShader();
+        m_boundsShader->GetUniform( "u_transform", m_boundsTransformID );
+    }
+
+    LOG_INFO("Renderer > Bounds Shader Created");
+
+    /* Create Cube Mesh */ {
+        f32 verts[] = {
+            // front
+            /* Positions */ -0.5,  0.5,  0.5,  /* UVs */  0.0,  1.0, /* Normals */  0.0, 0.0,  1.0,
+            /* Positions */  0.5,  0.5,  0.5,  /* UVs */  1.0,  1.0, /* Normals */  0.0, 0.0,  1.0,
+            /* Positions */ -0.5, -0.5,  0.5,  /* UVs */  0.0,  0.0, /* Normals */  0.0, 0.0,  1.0,
+            /* Positions */  0.5, -0.5,  0.5,  /* UVs */  1.0,  0.0, /* Normals */  0.0, 0.0,  1.0,
+
+            // back
+            /* Positions */ -0.5,  0.5, -0.5, /* UVs */  0.0,  1.0, /* Normals */  0.0, 0.0, -1.0,
+            /* Positions */  0.5,  0.5, -0.5, /* UVs */  1.0,  1.0, /* Normals */  0.0, 0.0, -1.0,
+            /* Positions */ -0.5, -0.5, -0.5, /* UVs */  0.0,  0.0, /* Normals */  0.0, 0.0, -1.0,
+            /* Positions */  0.5, -0.5, -0.5, /* UVs */  1.0,  0.0, /* Normals */  0.0, 0.0, -1.0,
+
+            // left
+            /* Positions */ -0.5,  0.5, -0.5, /* UVs */  0.0,  1.0, /* Normals */ -1.0, 0.0,  0.0,
+            /* Positions */ -0.5,  0.5,  0.5, /* UVs */  1.0,  1.0, /* Normals */ -1.0, 0.0,  0.0,
+            /* Positions */ -0.5, -0.5, -0.5, /* UVs */  0.0,  0.0, /* Normals */ -1.0, 0.0,  0.0,
+            /* Positions */ -0.5, -0.5,  0.5, /* UVs */  1.0,  0.0, /* Normals */ -1.0, 0.0,  0.0,
+
+            // right
+            /* Positions */  0.5,  0.5, -0.5, /* UVs */  0.0,  1.0, /* Normals */  1.0, 0.0,  0.0,
+            /* Positions */  0.5,  0.5,  0.5, /* UVs */  1.0,  1.0, /* Normals */  1.0, 0.0,  0.0,
+            /* Positions */  0.5, -0.5, -0.5, /* UVs */  0.0,  0.0, /* Normals */  1.0, 0.0,  0.0,
+            /* Positions */  0.5, -0.5,  0.5, /* UVs */  1.0,  0.0, /* Normals */  1.0, 0.0,  0.0,
+
+            // top
+            /* Positions */ -0.5,  0.5,  0.5, /* UVs */  0.0,  1.0, /* Normals */  0.0, 1.0,  0.0,
+            /* Positions */  0.5,  0.5,  0.5, /* UVs */  1.0,  1.0, /* Normals */  0.0, 1.0,  0.0,
+            /* Positions */ -0.5,  0.5, -0.5, /* UVs */  0.0,  0.0, /* Normals */  0.0, 1.0,  0.0,
+            /* Positions */  0.5,  0.5, -0.5, /* UVs */  1.0,  0.0, /* Normals */  0.0, 1.0,  0.0,
+
+            // bottom
+            /* Positions */ -0.5, -0.5,  0.5, /* UVs */  0.0,  1.0, /* Normals */   0.0, -1.0, 0.0,
+            /* Positions */  0.5, -0.5,  0.5, /* UVs */  1.0,  1.0, /* Normals */   0.0, -1.0, 0.0,
+            /* Positions */ -0.5, -0.5, -0.5, /* UVs */  0.0,  0.0, /* Normals */   0.0, -1.0, 0.0,
+            /* Positions */  0.5, -0.5, -0.5, /* UVs */  1.0,  0.0, /* Normals */   0.0, -1.0, 0.0,
+        };
+        const usize VERT_COUNT = 192;
+
+        u32 idx[] = {
+            0, 1, 2,
+            1, 3, 2,
+
+            4, 5, 6,
+            5, 7, 6,
+
+            8,  9, 10,
+            9, 11, 10,
+
+            12, 13, 14,
+            13, 15, 14,
+
+            16, 17, 18,
+            17, 19, 18,
+
+            20, 21, 22,
+            21, 23, 22,
+        };
+        const usize IDX_COUNT = 36;
+
+        m_meshVA = VertexArray::New();
+        m_meshVA->UseArray();
+
+        auto vBuffer = VertexBuffer::New( sizeof(f32) * VERT_COUNT, &verts );
+        auto vLayout = BufferLayout({
+            NewBufferElement(
+                "Position",
+                BufferDataType::FLOAT,
+                BufferDataStructure::VEC3,
+                false
+            ),
+            NewBufferElement(
+                "UV",
+                BufferDataType::FLOAT,
+                BufferDataStructure::VEC2,
+                false
+            ),
+            NewBufferElement(
+                "Normal",
+                BufferDataType::FLOAT,
+                BufferDataStructure::VEC3,
+                false
+            )
+        });
+        vBuffer->SetLayout( vLayout );
+
+        m_meshVA->AddVertexBuffer( vBuffer );
+
+        auto iBuffer = IndexBuffer::New(
+            BufferDataType::UINT,
+            IDX_COUNT,
+            &idx
+        );
+
+        m_meshVA->SetIndexBuffer( iBuffer );
+    }
+
+    LOG_INFO("Renderer > Cube Mesh Created");
+
+    /* Create Blinn-Phong Shader */ {
+        Platform::TextFile vsrc = Platform::LoadTextFile( BLINNPHONG_VERT_PATH );
+        Platform::TextFile fsrc = Platform::LoadTextFile( BLINNPHONG_FRAG_PATH );
+
+        if( vsrc.size == 0 || fsrc.size == 0 ) {
+            LOG_ERROR("Renderer > Failed to load blinn-phong source!");
+            m_success = false;
+            return;
+        }
+
+        auto shader = Shader::New( vsrc.contents, fsrc.contents );
+        if( !shader->CompilationSucceeded() ) {
+            m_success = false;
+            return;
+        }
+
+        m_blinnPhong = new BlinnPhong( shader, m_api );
+    }
+
+    LOG_INFO("Renderer > Blinn-Phong Shader Created");
 }
 void Renderer::BufferCameraPosition( const glm::vec3& cameraPosition ) {
     m_sharedData->BufferSubData( 0, sizeof( glm::vec3 ), glm::value_ptr( cameraPosition ) );
@@ -241,6 +419,22 @@ void Renderer::RenderTextButton( const Core::UI::LabelButton& labelButton ) {
         labelButton.AnchorX(),
         labelButton.AnchorY()
     );
+    if( m_renderBoundingBox ) {
+        RenderBoundingBox( glm::vec4(
+            (labelButton.ScreenSpacePosition().x * m_api->GetViewport().x) + labelButton.BoundingBoxOffset().x,
+            (labelButton.ScreenSpacePosition().y * m_api->GetViewport().y) + labelButton.BoundingBoxOffset().y,
+            labelButton.BoundingBox().x,
+            labelButton.BoundingBox().y
+        ) );
+    }
+}
+void Renderer::SetMesh( VertexArray* va ) {
+    if( va == nullptr ) {
+        LOG_ERROR("Renderer > Attempted to set model ptr to a null ptr!");
+        return;
+    }
+    delete( m_meshVA );
+    m_meshVA = va;
 }
 void Renderer::RenderText(
     const std::string& text,
@@ -249,7 +443,7 @@ void Renderer::RenderText(
     const glm::vec4&   color,
     Core::XAnchor      anchorX,
     Core::YAnchor      anchorY
-) {
+) const {
     if( m_currentFont == nullptr ) {
         LOG_ERROR("Renderer > Attempted to render text while there is no font set!");
         return;
@@ -347,7 +541,7 @@ void Renderer::RenderCharacter(
     const glm::vec2& origin,
     const glm::vec2& pixelPosition,
     f32 scale
-) {
+) const {
     glm::vec3 characterScale = glm::vec3( metrics.width, metrics.height, 0.0f ) * scale;
     glm::vec3 characterTranslate = glm::vec3(
         origin.x + (metrics.leftBearing * scale),
@@ -375,6 +569,7 @@ void Renderer::ResolutionChanged( const glm::vec2& newResolution ) {
     m_api->SetViewport( newResolution );
     auto newOrtho = glm::ortho( 0.0f, newResolution.x, 0.0f, newResolution.y );
     m_matrices2D->BufferData( sizeof(glm::mat4), glm::value_ptr(newOrtho) );
+    m_camera->SetAspectRatio( newResolution.x / newResolution.y );
 }
 void Renderer::SetCurrentFont( const Core::FontAtlas* font ) {
     if( font->texture == nullptr ) {
@@ -383,11 +578,36 @@ void Renderer::SetCurrentFont( const Core::FontAtlas* font ) {
     }
     m_currentFont = font;
 }
-Renderer::~Renderer() {
-    if( m_modelVA != nullptr ) {
-        delete( m_modelVA );
+void Renderer::StartScene() {
+    m_api->ClearBuffer();
+    m_camera->RecalculateView();
+    m_camera->RecalculateProjection();
+    m_camera->RecalculateBasisVectors();
+    BufferCameraPosition( m_camera->GetCameraPoint() );
+    BufferClippingFields( m_camera->GetClippingFields() );
+}
+void Renderer::DrawMesh( Material material ) {
+    switch( material ) {
+        case Material::BLINNPHONG: {
+            m_blinnPhong->UseMaterial();
+            m_meshVA->UseArray();
+            m_api->DrawVertexArray( m_meshVA );
+        } break;
+        default: {
+            LOG_ERROR("Renderer > Attempted to Draw Mesh with unknown material!");
+        } break;
     }
-    delete( m_modelShader );
+}
+void Renderer::EndScene() {
+    m_api->SwapBuffers();
+}
+Renderer::~Renderer() {
+    delete( m_meshVA );
+    delete( m_camera );
+    delete( m_lights );
+    delete( m_boundsShader );
+    delete( m_boundsVA );
+    delete( m_blinnPhong );
     delete( m_matrices2D );
     delete( m_fontShader );
     delete( m_fontVA );
@@ -422,15 +642,146 @@ void Renderer::UploadFontAtlasBitmap( Core::FontAtlas& fontAtlas ) {
     m_api->SetPackAlignment( RendererAPI::PixelAlignment::FOUR );
 }
 
-// #ifdef DEBUG
-//     RenderBoundingBox( glm::vec4(
-//         (button.ScreenSpacePosition().x * m_viewport.x) + button.BoundingBoxOffset().x,
-//         (button.ScreenSpacePosition().y * m_viewport.y) + button.BoundingBoxOffset().y,
-//         button.BoundingBox().x,
-//         button.BoundingBox().y
-//     ) );
-// #endif
-// }
+void Renderer::RenderBoundingBox( const glm::vec4& bounds ) const {
+    glm::mat4 transform = glm::scale(
+        glm::translate( glm::mat4(1.0f), glm::vec3(
+            bounds.x,
+            bounds.y,
+            0.0f
+        ) ),
+        glm::vec3( bounds.z, bounds.w, 0.0f )
+    );
+
+    m_boundsShader->UseShader();
+    m_boundsShader->UniformMat4( m_boundsTransformID, transform );
+    
+    m_api->EnableWireframe();
+
+    m_boundsVA->UseArray();
+    m_api->DrawVertexArray( m_boundsVA );
+
+    m_api->DisableWireframe();
+}
+
+BlinnPhong::BlinnPhong( Shader* shader, const RendererAPI* api )
+: m_shader(shader), m_apiRef( api ) {
+    m_shader->GetUniform( "u_transform", m_transformID );
+    m_shader->GetUniform( "u_normalMat", m_normalID );
+    m_shader->GetUniform( "u_surfaceTint", m_tintID );
+    m_shader->GetUniform( "u_glossiness", m_glossinessID );
+    UniformID albedoSampler, specularSampler;
+    m_shader->GetUniform( "u_albedoSampler", albedoSampler );
+    m_shader->GetUniform( "u_specularSampler", specularSampler );
+    m_shader->UniformInt( albedoSampler, ALBEDO_SAMPLER );
+    m_shader->UniformInt( specularSampler, SPECULAR_SAMPLER );
+
+    u32 albedo =
+        (u8)255 << 0  |
+        (u8)255 << 8  |
+        (u8)255 << 16 |
+        (u8)255 << 24
+    ;
+    m_albedoTexture = Texture2D::New(
+        glm::ivec2(1),
+        &albedo,
+        TextureFormat::RGBA,
+        TextureInternalFormat::RGBA,
+        BufferDataType::UBYTE
+    );
+    u32 specular =
+        (u8)0   << 0  |
+        (u8)0   << 8  |
+        (u8)0   << 16 |
+        (u8)255 << 24
+    ;
+    m_specularTexture = Texture2D::New(
+        glm::ivec2(1),
+        &specular,
+        TextureFormat::RGBA,
+        TextureInternalFormat::RGBA,
+        BufferDataType::UBYTE
+    );
+}
+BlinnPhong::~BlinnPhong() {
+    delete( m_shader );
+    if( m_albedoTexture != nullptr ) {
+        delete( m_albedoTexture );
+    }
+    if( m_specularTexture != nullptr ) {
+        delete( m_specularTexture );
+    }
+}
+void BlinnPhong::SetPosition( const glm::vec3& position ) {
+    m_position = position;
+    m_transformDirty = true;
+}
+void BlinnPhong::SetRotation( const glm::fquat& rotation ) {
+    m_rotation = rotation;
+    m_transformDirty = true;
+}
+void BlinnPhong::SetScale( const glm::vec3& scale ) {
+    m_scale = scale;
+    m_transformDirty = true;
+}
+void BlinnPhong::SetTint( const glm::vec3& tint ) {
+    m_tint = tint;
+    m_tintDirty = true;
+}
+void BlinnPhong::SetGlossiness( f32 glossiness ) {
+    m_glossiness = glossiness;
+    m_glossinessDirty = true;
+}
+void BlinnPhong::UseMaterial() {
+    if( m_transformDirty ) {
+        auto position = glm::translate( glm::mat4(1.0f), m_position );
+        auto rotation = glm::toMat4( m_rotation );
+        auto scale = glm::scale( glm::mat4( 1.0f ), m_scale );
+        m_transform = position * rotation * scale;
+        m_normalMat = glm::transpose( glm::inverse( m_transform ) );
+        m_transformDirty = false;
+        m_shader->UniformMat4( m_transformID, m_transform );
+        m_shader->UniformMat3( m_normalID, m_normalMat );
+    }
+    if( m_tintDirty ) {
+        m_shader->UniformVec3( m_tintID, m_tint );
+        m_tintDirty = false;
+    }
+    if( m_glossinessDirty ) {
+        m_shader->UniformFloat( m_glossinessID, m_glossiness );
+        m_glossinessDirty = false;
+    }
+
+    m_shader->UseShader();
+
+#ifdef DEBUG
+    if( m_apiRef == nullptr ) {
+        LOG_ERROR("Blinn-Phong > API Reference is null!");
+    } else
+#endif
+    {
+        if( m_albedoTexture == nullptr ) {
+            LOG_WARN("Blinn-Phong > Albedo texture is null!");
+        } else {
+            m_apiRef->SetActiveTexture(ALBEDO_SAMPLER);
+            m_albedoTexture->UseTexture();
+        }
+
+        if( m_specularTexture == nullptr ) {
+            LOG_WARN("Blinn-Phong > Specular texture is null!");
+        } else {
+            m_apiRef->SetActiveTexture(SPECULAR_SAMPLER);
+            m_specularTexture->UseTexture();
+        }
+    }
+}
+void BlinnPhong::SetAlbedo( const Texture2D* albedo ) {
+    delete( m_albedoTexture );
+    m_albedoTexture = albedo;
+}
+void BlinnPhong::SetSpecular( const Texture2D* specular ) {
+    delete( m_specularTexture );
+    m_specularTexture = specular;
+}
 
 Platform::Shader* Platform::Shader::New( const std::string& vertex, const std::string& fragment ) {
     switch( CURRENT_BACKEND ) {
@@ -592,5 +943,30 @@ void Platform::BufferLayout::CalculateOffsetsAndStride() {
         usize size = BufferDataStructureCount(element.dataStructure) * BufferDataTypeByteSize( element.dataType );
         offset   += size;
         m_stride += size;
+    }
+}
+
+Platform::TextureFormat Platform::ImageFormatToTextureFormat( Core::ImageFormat imageFormat ) {
+    switch(imageFormat) {
+        case Core::ImageFormat::R: return TextureFormat::R;
+        case Core::ImageFormat::RG: return TextureFormat::RG;
+        case Core::ImageFormat::RGB: return TextureFormat::RGB;
+        case Core::ImageFormat::RGBA: return TextureFormat::RGBA;
+        default: {
+            LOG_ERROR("Renderer > Image Format does not have an equivalent texture format!");
+            return (TextureFormat)-1;
+        }
+    }
+}
+Platform::TextureInternalFormat Platform::ImageFormatToTextureInternalFormat( Core::ImageFormat imageFormat ) {
+    switch(imageFormat) {
+        case Core::ImageFormat::R: return TextureInternalFormat::R;
+        case Core::ImageFormat::RG: return TextureInternalFormat::RG;
+        case Core::ImageFormat::RGB: return TextureInternalFormat::RGB;
+        case Core::ImageFormat::RGBA: return TextureInternalFormat::RGBA;
+        default: {
+            LOG_ERROR("Renderer > Image Format does not have an equivalent texture format!");
+            return (TextureInternalFormat)-1;
+        }
     }
 }

@@ -16,10 +16,17 @@
 #include <glm/vec4.hpp>
 #include <glm/mat4x4.hpp>
 
+namespace Core {
+    enum class ImageFormat;
+    class Lights;
+};
+
 namespace Platform
 {
 typedef void (*OpenGLSwapBuffer)(void);
 typedef void* (*OpenGLLoader)(const char* functionName);
+
+struct UniformDescription;
 
 class UniformBuffer {
 public:
@@ -244,6 +251,9 @@ enum class TextureInternalFormat {
 };
 const char* TextureInternalFormatToString( TextureInternalFormat format );
 
+TextureFormat ImageFormatToTextureFormat( Core::ImageFormat imageFormat );
+TextureInternalFormat ImageFormatToTextureInternalFormat( Core::ImageFormat imageFormat );
+
 enum class TextureWrapMode {
     CLAMP,
     REPEAT,
@@ -430,7 +440,7 @@ public: // virtual
     virtual void SetPackAlignment( PixelAlignment alignment ) = 0;
     virtual void SetUnpackAlignment( PixelAlignment alignment ) = 0;
     // Activate the texture slot at given index
-    virtual void SetActiveTexture( u32 activeTexture ) = 0;
+    virtual void SetActiveTexture( u32 activeTexture ) const = 0;
     // Draw vertex array, must be bound before use
     virtual void DrawVertexArray( const VertexArray* va ) = 0;
 
@@ -490,14 +500,10 @@ public: // Getters
     const glm::vec4& GetConstantBlendColor() const { return m_blendColor; }
     PixelAlignment GetPixelPackAlignment() const { return m_packAlignment; }
     PixelAlignment GetPixelUnpackAlignment() const { return m_unpackAlignment; }
-    // Get the index of the active texture slot
-    u32 GetActiveTextureIndex() const { return m_activeTexture; }
 
 protected:
     bool m_wireframe = false;
     bool m_blending  = false;
-
-    u32 m_activeTexture = 0;
 
     BlendFactor m_srcRGB   = BlendFactor::ONE;
     BlendFactor m_dstRGB   = BlendFactor::ZERO;
@@ -521,8 +527,64 @@ const glm::vec4     DEFAULT_TEXT_COLOR = glm::vec4(1.0f);
 const Core::XAnchor DEFAULT_TEXT_ANCHOR_X = Core::XAnchor::LEFT;
 const Core::YAnchor DEFAULT_TEXT_ANCHOR_Y = Core::YAnchor::BOTTOM;
 
+// Hard-coding a material may come back to bite me in the ass
+class BlinnPhong {
+public:
+    BlinnPhong( Shader* shader, const RendererAPI* api );
+    ~BlinnPhong();
+
+public:
+    void SetPosition( const glm::vec3& position );
+    void SetRotation( const glm::fquat& rotation );
+    void SetScale( const glm::vec3& scale );
+    void SetTint( const glm::vec3& tint );
+    void SetAlbedo( const Texture2D* albedo );
+    void SetSpecular( const Texture2D* specular );
+    void SetGlossiness( f32 glossiness );
+
+    void UseMaterial();
+
+public: // Getters
+    const Shader* GetShader() const { return m_shader; }
+    const glm::vec3& GetPosition() const { return m_position; }
+    const glm::fquat& GetRotation() const { return m_rotation; }
+    const glm::vec3& GetScale() const { return m_scale; }
+    const glm::vec3& GetTint() const { return m_tint; }
+    f32 GetGlossiness() const { return m_glossiness; }
+    const Texture2D* GetAlbedo() const { return m_albedoTexture; }
+    const Texture2D* GetSpecular() const { return m_specularTexture; }
+
+private:
+    UniformID m_transformID, m_normalID, m_tintID, m_glossinessID;
+    Shader* m_shader;
+
+    glm::vec3  m_position = glm::vec3(0.0f);
+    glm::fquat m_rotation = glm::fquat( 1.0f, 0.0f, 0.0f, 0.0f );
+    glm::vec3  m_scale    = glm::vec3(1.0f);
+    glm::mat4 m_transform = glm::mat4(1.0f);
+    glm::mat3 m_normalMat = glm::mat3(1.0f);
+    bool m_transformDirty = true;
+
+    glm::vec3 m_tint = glm::vec3(1.0f);
+    bool m_tintDirty = true;
+    f32 m_glossiness = 32.0f;
+    bool m_glossinessDirty = true;
+
+    const Texture2D* m_albedoTexture = nullptr;
+    const Texture2D* m_specularTexture = nullptr;
+    const RendererAPI* m_apiRef = nullptr;
+
+    const u32 ALBEDO_SAMPLER = 0;
+    const u32 SPECULAR_SAMPLER = 1;
+};
+
 class Renderer {
 public:
+
+    enum class Material {
+        BLINNPHONG
+    };
+
     Renderer( BackendAPI backend );
     ~Renderer();
 
@@ -538,25 +600,34 @@ public:
         const glm::vec4&   color,
         Core::XAnchor      anchorX,
         Core::YAnchor      anchorY
-    );
+    ) const;
     void RenderText(
         const std::string& text,
         const glm::vec2& screenSpacePosition,
         f32 scale,
         const glm::vec4& color
-    ) { RenderText( text, screenSpacePosition, scale, color, DEFAULT_TEXT_ANCHOR_X, DEFAULT_TEXT_ANCHOR_Y ); }
+    ) const { RenderText( text, screenSpacePosition, scale, color, DEFAULT_TEXT_ANCHOR_X, DEFAULT_TEXT_ANCHOR_Y ); }
     void RenderText(
         const std::string& text,
         const glm::vec2& screenSpacePosition,
         f32 scale
-    ) { RenderText( text, screenSpacePosition, scale, DEFAULT_TEXT_COLOR ); }
+    ) const { RenderText( text, screenSpacePosition, scale, DEFAULT_TEXT_COLOR ); }
     void RenderText(
         const std::string& text,
         const glm::vec2& screenSpacePosition
-    ) { RenderText( text, screenSpacePosition, DEFAULT_TEXT_SCALE ); }
+    ) const { RenderText( text, screenSpacePosition, DEFAULT_TEXT_SCALE ); }
+
+    void ResolutionChanged( const glm::vec2& newResolution );
+
+    void EnableBoundingBox()  { m_renderBoundingBox = true; }
+    void DisableBoundingBox() { m_renderBoundingBox = false; }
+
+    void StartScene();
+    void SetMesh( VertexArray* va );
+    void DrawMesh( Material material );
+    void EndScene();
 
     void SetCurrentFont( const Core::FontAtlas* font );
-    void ResolutionChanged( const glm::vec2& newResolution );
     void UploadFontAtlasBitmap( Core::FontAtlas& fontAtlas );
     void BufferCameraPosition( const glm::vec3& cameraPosition );
     void BufferClippingFields( const glm::vec2& clippingFields );
@@ -564,6 +635,10 @@ public:
 public: // Getters
     RendererAPI* API() { return m_api; }
     bool Successful() const { return m_success; }
+    bool IsBoundingBoxEnabled() const { return m_renderBoundingBox; }
+    Core::Camera* GetCamera() { return m_camera; }
+    Core::Lights* GetLights() { return m_lights; }
+    BlinnPhong* GetBlinnPhong() { return m_blinnPhong; }
 
 private:
     void RenderCharacter(
@@ -571,10 +646,12 @@ private:
         const glm::vec2& origin,
         const glm::vec2& pixelPosition,
         f32 scale
-    );
+    ) const;
+    void RenderBoundingBox( const glm::vec4& bounds ) const;
 
 private:
     bool m_success;
+    bool m_renderBoundingBox = false;
     RendererAPI* m_api;
 
     const Core::FontAtlas* m_currentFont = nullptr;
@@ -585,59 +662,21 @@ private:
     
     Shader* m_fontShader = nullptr;
     UniformID m_fontColorID, m_fontTransformID, m_fontCoordsID;
+    VertexArray* m_fontVA = nullptr;
 
-    VertexArray* m_fontVA;
+    Shader* m_boundsShader = nullptr;
+    UniformID m_boundsTransformID;
+    VertexArray* m_boundsVA = nullptr;
 
     // 3D ---------------------------------------------
 
     UniformBuffer* m_sharedData = nullptr;
 
-    VertexArray* m_modelVA = nullptr;
-    Shader* m_modelShader = nullptr;
+    VertexArray* m_meshVA = nullptr;
+    BlinnPhong* m_blinnPhong = nullptr;
 
-//     const VertexArray*   GetVertexArray( VertexArrayID id ) { return m_vertexArrays[id]; }
-
-//     Core::Camera& GetCamera() { return m_camera; }
-
-//     // Render a vertex array
-//     virtual void RenderVertexArray( const VertexArray* vertexArray ) = 0;
-
-//     // Load font atlas bitmap
-//     // Sets font atlas texture id and clears bitmap
-//     virtual void LoadFontAtlasBitmap( Core::FontAtlas& fontAtlas ) = 0;
-
-// public:
-//     // Render Test Cube
-//     void RenderTestCube();
-//     // Update View Matrix
-//     void UpdateViewMatrix();
-//     // Update Projection Matrix
-//     void UpdateProjectionMatrix();
-//     // Render a vertex array with an ID
-//     void RenderVertexArray( VertexArrayID vertexArrayID );
-//     // Set clear screen color, RGB 0.0-1.0
-//     void SetClearColor( const glm::vec3& clearColor );
-//     // Render a label
-//     void RenderText( const Core::UI::Label& label );
-//     // Render a label button
-//     void RenderTextButton( const Core::UI::LabelButton& button );
-//     // Push new vertex array
-//     VertexArrayID PushVertexArray( VertexArray* vertexArray );
-
-// protected:
-//     virtual void RenderCharacter( const Core::CharMetrics& metrics, const glm::vec2& origin ) = 0;
-// #ifdef DEBUG
-//     virtual void RenderBoundingBox( const glm::vec4& bounds ) = 0;
-//     bool m_renderBoundingBoxes = false;
-// #endif
-
-//     // 3D ---------------------------------------------
-
-//     Core::Camera m_camera = Core::Camera();
-
-//     UniformBuffer* m_matrices3D = nullptr;
-//     Shader*   m_modelShader = nullptr;
-//     UniformID m_modelTransformID;
+    Core::Camera* m_camera = nullptr;
+    Core::Lights* m_lights = nullptr;
 
 }; // class Renderer
 

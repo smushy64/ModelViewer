@@ -8,7 +8,7 @@ Nearly all of the code is original with the exception of
   - truetype
   - image
 - [tinyobjloader](https://github.com/tinyobjloader/tinyobjloader)
-- [glad](https://glad.dav1d.de/)
+- [glad](https://github.com/Dav1dde/glad)
 
 This project is written such that when I learn other rendering APIs I can come back to it and implement those APIs
 

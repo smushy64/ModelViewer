@@ -1,6 +1,5 @@
 #include "ui.hpp"
 #include "debug.hpp"
-#include "collision.hpp"
 #include "global.hpp"
 #include "platform/pointer.hpp"
 #include "platform/renderer.hpp"
@@ -20,7 +19,7 @@ void LabelButton::UpdateState( Core::Input& input ) {
 
     glm::vec2 mousePosition = input.screenSpaceMouse;
     mousePosition.y = 1.0f - mousePosition.y;
-    bool isHovering = Core::PointInBoundingBox(
+    bool isHovering = Core::UI::PointInBoundingBox(
         mousePosition,
         m_screenSpaceBoundingBox
     );
@@ -151,4 +150,20 @@ Label& Canvas::GetLabel(usize index) {
 }
 LabelButton& Canvas::GetLabelButton(usize index) {
     return m_labelButtons[index];
+}
+
+bool Core::UI::PointInBoundingBox( const glm::vec2& point, const glm::vec4& bounds ) {
+
+    if( point.x < bounds.x ) {
+        return false;
+    } else if( point.y < bounds.y ) {
+        return false;
+    } else if( point.x > bounds.x + bounds.z ) {
+        return false;
+    } else if( point.y > bounds.y + bounds.w ) {
+        return false;
+    }
+
+    return true;
+
 }

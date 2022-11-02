@@ -6,8 +6,8 @@ in struct {
     vec3 worldPosition;
 
     vec3 normal;
-    // vec3 tangent;
-    // vec3 bitangent;
+    vec3 tangent;
+    vec3 bitangent;
 
     vec2 uv;
 
@@ -53,8 +53,12 @@ layout(std140, binding = 3) uniform Data {
 };
 
 uniform vec3      u_surfaceTint;
-uniform sampler2D u_albedoSampler;
-uniform sampler2D u_specularSampler;
+uniform layout(binding = 0) sampler2D u_albedoSampler;
+uniform bool      u_albedoPresent = false;
+uniform layout(binding = 1) sampler2D u_specularSampler;
+uniform bool      u_specularPresent = false;
+uniform layout(binding = 2) sampler2D u_normalSampler;
+uniform bool      u_normalPresent = false;
 uniform float     u_glossiness;
 
 vec3 CalcDirectionalLight(
@@ -88,10 +92,29 @@ float CalcSpecular( vec3 lightDirection, vec3 surfaceNormal, vec3 cameraDirectio
 
 out vec4 FRAG_COLOR;
 void main() {
-    vec3 surfaceAlbedo    = texture2D( u_albedoSampler, v2f.uv ).rgb * u_surfaceTint;
-    float surfaceSpecular = texture2D( u_specularSampler, v2f.uv ).r;
-    vec3 surfaceNormal    = normalize( v2f.normal );
-    vec3 surfaceColor     = u_ambientLight.u_color.rgb;
+    vec3 surfaceAlbedo = u_surfaceTint;
+    if( u_albedoPresent ) {
+        surfaceAlbedo *= texture2D( u_albedoSampler, v2f.uv ).rgb;
+    }
+    float surfaceSpecular = 0.0;
+    if( u_specularPresent ) {
+        surfaceSpecular = texture2D( u_specularSampler, v2f.uv ).r;
+    }
+    vec3 vnormal = normalize( v2f.normal );
+    vec3 surfaceNormal = vnormal;
+    if( u_normalPresent ) {
+        vec3 vtangent   = normalize( v2f.tangent );
+        vec3 vbitangent = normalize( v2f.bitangent );
+
+        vec3 normalSample = texture2D( u_normalSampler, v2f.uv ).rgb * 2.0 - 1.0;
+        mat3 tbn = mat3(
+            vtangent,
+            vbitangent,
+            vnormal
+        );
+        surfaceNormal = normalize( tbn * normalSample );
+    }
+    vec3 surfaceColor = u_ambientLight.u_color.rgb;
 
     vec3 cameraDirection = normalize( u_cameraPosition.xyz - v2f.worldPosition );
 

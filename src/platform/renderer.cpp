@@ -3,6 +3,8 @@
 #include "debug.hpp"
 #include "global.hpp"
 #include "consts.hpp"
+#include "utils.hpp"
+#include "core/ui.hpp"
 #include "core/image.hpp"
 #include "core/light.hpp"
 #include <glm/gtc/type_ptr.hpp>
@@ -138,7 +140,7 @@ void Renderer::Initialize() {
     m_camera = new Core::Camera();
     m_lights = new Core::Lights();
 
-    auto ortho = glm::ortho( 0.0f, (f32)DEFAULT_WINDOW_WIDTH, 0.0f, (f32)DEFAULT_WINDOW_HEIGHT );
+    auto ortho = glm::ortho( 0.0f, 1.0f, 0.0f, 1.0f );
     m_matrices2D = UniformBuffer::New( sizeof( glm::mat4 ), glm::value_ptr(ortho) );
     m_matrices2D->SetBindingPoint( MATRIX_2D_BINDING_POINT );
 
@@ -146,8 +148,6 @@ void Renderer::Initialize() {
     m_sharedData->SetBindingPoint( SHARED_DATA_BINDING_POINT );
     BufferCameraPosition( glm::vec3(0.0f) );
     BufferClippingFields( glm::vec2( 0.001f, 1000.0f ) );
-
-    LOG_INFO("Renderer > Buffers Created");
 
     /* Create Font Mesh */ {
         f32 fontVertices[] = {
@@ -176,9 +176,6 @@ void Renderer::Initialize() {
         IndexBuffer* fontIndexBuffer = IndexBuffer::New( BufferDataType::UINT, FONT_INDEX_COUNT, &fontIndices );
         m_fontVA->SetIndexBuffer(fontIndexBuffer);
     }
-
-    LOG_INFO("Renderer > Font Mesh Created");
-
     /* Create Font Shader */ {
         TextFile fontVertSrc = LoadTextFile( FONT_VERT_PATH );
         TextFile fontFragSrc = LoadTextFile( FONT_FRAG_PATH );
@@ -206,9 +203,6 @@ void Renderer::Initialize() {
         m_fontShader->UniformInt( texSamplerID, 0 );
         m_fontShader->UniformVec4( m_fontColorID, glm::vec4(1.0f) );
     }
-
-    LOG_INFO("Renderer > Font Shader Created");
-
     /* Create Bounds Mesh */ {
         f32 boundsVertices[] = {
             /*POSITION*/ 0.0f, 1.0f,
@@ -236,9 +230,6 @@ void Renderer::Initialize() {
         m_boundsVA->SetIndexBuffer( boundsIB );
 
     };
-
-    LOG_INFO("Renderer > Bounds Mesh Created");
-
     /* Create Bounds Shader */ {
         TextFile vsrc = LoadTextFile( BOUNDS_VERT_PATH );
         TextFile fsrc = LoadTextFile( BOUNDS_FRAG_PATH );
@@ -258,109 +249,26 @@ void Renderer::Initialize() {
         m_boundsShader->UseShader();
         m_boundsShader->GetUniform( "u_transform", m_boundsTransformID );
     }
-
-    LOG_INFO("Renderer > Bounds Shader Created");
-
     /* Create Cube Mesh */ {
-        f32 verts[] = {
-            // front
-            /* Positions */ -0.5,  0.5,  0.5,  /* UVs */  0.0,  1.0, /* Normals */  0.0, 0.0,  1.0,
-            /* Positions */  0.5,  0.5,  0.5,  /* UVs */  1.0,  1.0, /* Normals */  0.0, 0.0,  1.0,
-            /* Positions */ -0.5, -0.5,  0.5,  /* UVs */  0.0,  0.0, /* Normals */  0.0, 0.0,  1.0,
-            /* Positions */  0.5, -0.5,  0.5,  /* UVs */  1.0,  0.0, /* Normals */  0.0, 0.0,  1.0,
-
-            // back
-            /* Positions */ -0.5,  0.5, -0.5, /* UVs */  0.0,  1.0, /* Normals */  0.0, 0.0, -1.0,
-            /* Positions */  0.5,  0.5, -0.5, /* UVs */  1.0,  1.0, /* Normals */  0.0, 0.0, -1.0,
-            /* Positions */ -0.5, -0.5, -0.5, /* UVs */  0.0,  0.0, /* Normals */  0.0, 0.0, -1.0,
-            /* Positions */  0.5, -0.5, -0.5, /* UVs */  1.0,  0.0, /* Normals */  0.0, 0.0, -1.0,
-
-            // left
-            /* Positions */ -0.5,  0.5, -0.5, /* UVs */  0.0,  1.0, /* Normals */ -1.0, 0.0,  0.0,
-            /* Positions */ -0.5,  0.5,  0.5, /* UVs */  1.0,  1.0, /* Normals */ -1.0, 0.0,  0.0,
-            /* Positions */ -0.5, -0.5, -0.5, /* UVs */  0.0,  0.0, /* Normals */ -1.0, 0.0,  0.0,
-            /* Positions */ -0.5, -0.5,  0.5, /* UVs */  1.0,  0.0, /* Normals */ -1.0, 0.0,  0.0,
-
-            // right
-            /* Positions */  0.5,  0.5, -0.5, /* UVs */  0.0,  1.0, /* Normals */  1.0, 0.0,  0.0,
-            /* Positions */  0.5,  0.5,  0.5, /* UVs */  1.0,  1.0, /* Normals */  1.0, 0.0,  0.0,
-            /* Positions */  0.5, -0.5, -0.5, /* UVs */  0.0,  0.0, /* Normals */  1.0, 0.0,  0.0,
-            /* Positions */  0.5, -0.5,  0.5, /* UVs */  1.0,  0.0, /* Normals */  1.0, 0.0,  0.0,
-
-            // top
-            /* Positions */ -0.5,  0.5,  0.5, /* UVs */  0.0,  1.0, /* Normals */  0.0, 1.0,  0.0,
-            /* Positions */  0.5,  0.5,  0.5, /* UVs */  1.0,  1.0, /* Normals */  0.0, 1.0,  0.0,
-            /* Positions */ -0.5,  0.5, -0.5, /* UVs */  0.0,  0.0, /* Normals */  0.0, 1.0,  0.0,
-            /* Positions */  0.5,  0.5, -0.5, /* UVs */  1.0,  0.0, /* Normals */  0.0, 1.0,  0.0,
-
-            // bottom
-            /* Positions */ -0.5, -0.5,  0.5, /* UVs */  0.0,  1.0, /* Normals */   0.0, -1.0, 0.0,
-            /* Positions */  0.5, -0.5,  0.5, /* UVs */  1.0,  1.0, /* Normals */   0.0, -1.0, 0.0,
-            /* Positions */ -0.5, -0.5, -0.5, /* UVs */  0.0,  0.0, /* Normals */   0.0, -1.0, 0.0,
-            /* Positions */  0.5, -0.5, -0.5, /* UVs */  1.0,  0.0, /* Normals */   0.0, -1.0, 0.0,
-        };
-        const usize VERT_COUNT = 192;
-
-        u32 idx[] = {
-            0, 1, 2,
-            1, 3, 2,
-
-            4, 5, 6,
-            5, 7, 6,
-
-            8,  9, 10,
-            9, 11, 10,
-
-            12, 13, 14,
-            13, 15, 14,
-
-            16, 17, 18,
-            17, 19, 18,
-
-            20, 21, 22,
-            21, 23, 22,
-        };
-        const usize IDX_COUNT = 36;
-
         m_meshVA = VertexArray::New();
         m_meshVA->UseArray();
 
-        auto vBuffer = VertexBuffer::New( sizeof(f32) * VERT_COUNT, &verts );
-        auto vLayout = BufferLayout({
-            NewBufferElement(
-                "Position",
-                BufferDataType::FLOAT,
-                BufferDataStructure::VEC3,
-                false
-            ),
-            NewBufferElement(
-                "UV",
-                BufferDataType::FLOAT,
-                BufferDataStructure::VEC2,
-                false
-            ),
-            NewBufferElement(
-                "Normal",
-                BufferDataType::FLOAT,
-                BufferDataStructure::VEC3,
-                false
-            )
-        });
+        auto vertices = Utils::CreateCubeMesh();
+        auto vBuffer = VertexBuffer::New( sizeof(Vertex) * vertices.size(), &vertices[0] );
+        auto vLayout = StandardVertexLayout();
         vBuffer->SetLayout( vLayout );
 
         m_meshVA->AddVertexBuffer( vBuffer );
 
+        auto indices = Utils::CubeIndices();
         auto iBuffer = IndexBuffer::New(
             BufferDataType::UINT,
-            IDX_COUNT,
-            &idx
+            indices.size(),
+            &indices[0]
         );
 
         m_meshVA->SetIndexBuffer( iBuffer );
     }
-
-    LOG_INFO("Renderer > Cube Mesh Created");
-
     /* Create Blinn-Phong Shader */ {
         Platform::TextFile vsrc = Platform::LoadTextFile( BLINNPHONG_VERT_PATH );
         Platform::TextFile fsrc = Platform::LoadTextFile( BLINNPHONG_FRAG_PATH );
@@ -377,10 +285,10 @@ void Renderer::Initialize() {
             return;
         }
 
-        m_blinnPhong = new BlinnPhong( shader, m_api );
+        m_blinnPhong = new BlinnPhong( shader );
     }
 
-    LOG_INFO("Renderer > Blinn-Phong Shader Created");
+    LOG_INFO("Renderer > Initialized Successfully");
 }
 void Renderer::BufferCameraPosition( const glm::vec3& cameraPosition ) {
     m_sharedData->BufferSubData( 0, sizeof( glm::vec3 ), glm::value_ptr( cameraPosition ) );
@@ -388,19 +296,18 @@ void Renderer::BufferCameraPosition( const glm::vec3& cameraPosition ) {
 void Renderer::BufferClippingFields( const glm::vec2& clippingFields ) {
     m_sharedData->BufferSubData( sizeof( glm::vec4 ), sizeof( glm::vec2 ), glm::value_ptr( clippingFields ) );
 }
-void Renderer::RenderText( const Core::UI::Label& label ) {
-    SetCurrentFont( label.Font() );
+void Renderer::RenderText( const Core::UI::Label& label ) const {
     RenderText(
         label.Text(),
         label.ScreenSpacePosition(),
         label.Scale(),
         label.Color(),
         label.AnchorX(),
-        label.AnchorY()
+        label.AnchorY(),
+        label.Font()
     );
 }
-void Renderer::RenderTextButton( const Core::UI::LabelButton& labelButton ) {
-    SetCurrentFont( labelButton.Font() );
+void Renderer::RenderTextButton( const Core::UI::LabelButton& labelButton ) const {
     glm::vec4 color;
     switch( labelButton.State() ) {
         case Core::UI::ElementState::HOVERED: {
@@ -417,7 +324,8 @@ void Renderer::RenderTextButton( const Core::UI::LabelButton& labelButton ) {
         labelButton.Scale(),
         color,
         labelButton.AnchorX(),
-        labelButton.AnchorY()
+        labelButton.AnchorY(),
+        labelButton.Font()
     );
     if( m_renderBoundingBox ) {
         RenderBoundingBox( glm::vec4(
@@ -444,11 +352,25 @@ void Renderer::RenderText(
     Core::XAnchor      anchorX,
     Core::YAnchor      anchorY
 ) const {
-    if( m_currentFont == nullptr ) {
-        LOG_ERROR("Renderer > Attempted to render text while there is no font set!");
-        return;
-    }
-    
+    RenderText(
+        text,
+        screenSpacePosition,
+        scale,
+        color,
+        anchorX,
+        anchorY,
+        m_currentFont
+    );
+}
+void Renderer::RenderText(
+    const std::string& text,
+    const glm::vec2&   screenSpacePosition,
+    f32                scale,
+    const glm::vec4&   color,
+    Core::XAnchor      anchorX,
+    Core::YAnchor      anchorY,
+    const Core::FontAtlas* font
+) const {
     m_api->EnableBlending();
     m_api->BlendFunction(
         RendererAPI::BlendFactor::SRC_ALPHA,
@@ -458,7 +380,7 @@ void Renderer::RenderText(
     m_fontShader->UseShader();
     m_fontShader->UniformVec4( m_fontColorID, color );
     m_api->SetActiveTexture( 0 );
-    m_currentFont->texture->UseTexture();
+    font->texture->UseTexture();
     m_fontVA->UseArray();
 
     glm::vec2 pixelPosition = glm::vec2(
@@ -473,14 +395,14 @@ void Renderer::RenderText(
             std::string::const_iterator iter;
             f32 stringWidth = 0.0f;
             for( iter = text.begin(); iter < text.end(); iter++ ) {
-                if( m_currentFont->characterMetrics.count(*iter) == 0 ) {
+                if( font->characterMetrics.count(*iter) == 0 ) {
                     // skip characters not found in character map
                     LOG_WARN("Renderer > Character \'%c\' not found in font \"%s\"",
-                        *iter, m_currentFont->name.c_str()
+                        *iter, font->name.c_str()
                     );
                     continue;
                 }
-                auto character = m_currentFont->characterMetrics.at( *iter );
+                auto character = font->characterMetrics.at( *iter );
                 stringWidth += character.advance * scale;
             }
             originX -= stringWidth / 2.0f;
@@ -489,14 +411,14 @@ void Renderer::RenderText(
             std::string::const_iterator iter;
             f32 stringWidth = 0.0f;
             for( iter = text.begin(); iter < text.end(); iter++ ) {
-                if( m_currentFont->characterMetrics.count(*iter) == 0 ) {
+                if( font->characterMetrics.count(*iter) == 0 ) {
                     // skip characters not found in character map
                     LOG_WARN("Renderer > Character \'%c\' not found in font \"%s\"",
-                        *iter, m_currentFont->name.c_str()
+                        *iter, font->name.c_str()
                     );
                     continue;
                 }
-                auto character = m_currentFont->characterMetrics.at( *iter );
+                auto character = font->characterMetrics.at( *iter );
                 stringWidth += character.advance * scale;
             }
             originX -= stringWidth;
@@ -506,24 +428,24 @@ void Renderer::RenderText(
 
     switch(anchorY) {
         case Core::YAnchor::CENTER: {
-            yOffset = -((m_currentFont->pointSize / 2.0f) * scale);
+            yOffset = -((font->pointSize / 2.0f) * scale);
         } break;
         case Core::YAnchor::TOP: {
-            yOffset = -(m_currentFont->pointSize * scale);
+            yOffset = -(font->pointSize * scale);
         } break;
         default: break;
     }
 
     std::string::const_iterator iter;
     for( iter = text.begin(); iter < text.end(); iter++ ) {
-        if( m_currentFont->characterMetrics.count(*iter) == 0 ) {
+        if( font->characterMetrics.count(*iter) == 0 ) {
             // skip characters not found in character map
             LOG_WARN("Renderer > Character \'%c\' not found in font \"%s\"",
-                *iter, m_currentFont->name.c_str()
+                *iter, font->name.c_str()
             );
             continue;
         }
-        auto character = m_currentFont->characterMetrics.at( *iter );
+        auto character = font->characterMetrics.at( *iter );
         RenderCharacter(
             character,
             glm::vec2(originX, yOffset),
@@ -535,6 +457,14 @@ void Renderer::RenderText(
 
     m_api->DisableBlending();
 
+}
+void Renderer::RenderCanvas( const Core::UI::Canvas& canvas ) const {
+    for( auto const& label : canvas.GetLabels() ) {
+        RenderText( label );
+    }
+    for( auto const& labelButton : canvas.GetLabelButtons() ) {
+        RenderTextButton( labelButton );
+    }
 }
 void Renderer::RenderCharacter(
     const Core::CharMetrics& metrics,
@@ -663,44 +593,15 @@ void Renderer::RenderBoundingBox( const glm::vec4& bounds ) const {
     m_api->DisableWireframe();
 }
 
-BlinnPhong::BlinnPhong( Shader* shader, const RendererAPI* api )
-: m_shader(shader), m_apiRef( api ) {
+BlinnPhong::BlinnPhong( Shader* shader )
+: m_shader(shader) {
     m_shader->GetUniform( "u_transform", m_transformID );
-    m_shader->GetUniform( "u_normalMat", m_normalID );
+    m_shader->GetUniform( "u_normalMat", m_normalMatID );
     m_shader->GetUniform( "u_surfaceTint", m_tintID );
     m_shader->GetUniform( "u_glossiness", m_glossinessID );
-    UniformID albedoSampler, specularSampler;
-    m_shader->GetUniform( "u_albedoSampler", albedoSampler );
-    m_shader->GetUniform( "u_specularSampler", specularSampler );
-    m_shader->UniformInt( albedoSampler, ALBEDO_SAMPLER );
-    m_shader->UniformInt( specularSampler, SPECULAR_SAMPLER );
-
-    u32 albedo =
-        (u8)255 << 0  |
-        (u8)255 << 8  |
-        (u8)255 << 16 |
-        (u8)255 << 24
-    ;
-    m_albedoTexture = Texture2D::New(
-        glm::ivec2(1),
-        &albedo,
-        TextureFormat::RGBA,
-        TextureInternalFormat::RGBA,
-        BufferDataType::UBYTE
-    );
-    u32 specular =
-        (u8)0   << 0  |
-        (u8)0   << 8  |
-        (u8)0   << 16 |
-        (u8)255 << 24
-    ;
-    m_specularTexture = Texture2D::New(
-        glm::ivec2(1),
-        &specular,
-        TextureFormat::RGBA,
-        TextureInternalFormat::RGBA,
-        BufferDataType::UBYTE
-    );
+    m_shader->GetUniform( "u_albedoPresent", m_albedoPresentID );
+    m_shader->GetUniform( "u_specularPresent", m_specularPresentID );
+    m_shader->GetUniform( "u_normalPresent", m_normalPresentID );
 }
 BlinnPhong::~BlinnPhong() {
     delete( m_shader );
@@ -709,6 +610,9 @@ BlinnPhong::~BlinnPhong() {
     }
     if( m_specularTexture != nullptr ) {
         delete( m_specularTexture );
+    }
+    if( m_normalTexture != nullptr ) {
+        delete( m_normalTexture );
     }
 }
 void BlinnPhong::SetPosition( const glm::vec3& position ) {
@@ -740,7 +644,7 @@ void BlinnPhong::UseMaterial() {
         m_normalMat = glm::transpose( glm::inverse( m_transform ) );
         m_transformDirty = false;
         m_shader->UniformMat4( m_transformID, m_transform );
-        m_shader->UniformMat3( m_normalID, m_normalMat );
+        m_shader->UniformMat3( m_normalMatID, m_normalMat );
     }
     if( m_tintDirty ) {
         m_shader->UniformVec3( m_tintID, m_tint );
@@ -752,35 +656,44 @@ void BlinnPhong::UseMaterial() {
     }
 
     m_shader->UseShader();
+    if( m_albedoTexture == nullptr ) {
+        m_shader->UniformInt( m_albedoPresentID, 0 );
+    } else {
+        m_shader->UniformInt( m_albedoPresentID, 1 );
+        m_albedoTexture->UseTexture( ALBEDO_SAMPLER );
+    }
 
-#ifdef DEBUG
-    if( m_apiRef == nullptr ) {
-        LOG_ERROR("Blinn-Phong > API Reference is null!");
-    } else
-#endif
-    {
-        if( m_albedoTexture == nullptr ) {
-            LOG_WARN("Blinn-Phong > Albedo texture is null!");
-        } else {
-            m_apiRef->SetActiveTexture(ALBEDO_SAMPLER);
-            m_albedoTexture->UseTexture();
-        }
+    if( m_specularTexture == nullptr ) {
+        m_shader->UniformInt( m_specularPresentID, 0 );
+    } else {
+        m_shader->UniformInt( m_specularPresentID, 1 );
+        m_specularTexture->UseTexture( SPECULAR_SAMPLER );
+    }
 
-        if( m_specularTexture == nullptr ) {
-            LOG_WARN("Blinn-Phong > Specular texture is null!");
-        } else {
-            m_apiRef->SetActiveTexture(SPECULAR_SAMPLER);
-            m_specularTexture->UseTexture();
-        }
+    if( m_normalTexture == nullptr ) {
+        m_shader->UniformInt( m_normalPresentID, 0 );
+    } else {
+        m_shader->UniformInt( m_normalPresentID, 1 );
+        m_normalTexture->UseTexture( NORMAL_SAMPLER );
     }
 }
 void BlinnPhong::SetAlbedo( const Texture2D* albedo ) {
-    delete( m_albedoTexture );
+    if( m_albedoTexture != nullptr ) {
+        delete( m_albedoTexture );
+    }
     m_albedoTexture = albedo;
 }
 void BlinnPhong::SetSpecular( const Texture2D* specular ) {
-    delete( m_specularTexture );
+    if( m_specularTexture != nullptr ) {
+        delete( m_specularTexture );
+    }
     m_specularTexture = specular;
+}
+void BlinnPhong::SetNormal( const Texture2D* normal ) {
+    if( m_normalTexture != nullptr ) {
+        delete( m_normalTexture );
+    }
+    m_normalTexture = normal;
 }
 
 Platform::Shader* Platform::Shader::New( const std::string& vertex, const std::string& fragment ) {
@@ -940,10 +853,45 @@ void Platform::BufferLayout::CalculateOffsetsAndStride() {
     m_stride = 0;
     for( auto& element: m_elements ) {
         element.offset = offset;
-        usize size = BufferDataStructureCount(element.dataStructure) * BufferDataTypeByteSize( element.dataType );
+        usize size = BufferDataStructureCount(element.dataStructure) * BufferDataTypeByteSize(element.dataType);
         offset   += size;
         m_stride += size;
     }
+}
+
+Platform::BufferLayout Platform::StandardVertexLayout() {
+    return Platform::BufferLayout({
+        Platform::NewBufferElement(
+            "Position",
+            Platform::BufferDataType::FLOAT,
+            Platform::BufferDataStructure::VEC3,
+            false
+        ),
+        Platform::NewBufferElement(
+            "UV",
+            Platform::BufferDataType::FLOAT,
+            Platform::BufferDataStructure::VEC2,
+            false
+        ),
+        Platform::NewBufferElement(
+            "Normal",
+            Platform::BufferDataType::FLOAT,
+            Platform::BufferDataStructure::VEC3,
+            false
+        ),
+        Platform::NewBufferElement(
+            "Tangent",
+            Platform::BufferDataType::FLOAT,
+            Platform::BufferDataStructure::VEC3,
+            false
+        ),
+        Platform::NewBufferElement(
+            "Bitangent",
+            Platform::BufferDataType::FLOAT,
+            Platform::BufferDataStructure::VEC3,
+            false
+        )
+    });
 }
 
 Platform::TextureFormat Platform::ImageFormatToTextureFormat( Core::ImageFormat imageFormat ) {

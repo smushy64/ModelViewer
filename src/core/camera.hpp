@@ -18,7 +18,7 @@ inline const glm::vec3 CAMERA_POSITION = glm::vec3( 0.0f, 0.0f, -1.0f );
 inline const f32 CAMERA_NEAR_CLIP = 0.001f;
 inline const f32 CAMERA_FAR_CLIP  = 1000.0f;
 inline const f32 CAMERA_FOV       = 1.13446f;
-inline const f32 CAMERA_ZOOM      = 2.0f;
+inline const f32 CAMERA_ZOOM      = 2.5f;
 inline const f32 CAMERA_ASPECT_RATIO = 1.7778f;
 
 class Camera {

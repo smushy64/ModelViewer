@@ -17,7 +17,7 @@ This project is written such that when I learn other rendering APIs I can come b
 
 ## Screenshots
 
-TODO: paste screenshot links here
+![Version 0.1](screenshots/ver0.1/scr01.jpeg)
 
 ## Camera Controls
 | Key                 | Action                 |
@@ -35,3 +35,7 @@ Unzip and run `ModelViewer.exe`.
 The program will not run without the resources folder present in the same directory
 
 Suzanne model by the [Blender Foundation](https://www.blender.org/)
+
+## Table of Contents
+- [Screenshots](screenshots)
+- [Downloads](screenshots)

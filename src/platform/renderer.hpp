@@ -1,7 +1,7 @@
 #pragma once
 
-#include "core/text.hpp"
 #include "core/ui.hpp"
+#include "core/text.hpp"
 #include "core/camera.hpp"
 
 #include "consts.hpp"
@@ -16,17 +16,21 @@
 #include <glm/vec4.hpp>
 #include <glm/mat4x4.hpp>
 
+// Forward declaration
 namespace Core {
     enum class ImageFormat;
     class Lights;
+namespace UI {
+    class Label;
+    class LabelButton;
+    class Canvas;
+}
 };
 
 namespace Platform
 {
 typedef void (*OpenGLSwapBuffer)(void);
 typedef void* (*OpenGLLoader)(const char* functionName);
-
-struct UniformDescription;
 
 class UniformBuffer {
 public:
@@ -118,6 +122,15 @@ private:
     usize m_stride = 0;
 }; // class Buffer Layout
 
+struct Vertex {
+    glm::vec3 position;
+    glm::vec2 uv;
+    glm::vec3 normal;
+    glm::vec3 tangent;
+    glm::vec3 bitangent;
+};
+BufferLayout StandardVertexLayout();
+
 class VertexBuffer {
 public:
     static VertexBuffer* New( usize size, const void* data );
@@ -127,10 +140,15 @@ public:
 public: // Getters
     // Get byte size of buffer
     usize Size() const { return m_size; }
+    // Get count of vertices
+    usize Count() const { return m_count; }
     // Get GPU ID
     RendererID ID() const { return m_id; }
     // Get pointer to buffer layout, can be a nullptr so check
     const BufferLayout* GetLayout() const { return &m_bufferLayout; }
+
+public:
+    void SetCount(usize count) { m_count = count; }
 
 public: // NOTE: virtual
     // Bind buffer for use
@@ -141,6 +159,7 @@ public: // NOTE: virtual
     virtual ~VertexBuffer() = default;
 protected:
     usize m_size;
+    usize m_count = 0;
     RendererID m_id;
     BufferLayout m_bufferLayout;
 }; // class Vertex Buffer
@@ -177,7 +196,7 @@ public:
 public: // Getters
     RendererID ID() const { return m_id; }
     usize VertexBufferCount() const { return m_vertexBuffers.size(); }
-    bool HasIndexBuffer() const { return m_indexBuffer != nullptr; }
+    bool HasIndexBuffer() const { return m_hasIndexBuffer; }
     const std::vector<VertexBuffer*>& GetVertexBuffers() const { return m_vertexBuffers; }
     const IndexBuffer* GetIndexBuffer() const { return m_indexBuffer; }
 
@@ -193,9 +212,10 @@ public: // NOTE: virtual
 
     virtual ~VertexArray() = default;
 protected:
+    bool m_hasIndexBuffer = false;
     std::vector<VertexBuffer*> m_vertexBuffers;
-    IndexBuffer* m_indexBuffer;
-    RendererID m_id;
+    IndexBuffer* m_indexBuffer = nullptr;
+    RendererID m_id = 0;
 }; // class Vertex Array
 
 class Shader {
@@ -317,7 +337,10 @@ public:
     ) { return Texture2D::New( dimensions, data, format, internalFormat, dataType, AUTO_MIPMAP, false ); }
 
 public: // virtual
-    virtual void UseTexture() const = 0;
+    // Use texture at given unit
+    virtual void UseTexture( usize unit ) const = 0;
+    // Use texture at unit 0
+    void UseTexture() const { UseTexture( 0 ); }
     // Set Horizontal Wrap Mode, Texture must be bound for this to work properly
     virtual void SetHorizontalWrap( TextureWrapMode wrap ) = 0;
     // Set Vertical Wrap Mode, Texture must be bound for this to work properly
@@ -530,7 +553,7 @@ const Core::YAnchor DEFAULT_TEXT_ANCHOR_Y = Core::YAnchor::BOTTOM;
 // Hard-coding a material may come back to bite me in the ass
 class BlinnPhong {
 public:
-    BlinnPhong( Shader* shader, const RendererAPI* api );
+    BlinnPhong( Shader* shader );
     ~BlinnPhong();
 
 public:
@@ -540,6 +563,7 @@ public:
     void SetTint( const glm::vec3& tint );
     void SetAlbedo( const Texture2D* albedo );
     void SetSpecular( const Texture2D* specular );
+    void SetNormal( const Texture2D* normal );
     void SetGlossiness( f32 glossiness );
 
     void UseMaterial();
@@ -553,9 +577,16 @@ public: // Getters
     f32 GetGlossiness() const { return m_glossiness; }
     const Texture2D* GetAlbedo() const { return m_albedoTexture; }
     const Texture2D* GetSpecular() const { return m_specularTexture; }
+    const Texture2D* GetNormal() const { return m_normalTexture; }
 
 private:
-    UniformID m_transformID, m_normalID, m_tintID, m_glossinessID;
+    UniformID m_transformID,
+        m_normalMatID,
+        m_tintID,
+        m_glossinessID,
+        m_albedoPresentID,
+        m_specularPresentID,
+        m_normalPresentID;
     Shader* m_shader;
 
     glm::vec3  m_position = glm::vec3(0.0f);
@@ -572,10 +603,11 @@ private:
 
     const Texture2D* m_albedoTexture = nullptr;
     const Texture2D* m_specularTexture = nullptr;
-    const RendererAPI* m_apiRef = nullptr;
+    const Texture2D* m_normalTexture = nullptr;
 
-    const u32 ALBEDO_SAMPLER = 0;
+    const u32 ALBEDO_SAMPLER   = 0;
     const u32 SPECULAR_SAMPLER = 1;
+    const u32 NORMAL_SAMPLER   = 2;
 };
 
 class Renderer {
@@ -591,8 +623,8 @@ public:
     void Initialize();
 
     // Render Text
-    void RenderText( const Core::UI::Label& label );
-    void RenderTextButton( const Core::UI::LabelButton& labelButton );
+    void RenderText( const Core::UI::Label& label ) const;
+    void RenderTextButton( const Core::UI::LabelButton& labelButton ) const;
     void RenderText(
         const std::string& text,
         const glm::vec2&   screenSpacePosition,
@@ -600,6 +632,15 @@ public:
         const glm::vec4&   color,
         Core::XAnchor      anchorX,
         Core::YAnchor      anchorY
+    ) const;
+    void RenderText(
+        const std::string& text,
+        const glm::vec2&   screenSpacePosition,
+        f32                scale,
+        const glm::vec4&   color,
+        Core::XAnchor      anchorX,
+        Core::YAnchor      anchorY,
+        const Core::FontAtlas* font
     ) const;
     void RenderText(
         const std::string& text,
@@ -616,6 +657,7 @@ public:
         const std::string& text,
         const glm::vec2& screenSpacePosition
     ) const { RenderText( text, screenSpacePosition, DEFAULT_TEXT_SCALE ); }
+    void RenderCanvas( const Core::UI::Canvas& canvas ) const;
 
     void ResolutionChanged( const glm::vec2& newResolution );
 

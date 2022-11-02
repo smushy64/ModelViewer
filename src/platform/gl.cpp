@@ -174,7 +174,7 @@ void RendererAPIOpenGL::SetActiveTexture( u32 activeTexture ) const {
     glActiveTexture( GL_TEXTURE0 + activeTexture );
 }
 void RendererAPIOpenGL::DrawVertexArray( const VertexArray* va ) {
-    if( va->GetIndexBuffer() != nullptr ) {
+    if( va->HasIndexBuffer() ) {
         glDrawElements(
             GL_TRIANGLES,
             va->GetIndexBuffer()->Count(),
@@ -182,13 +182,11 @@ void RendererAPIOpenGL::DrawVertexArray( const VertexArray* va ) {
             nullptr
         );
     } else {
-        LOG_DEBUG("Drawing Arrays");
-        // assuming all data in vertex buffer is f32
         auto& vb = va->GetVertexBuffers()[0];
         glDrawArrays(
             GL_TRIANGLES,
             0,
-            vb->Size()/vb->GetLayout()->Stride()
+            vb->Count()
         );
     }
 }
@@ -485,7 +483,7 @@ VertexArrayOpenGL::~VertexArrayOpenGL() {
     for( auto& vbuffer : m_vertexBuffers ) {
         delete(vbuffer);
     }
-    if( m_indexBuffer != nullptr ) {
+    if( m_hasIndexBuffer ) {
         delete(m_indexBuffer);
     }
     glDeleteVertexArrays( 1, &m_id );
@@ -501,6 +499,7 @@ void VertexArrayOpenGL::AddVertexBuffer( VertexBuffer* vertexBuffer ) {
 }
 void VertexArrayOpenGL::SetIndexBuffer( IndexBuffer* indexBuffer ) {
     m_indexBuffer = indexBuffer;
+    m_hasIndexBuffer = true;
 }
 
 u32 Platform::TextureFormatToGLenum( TextureFormat format ) {
@@ -614,6 +613,7 @@ void Texture2DOpenGL::SetMagnificationFilter( TextureFilterMag filter ) {
     m_magnificationFilter = filter;
     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, TextureFilterMagToGLint( filter ) );
 }
-void Texture2DOpenGL::UseTexture() const {
-    glBindTexture( GL_TEXTURE_2D, m_id );
+void Texture2DOpenGL::UseTexture(usize unit) const {
+    // glBindTexture( GL_TEXTURE_2D, m_id );
+    glBindTextureUnit( (u32)unit, m_id );
 }

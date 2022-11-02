@@ -117,7 +117,7 @@ public:
         bool storeData
     );
     virtual ~Texture2DOpenGL() override;
-    virtual void UseTexture() const override;
+    virtual void UseTexture( usize unit ) const override;
     virtual void SetHorizontalWrap( TextureWrapMode wrap ) override;
     virtual void SetVerticalWrap( TextureWrapMode wrap ) override;
     virtual void SetMinificationFilter( TextureFilterMin filter ) override;

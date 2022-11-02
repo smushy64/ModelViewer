@@ -1,5 +1,22 @@
 ## TODO
 
+### UI update ( ver0.2 )
+- [ ] Panning on the x axis is still not correct
+
+### Normal Map Support + Fixes and Tweaks - Completed 11/2/2022
+- [x] DrawArrays caused segfault
+  - I was checking the index buffer pointer to switch between drawarrays and drawelements
+  but that pointer was left uninitialized when it was drawarrays so it always caused a segfault
+- [x] Consolidate some hpp/cpp
+  - [x] parser.hpp/cpp
+  - [x] collision.hpp/cpp
+  - [x] settings.hpp/cpp
+- [x] Loading anything that isn't an OBJ as such caused a segfault
+  - Added an extension check before parsing
+- [x] Remove api pointer from blinn-phong material
+  - now using layout(binding = x) to bind samplers to texture units instead of glActiveTexture(x)
+- [x] Normal Maps
+
 ### Loading Meshes - Completed 10/31/2022
 - [x] Fixed Label Button Bounding Box
 - [x] Image loading

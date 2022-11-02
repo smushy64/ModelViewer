@@ -3,10 +3,15 @@ CC = g++ -std=c++17
 DD = gdb
 
 # Change between DEBUG/RELEASE
-# Change target path as well
-# comment out -mwindows for debug builds
+
+# RELEASE BUILD
+# CFLAGS    = $(RELEASE)
+# LNKFLAGS  = --static -mwindows
+# TARGETDIR = ./bin/release
+
+# DEBUG BUILD
 CFLAGS    = $(DEBUG)
-LNKFLAGS  = --static #-mwindows
+LNKFLAGS  = --static
 TARGETDIR = ./bin/debug
 
 # Executable name
@@ -49,7 +54,7 @@ DEPS     = $(patsubst %.c,%.d,$(C)) $(patsubst %.cpp,%.d,$(CPP))
 
 all: $(BINARY)
 
-run: all copy rm_nul
+run: all copy
 	$(BINARY)
 
 debug:
@@ -66,7 +71,7 @@ $(BINARY): $(OBJ)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 copy:
-	-@robocopy $(RES) $(TARGETDIR)/resources/ > nul
+	-@robocopy $(RES) $(TARGETDIR)/resources/ -e -NFL -NDL -NJH -NJS -nc -ns -np
 
 rm_nul:
 	-@rm nul

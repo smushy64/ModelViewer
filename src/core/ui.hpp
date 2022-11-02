@@ -33,6 +33,8 @@ const char* ElementStateToString( ElementState state );
 
 typedef void (*ButtonCallback)(void*);
 
+bool PointInBoundingBox( const glm::vec2& point, const glm::vec4& bounds );
+
 class Label {
 public:
     Label( const std::string& text, const Core::FontAtlas& font );
@@ -165,6 +167,9 @@ public:
     Label& GetLabel(usize index);
     // Get label button
     LabelButton& GetLabelButton(usize index);
+    
+    const std::vector<Label>& GetLabels() const { return m_labels; }
+    const std::vector<LabelButton>& GetLabelButtons() const { return m_labelButtons; }
 
 private:
     std::vector<Label> m_labels;

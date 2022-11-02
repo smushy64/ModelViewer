@@ -10,14 +10,12 @@
 #include "alias.hpp"
 #include "debug.hpp"
 #include "global.hpp"
-#include "consts.hpp"
 #include "utils.hpp"
 
 #include "win64global.hpp"
 
 #include "core/app.hpp"
 #include "core/event.hpp"
-#include "core/parser.hpp"
 #include "platform/event.hpp"
 #include "platform/renderer.hpp"
 #include "platform/pointer.hpp"
@@ -68,7 +66,7 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE, PSTR, int) {
     );
     WINDOW_HANDLE = Win64CreateWindow(
         hInst,
-        Utils::StringtoWString( PROGRAM_TITLE ).c_str(),
+        Utils::StringtoWString( Utils::GetProgramTitle() ).c_str(),
         settings.width,
         settings.height
     );

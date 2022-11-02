@@ -14,6 +14,13 @@ namespace UI {
     class Canvas;
 }
 
+struct SettingsINI {
+    i32 width, height;
+    Platform::BackendAPI backend;
+};
+SettingsINI DefaultSettings();
+bool ParseSettings( const std::string& text, Core::SettingsINI& result );
+
 struct AppData {
     bool isRunning;
     f32 deltaTime;

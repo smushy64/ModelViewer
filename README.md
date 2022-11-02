@@ -28,7 +28,7 @@ This project is written such that when I learn other rendering APIs I can come b
 
 ## Download and Installation
 
-[Latest release](releases/ModelViewer_ver0_1.zip)
+[Latest release (version 0.1)](releases/ModelViewer_ver0_1.zip)
 
 Unzip and run `ModelViewer.exe`.
 

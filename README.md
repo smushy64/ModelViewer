@@ -28,7 +28,7 @@ This project is written such that when I learn other rendering APIs I can come b
 
 ## Download and Installation
 
-TODO: paste download link here
+[Latest release](releases/ModelViewer_ver0_1.zip)
 
 Unzip and run `ModelViewer.exe`.
 
@@ -38,4 +38,4 @@ Suzanne model by the [Blender Foundation](https://www.blender.org/)
 
 ## Table of Contents
 - [Screenshots](screenshots)
-- [Downloads](screenshots)
+- [Releases](releases)

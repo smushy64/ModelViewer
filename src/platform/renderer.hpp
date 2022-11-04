@@ -16,7 +16,7 @@
 #include <glm/vec4.hpp>
 #include <glm/mat4x4.hpp>
 
-// Forward declaration
+// Forward declarations
 namespace Core {
     enum class ImageFormat;
     class Lights;
@@ -29,8 +29,6 @@ namespace UI {
 
 namespace Platform
 {
-typedef void (*OpenGLSwapBuffer)(void);
-typedef void* (*OpenGLLoader)(const char* functionName);
 
 class UniformBuffer {
 public:
@@ -427,12 +425,10 @@ public:
     // Create new renderer API
     static RendererAPI* New( BackendAPI backend );
 
-    // Function for Swapping buffers when using OpenGL
-    OpenGLSwapBuffer OpenGLSwapBufferFn;
-
 public: // virtual
     // Initialize API
-    virtual void Initialize()  = 0;
+    // returns true when successful
+    virtual bool Initialize( void* initData ) = 0;
     // Clear Buffer
     virtual void ClearBuffer() = 0;
     // Swap Buffers
@@ -466,9 +462,7 @@ public: // virtual
     virtual void SetActiveTexture( u32 activeTexture ) const = 0;
     // Draw vertex array, must be bound before use
     virtual void DrawVertexArray( const VertexArray* va ) = 0;
-
-    // Load OpenGL functions, does nothing with other APIs
-    virtual bool LoadOpenGLFunctions( OpenGLLoader loader ) = 0;
+    virtual BackendAPI GetBackend() const = 0;
 
     virtual ~RendererAPI() = default;
 
@@ -617,10 +611,10 @@ public:
         BLINNPHONG
     };
 
-    Renderer( BackendAPI backend );
+    Renderer( RendererAPI* api );
     ~Renderer();
 
-    void Initialize();
+    bool Initialize();
 
     // Render Text
     void RenderText( const Core::UI::Label& label ) const;
@@ -676,7 +670,6 @@ public:
 
 public: // Getters
     RendererAPI* API() { return m_api; }
-    bool Successful() const { return m_success; }
     bool IsBoundingBoxEnabled() const { return m_renderBoundingBox; }
     Core::Camera* GetCamera() { return m_camera; }
     Core::Lights* GetLights() { return m_lights; }
@@ -692,7 +685,6 @@ private:
     void RenderBoundingBox( const glm::vec4& bounds ) const;
 
 private:
-    bool m_success;
     bool m_renderBoundingBox = false;
     RendererAPI* m_api;
 

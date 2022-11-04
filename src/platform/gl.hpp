@@ -1,5 +1,6 @@
 #pragma once
 #include "renderer.hpp"
+#include "glInit.hpp"
 
 namespace Platform {
 
@@ -11,7 +12,7 @@ public:
     static u32 BlendFactorToGLenum( BlendFactor glenum );
 
 public: // virtual
-    virtual void Initialize()  override;
+    virtual bool Initialize( void* initData )  override;
     virtual void ClearBuffer() override;
     virtual void SwapBuffers() override;
     virtual void SetClearColor( const glm::vec4& color )  override;
@@ -32,10 +33,14 @@ public: // virtual
     virtual void SetUnpackAlignment( PixelAlignment alignment ) override;
     virtual void SetActiveTexture( u32 activeTexture ) const override;
     virtual void DrawVertexArray( const VertexArray* va ) override;
-
-    virtual bool LoadOpenGLFunctions( OpenGLLoader loader ) override;
+    virtual BackendAPI GetBackend() const override { return BackendAPI::OPENGL; }
 
     virtual ~RendererAPIOpenGL() override;
+
+private:
+    OpenGLSwapBuffer m_openGLSwapBufferFn;
+protected:
+    BackendAPI m_backend = BackendAPI::OPENGL;
 }; // class Renderer API OpenGL
 
 class ShaderOpenGL : public Shader {

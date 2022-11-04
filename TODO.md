@@ -1,6 +1,16 @@
 ## TODO
+Project to-do list, items are sorted in order of completion (first->last)
 
-### UI update ( ver0.2 )
+### DirectX11/UI update ( ver0.2 )
+- [x] -- DEBUG -- as part of the title when building in debug mode
+- [x] Renderer should render the canvas, not the other way around
+- [ ] DirectX11 Implementation
+  - [x] Setup
+  - [ ] API
+  - [ ] Texture2D
+  - [ ] Vertex Array/Buffer, Index Buffer
+  - [ ] Shader
+  - [ ] Uniform Buffer ?
 - [ ] Panning on the x axis is still not correct
 
 ### Normal Map Support + Fixes and Tweaks - Completed 11/2/2022
@@ -76,7 +86,7 @@
   - [x] Load font atlas on GPU
   - [x] Render text
 
-### Project Created > Completed 9/30/2022
+### Project Created - Completed 9/30/2022
 
 - [x] Windows x64 window creation
 - [x] Loading file from disk abstraction

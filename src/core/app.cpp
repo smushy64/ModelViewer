@@ -30,7 +30,7 @@ void Cleanup( Core::AppData& data );
 f32 yaw = 0.0f;
 void UpdateApp( Core::AppData& data ) {
     Platform::ResetPointerStyle();
-    data.canvas.UpdateState( data.input );
+    data.ui.UpdateState( data.input );
 
     bool rightMouse = data.input.mouseButtons[(usize)Core::MouseCode::RIGHT];
     if( rightMouse ) {
@@ -79,7 +79,7 @@ void RenderApp( Core::AppData& data ) {
     data.renderer->StartScene(); {
 
         data.renderer->DrawMesh( Platform::Renderer::Material::BLINNPHONG );
-        data.canvas.Render( data.renderer );
+        data.renderer->RenderCanvas( data.ui.GetCanvas() );
 
     } data.renderer->EndScene();
 }
@@ -122,7 +122,7 @@ void HandleEvents( Core::AppData& data ) {
             WindowResizeEvent* resizeEvent = (WindowResizeEvent*)event;
             data.screenResolution = resizeEvent->GetResolution();
             data.renderer->ResolutionChanged( data.screenResolution );
-            data.canvas.OnResolutionChange( data.screenResolution );
+            data.ui.OnResolutionChange( data.screenResolution );
         } break;
         case Event::Type::KEY_DOWN: {
             KeyDown* keydown = (KeyDown*)event;
@@ -241,7 +241,11 @@ void LoadNormalCallback( void* param ) {
 
 void InitializeApp( Core::AppData& data ) {
 
-    data.renderer->Initialize();
+    if(!data.renderer->Initialize()) {
+        LOG_ERROR("App > Failed to initialize renderer!");
+        data.isRunning = false;
+        return;
+    }
     data.renderer->API()->ClearBuffer();
     data.renderer->API()->SwapBuffers();
 
@@ -265,59 +269,16 @@ void InitializeApp( Core::AppData& data ) {
         return;
     }
 
-    data.canvas = Core::UI::Canvas();
-
-    auto versionLabel = Core::UI::Label( Utils::GetProgramTitle(), DEFAULT_FONT );
-    versionLabel.SetAnchorY( Core::YAnchor::BOTTOM );
-    versionLabel.SetPosition( glm::vec2(0.01f, 0.0125f) );
-    versionLabel.SetScale( 0.35f );
-    data.canvas.PushLabel( versionLabel );
-
-    f32 menuXOffset = 0.99f;
-    f32 menuScale = 0.65f;
-
-    auto loadAlbedoButton = Core::UI::LabelButton( "Load Albedo Texture", DEFAULT_FONT, &data.screenResolution );
-    loadAlbedoButton.SetAnchorX( Core::XAnchor::RIGHT );
-    loadAlbedoButton.SetPosition( glm::vec2( menuXOffset, 0.25f ) );
-    loadAlbedoButton.SetScale( menuScale );
-    loadAlbedoButton.SetCallback( LoadAlbedoCallback );
-    loadAlbedoButton.SetCallbackParameter( (void*)&data );
-    data.canvas.PushLabelButton( loadAlbedoButton );
-
-    auto loadSpecularButton = Core::UI::LabelButton( "Load Specular Texture", DEFAULT_FONT, &data.screenResolution );
-    loadSpecularButton.SetAnchorX( Core::XAnchor::RIGHT );
-    loadSpecularButton.SetPosition( glm::vec2( menuXOffset, 0.2f ) );
-    loadSpecularButton.SetScale( menuScale );
-    loadSpecularButton.SetCallback( LoadSpecularCallback );
-    loadSpecularButton.SetCallbackParameter( (void*)&data );
-    data.canvas.PushLabelButton( loadSpecularButton );
-
-    auto loadNormalButton = Core::UI::LabelButton( "Load Normal Texture", DEFAULT_FONT, &data.screenResolution );
-    loadNormalButton.SetAnchorX( Core::XAnchor::RIGHT );
-    loadNormalButton.SetPosition( glm::vec2( menuXOffset, 0.15f ) );
-    loadNormalButton.SetScale( menuScale );
-    loadNormalButton.SetCallback( LoadNormalCallback );
-    loadNormalButton.SetCallbackParameter( (void*)&data );
-    data.canvas.PushLabelButton( loadNormalButton );
-
-    auto loadMeshButton = Core::UI::LabelButton( "Load Mesh", DEFAULT_FONT, &data.screenResolution );
-    loadMeshButton.SetAnchorX( Core::XAnchor::RIGHT );
-    loadMeshButton.SetPosition( glm::vec2( menuXOffset, 0.1f ) );
-    loadMeshButton.SetScale( menuScale );
-    loadMeshButton.SetCallback( LoadMeshCallback );
-    loadMeshButton.SetCallbackParameter( (void*)&data );
-    data.canvas.PushLabelButton( loadMeshButton );
-
-    auto quitButton = Core::UI::LabelButton( "Quit Program", DEFAULT_FONT, &data.screenResolution );
-    quitButton.SetAnchorX( Core::XAnchor::RIGHT );
-    quitButton.SetPosition( glm::vec2( menuXOffset, 0.05f ) );
-    quitButton.SetScale( menuScale );
-    quitButton.SetCallback( QuitCallback );
-    quitButton.SetCallbackParameter( (void*)&data );
-    data.canvas.PushLabelButton( quitButton );
-
     data.renderer->UploadFontAtlasBitmap( DEFAULT_FONT );
     data.renderer->API()->SetClearColor( glm::vec4( 0.15f ) );
+
+    data.ui.SetLoadMeshCallback( LoadMeshCallback, &data );
+    data.ui.SetLoadAlbedoCallback( LoadAlbedoCallback, &data );
+    data.ui.SetLoadSpecularCallback( LoadSpecularCallback, &data );
+    data.ui.SetLoadNormalCallback( LoadNormalCallback, &data );
+    data.ui.SetQuitCallback( QuitCallback, &data );
+    data.ui.SetFont( &DEFAULT_FONT );
+    data.ui.OnResolutionChange( data.screenResolution );
 
     data.renderer->GetCamera()->SetRotation(
         glm::vec3( TO_RAD( 30.0f ), TO_RAD( 210.0f ), 0.0f )
@@ -378,10 +339,20 @@ bool ParseResolutionMode( const std::string& token, ResolutionMode& result ) {
 bool ParseBackend( const std::string& string, Platform::BackendAPI& result ) {
     if(
         string == "OPENGL" ||
-        string == "OpenGL" ||
-        string == "OpenGL Core 4.6"
+        string == "OpenGL"
     ) {
         result = Platform::BackendAPI::OPENGL;
+    }
+    else if(
+        string == "DX11" ||
+        string == "DIRECTX11" ||
+        string == "DirectX11"
+    ) {
+#ifdef WINDOWS
+        result = Platform::BackendAPI::DIRECTX11;
+#else
+        return false;
+#endif
     }
     else {
         return false;

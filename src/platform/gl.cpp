@@ -3,7 +3,6 @@
 #include "alias.hpp"
 #include "debug.hpp"
 #include <glm/gtc/type_ptr.hpp>
-#include "io.hpp"
 
 using namespace Platform;
 
@@ -93,18 +92,29 @@ void OpenGLDebugMessageCallback(
 
 #endif
 
-void RendererAPIOpenGL::Initialize()  {
+bool RendererAPIOpenGL::Initialize( void* initData )  {
+    OpenGLInitData* openGLInitData = (OpenGLInitData*)initData;
+    if(!gladLoadGLLoader( (GLADloadproc)openGLInitData->loaderFn )) {
+        LOG_ERROR("OpenGL > Failed to load OpenGL functions!");
+        return false;
+    }
+
 #ifdef DEBUG
     glEnable( GL_DEBUG_OUTPUT );
     glDebugMessageCallback( OpenGLDebugMessageCallback, nullptr );
 #endif
     glEnable( GL_DEPTH_TEST );
+
+    m_openGLSwapBufferFn = openGLInitData->swapBufferFn;
+
+    return true;
 }
 void RendererAPIOpenGL::ClearBuffer() {
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 }
 void RendererAPIOpenGL::SwapBuffers() {
-    OpenGLSwapBufferFn();
+    DEBUG_ASSERT_LOG( m_openGLSwapBufferFn != nullptr, "Swap Buffer Function is null!" );
+    m_openGLSwapBufferFn();
 }
 void RendererAPIOpenGL::SetClearColor( const glm::vec4& color )  {
     m_clearColor = color;
@@ -141,9 +151,6 @@ void RendererAPIOpenGL::BlendEquation( BlendEq Color, BlendEq Alpha ) {
 void RendererAPIOpenGL::SetConstantBlendColor( const glm::vec4& blendColor ) {
     m_blendColor = blendColor;
     glBlendColor( blendColor.r, blendColor.g, blendColor.b, blendColor.a );
-}
-bool RendererAPIOpenGL::LoadOpenGLFunctions( OpenGLLoader loader ) {
-    return gladLoadGLLoader( (GLADloadproc)loader ) != 0;
 }
 void RendererAPIOpenGL::BlendFunction(
     BlendFactor srcColor,
@@ -614,6 +621,5 @@ void Texture2DOpenGL::SetMagnificationFilter( TextureFilterMag filter ) {
     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, TextureFilterMagToGLint( filter ) );
 }
 void Texture2DOpenGL::UseTexture(usize unit) const {
-    // glBindTexture( GL_TEXTURE_2D, m_id );
     glBindTextureUnit( (u32)unit, m_id );
 }

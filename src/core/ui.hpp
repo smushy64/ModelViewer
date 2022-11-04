@@ -37,7 +37,7 @@ bool PointInBoundingBox( const glm::vec2& point, const glm::vec4& bounds );
 
 class Label {
 public:
-    Label( const std::string& text, const Core::FontAtlas& font );
+    Label( const std::string& text, const Core::FontAtlas* font );
 public: // NOTE: Getters
     f32                Scale()               const { return m_scale; }
     Core::XAnchor      AnchorX()             const { return m_anchorX; }
@@ -61,7 +61,7 @@ public: // NOTE: Setters
     // Set Text
     void SetText( const std::string& text ) { m_text = text; }
     // Set Font
-    void SetFont( const Core::FontAtlas& font ) { m_fontPtr = &font; }
+    void SetFont( const Core::FontAtlas* font ) { m_fontPtr = font; }
 private:
     f32           m_scale   = DEFAULT_TEXT_SCALE;
     Core::XAnchor m_anchorX = DEFAULT_TEXT_X_ANCHOR;
@@ -75,7 +75,7 @@ private:
 
 class LabelButton {
 public:
-    LabelButton( const std::string& text, const Core::FontAtlas& font, const glm::vec2* resolution );
+    LabelButton( const std::string& text, const Core::FontAtlas* font );
 
 public:
     // Update Button State
@@ -100,11 +100,11 @@ public: // NOTE: Setters
     // Set Label Scale
     void SetScale( f32 scale ) { m_scale = scale; }
     // Set Anchors
-    void SetAnchors( Core::XAnchor anchorX, Core::YAnchor anchorY ) { m_anchorX = anchorX; m_anchorY = anchorY; UpdateBounds(); }
-    void SetAnchorX( Core::XAnchor anchorX ) { m_anchorX = anchorX; UpdateBounds(); }
-    void SetAnchorY( Core::YAnchor anchorY ) { m_anchorY = anchorY; UpdateBounds(); }
+    void SetAnchors( Core::XAnchor anchorX, Core::YAnchor anchorY ) { m_anchorX = anchorX; m_anchorY = anchorY; }
+    void SetAnchorX( Core::XAnchor anchorX ) { m_anchorX = anchorX; }
+    void SetAnchorY( Core::YAnchor anchorY ) { m_anchorY = anchorY; }
     // Set Screen Space Position
-    void SetPosition( const glm::vec2& screenSpacePosition ) { m_screenSpacePosition = screenSpacePosition; UpdateScreenSpaceBounds(); }
+    void SetPosition( const glm::vec2& screenSpacePosition ) { m_screenSpacePosition = screenSpacePosition; }
     // Set Base Color
     void SetBaseColor( const glm::vec4& color ) { m_baseColor = color; }
     // Set Hover Color
@@ -112,17 +112,17 @@ public: // NOTE: Setters
     // Set Press Color
     void SetPressColor( const glm::vec4& color ) { m_pressColor = color; }
     // Set Font
-    void SetFont( const Core::FontAtlas& font ) { m_fontPtr = &font; UpdateBounds(); }
+    void SetFont( const Core::FontAtlas* font ) { m_fontPtr = font; }
     // Set Text
-    void SetText( const std::string& text ) { m_text = text; UpdateBounds(); }
+    void SetText( const std::string& text ) { m_text = text; }
     // Set callback to run when button is pressed
     void SetCallback( ButtonCallback callback ) { m_callback = callback; }
     // Set pointer to parameter for callback function
     void SetCallbackParameter( void* param ) { m_callbackParameter = param; }
     // Update Bounding Box
-    void UpdateBounds();
+    void UpdateBounds( const glm::vec2& resolution );
 private:
-    void UpdateScreenSpaceBounds();
+    void UpdateScreenSpaceBounds( const glm::vec2& resolution );
     f32           m_scale   = DEFAULT_TEXT_SCALE;
     Core::XAnchor m_anchorX = DEFAULT_TEXT_X_ANCHOR;
     Core::YAnchor m_anchorY = DEFAULT_TEXT_Y_ANCHOR;
@@ -144,7 +144,6 @@ private:
 
     ButtonCallback m_callback = nullptr;
     void* m_callbackParameter = nullptr;
-    const glm::vec2* m_resolution;
 }; // Class Label Button
 
 class Canvas {
@@ -157,8 +156,6 @@ public:
     void OnResolutionChange( const glm::vec2& resolution );
     // Update Canvas State
     void UpdateState( Core::Input& input );
-    // Render Canvas
-    void Render( Platform::Renderer* renderer );
     // Push new label into canvas; returns index
     usize PushLabel( Label label );
     // Push new label button into canvas; returns index
@@ -171,11 +168,35 @@ public:
     const std::vector<Label>& GetLabels() const { return m_labels; }
     const std::vector<LabelButton>& GetLabelButtons() const { return m_labelButtons; }
 
+    std::vector<Label>& GetLabelsMut() { return m_labels; }
+    std::vector<LabelButton>& GetLabelButtonsMut() { return m_labelButtons; }
+
 private:
     std::vector<Label> m_labels;
     std::vector<LabelButton> m_labelButtons;
 
 }; // Class Canvas
+
+class Interface {
+public:
+    Interface();
+    ~Interface();
+
+    void SetFont( const Core::FontAtlas* font );
+    void SetLoadMeshCallback( ButtonCallback callback, void* params );
+    void SetLoadAlbedoCallback( ButtonCallback callback, void* params );
+    void SetLoadSpecularCallback( ButtonCallback callback, void* params );
+    void SetLoadNormalCallback( ButtonCallback callback, void* params );
+    void SetQuitCallback( ButtonCallback callback, void* params );
+    void UpdateState( Core::Input& userInput );
+    void OnResolutionChange( const glm::vec2& resolution );
+
+public: // Getters
+    const Canvas& GetCanvas() const { return m_canvas; }
+private:
+    Canvas m_canvas;
+    usize m_loadMeshIndex, m_loadAlbedoIndex, m_loadSpecularIndex, m_loadNormalIndex, m_quitIndex;
+};
 
 } // namespace Core::UI
 

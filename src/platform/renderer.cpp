@@ -1,5 +1,6 @@
 #include "renderer.hpp"
 #include "gl.hpp"
+#include "dx11.hpp"
 #include "debug.hpp"
 #include "global.hpp"
 #include "consts.hpp"
@@ -23,6 +24,7 @@ const char* BLINNPHONG_FRAG_PATH = "./resources/shaders/blinn_phong/blinn_phong.
 const char* Platform::BackendToString( BackendAPI backend ) {
     switch( backend ) {
         case BackendAPI::OPENGL: return "OpenGL Core 4.6";
+        case BackendAPI::DIRECTX11: return "DirectX 11";
         default: return "UNKNOWN";
     }
 }
@@ -118,25 +120,30 @@ const char* Platform::TextureFilterMagToString( TextureFilterMag filter ) {
     }
 }
 
-Renderer::Renderer( BackendAPI backend ) {
-    m_success = true;
-    LOG_INFO("Renderer > Current Backend: %s", BackendToString(backend));
+RendererAPI* RendererAPI::New( BackendAPI backend ) {
     switch( backend ) {
         case BackendAPI::OPENGL: {
-            m_api = new RendererAPIOpenGL();
+            return new RendererAPIOpenGL();
+        } break;
+        case BackendAPI::DIRECTX11: {
+#ifdef WINDOWS
+            return new RendererAPIDirectX11();
+#else
+            LOG_ERROR("Renderer > DirectX 11 is only supported on windows platforms!");
+            return nullptr;
+#endif
         } break;
         default: {
             LOG_ERROR("Renderer > Backend not yet implemented!");
-            m_success = false;
-            return;
+            return nullptr;
         }
     }
-    CURRENT_BACKEND = backend;
 }
-void Renderer::Initialize() {
-    m_api->Initialize();
-    LOG_INFO("Renderer > API Initialized");
 
+Renderer::Renderer( RendererAPI* api ) : m_api(api) {
+    LOG_INFO("Renderer > Current Backend: %s", BackendToString(m_api->GetBackend()));
+}
+bool Renderer::Initialize() {
     m_camera = new Core::Camera();
     m_lights = new Core::Lights();
 
@@ -181,16 +188,14 @@ void Renderer::Initialize() {
         TextFile fontFragSrc = LoadTextFile( FONT_FRAG_PATH );
         if( fontVertSrc.size == 0 || fontFragSrc.size == 0 ) {
             LOG_ERROR("Renderer > Failed to load font shaders from disk!");
-            m_success = false;
-            return;
+            return false;
         }
         
         m_fontShader = Shader::New( fontVertSrc.contents, fontFragSrc.contents );
 
         if( !m_fontShader->CompilationSucceeded() ) {
             LOG_ERROR( "Renderer > Failed to create font shader!" );
-            m_success = false;
-            return;
+            return false;
         }
 
         m_fontShader->UseShader();
@@ -236,14 +241,12 @@ void Renderer::Initialize() {
 
         if( vsrc.size == 0 || fsrc.size == 0 ) {
             LOG_ERROR("Renderer > Failed to load bounds source!");
-            m_success = false;
-            return;
+            return false;
         }
 
         m_boundsShader = Shader::New( vsrc.contents, fsrc.contents );
         if( !m_boundsShader->CompilationSucceeded() ) {
-            m_success = false;
-            return;
+            return false;
         }
 
         m_boundsShader->UseShader();
@@ -275,20 +278,19 @@ void Renderer::Initialize() {
 
         if( vsrc.size == 0 || fsrc.size == 0 ) {
             LOG_ERROR("Renderer > Failed to load blinn-phong source!");
-            m_success = false;
-            return;
+            return false;
         }
 
         auto shader = Shader::New( vsrc.contents, fsrc.contents );
         if( !shader->CompilationSucceeded() ) {
-            m_success = false;
-            return;
+            return false;
         }
 
         m_blinnPhong = new BlinnPhong( shader );
     }
 
     LOG_INFO("Renderer > Initialized Successfully");
+    return true;
 }
 void Renderer::BufferCameraPosition( const glm::vec3& cameraPosition ) {
     m_sharedData->BufferSubData( 0, sizeof( glm::vec3 ), glm::value_ptr( cameraPosition ) );

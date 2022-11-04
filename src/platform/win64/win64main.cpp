@@ -2,10 +2,13 @@
 
 // ignore compiler warning
 // casting function pointers from GetProcAddress/wglGetProcAddress is the intended usage
+#if __MINGW32__
 #pragma GCC diagnostic ignored "-Wcast-function-type"
+#endif
+
 #include <windows.h>
 #include <windowsx.h>
-// #include <hidusage.h>
+#include <d3d11.h>
 
 #include "alias.hpp"
 #include "debug.hpp"
@@ -20,16 +23,28 @@
 #include "platform/renderer.hpp"
 #include "platform/pointer.hpp"
 #include "platform/backend.hpp"
+#include "platform/glInit.hpp"
+#include "platform/dx11Init.hpp"
 using namespace Platform;
 
 void Win64InitConsole();
 HWND Win64CreateWindow( HINSTANCE hInst, const wchar_t* windowName, i32 width, i32 height );
+
+// OpenGL ---------------------------------------------------
 
 HGLRC Win64CreateOpenGLContext( HDC deviceContext );
 void  Win64DeleteOpenGLContext( HGLRC openglContext );
 HINSTANCE OPENGL_MODULE;
 void* Win64LoadOpenGLFunctions( const char* functionName );
 void Win64OpenGLSwapBuffer();
+
+// ----------------------------------------------------------
+
+// DirectX 11 -----------------------------------------------
+
+
+
+// ----------------------------------------------------------
 
 Core::AppData APP_DATA;
 
@@ -51,7 +66,7 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE, PSTR, int) {
     if( settingsFile.size != 0 ) {
         bool result = Core::ParseSettings( settingsFile.contents, settings );
         if(!result) {
-            LOG_WARN("Windows x64 > Failed to parse settings!");
+            LOG_WARN("Windows x64 > Failed to parse settings! Using default settings as a fallback.");
         }
     }
     CURRENT_BACKEND = settings.backend;
@@ -86,42 +101,70 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE, PSTR, int) {
 
     TrackMouse();
 
+    OpenGLInitData    openGLInitData;
+    DirectX11InitData directX11InitData;
     switch( CURRENT_BACKEND ) {
         case BackendAPI::OPENGL: {
-            LOG_INFO("Window x64 > Creating OpenGL Context . . .");
             OPENGL_CONTEXT = Win64CreateOpenGLContext( DEVICE_CONTEXT );
             if( !OPENGL_CONTEXT ) {
                 return -1;
             }
-            LOG_INFO("Window x64 > OpenGL Context Successfully created");
+            openGLInitData = {};
+            openGLInitData.swapBufferFn = Win64OpenGLSwapBuffer;
+            openGLInitData.loaderFn     = Win64LoadOpenGLFunctions;
+            LOG_INFO("Window x64 > OpenGL Context created.");
         } break;
+        case BackendAPI::DIRECTX11: {
+            directX11InitData = {};
+            DXGI_SWAP_CHAIN_DESC sd = {};
+            sd.BufferDesc.Width                   = 0;
+            sd.BufferDesc.Height                  = 0;
+            sd.BufferDesc.Format                  = DXGI_FORMAT_B8G8R8A8_UNORM;
+            sd.BufferDesc.RefreshRate.Numerator   = 0;
+            sd.BufferDesc.RefreshRate.Denominator = 0;
+            sd.BufferDesc.Scaling                 = DXGI_MODE_SCALING_UNSPECIFIED;
+            sd.BufferDesc.ScanlineOrdering        = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
+            sd.SampleDesc.Count                   = 1;
+            sd.SampleDesc.Quality                 = 0;
+            sd.BufferUsage                        = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+            sd.BufferCount                        = 1;
+            sd.OutputWindow                       = WINDOW_HANDLE;
+            sd.Windowed                           = TRUE;
+            sd.SwapEffect                         = DXGI_SWAP_EFFECT_DISCARD;
+            sd.Flags                              = 0;
+            directX11InitData.sd = sd;
+        } break;
+        default: break;
     }
 
-    APP_DATA.renderer = new Renderer( BackendAPI::OPENGL );
-    if( !APP_DATA.renderer->Successful() ) {
-        return -1;
-    }
+    auto api = RendererAPI::New( CURRENT_BACKEND );
 
     switch( CURRENT_BACKEND ) {
         case BackendAPI::OPENGL: {
-            LOG_INFO("Windows x64 > Loading OpenGL Functions . . .");
-            APP_DATA.renderer->API()->OpenGLSwapBufferFn = Win64OpenGLSwapBuffer;
-
             OPENGL_MODULE = LoadLibrary( L"opengl32.dll" );
             if( OPENGL_MODULE ) {
-                bool loadResult = APP_DATA.renderer->API()->LoadOpenGLFunctions( Win64LoadOpenGLFunctions );
+                bool loadResult = api->Initialize( (void*)&openGLInitData );
                 FreeLibrary( OPENGL_MODULE );
                 if(!loadResult) {
                     LOG_ERROR("Windows x64 > Failed to load OpenGL functions!");
                     return -1;
                 }
-                LOG_INFO("Windows x64 > Successfully Loaded OpenGL Functions.");
             } else {
                 LOG_ERROR("Windows x64 > Failed to load OpenGL module!");
                 return -1;
             }
         } break;
+        case BackendAPI::DIRECTX11: {
+            bool initResult = api->Initialize( (void*)&directX11InitData );
+            if( !initResult ) {
+                LOG_ERROR("Windows x64 > Failed to initialize DirectX 11 API!");
+                return -1;
+            }
+        } break;
+        default: break;
     }
+
+    APP_DATA.renderer = new Renderer( api );
 
     // run app
     LOG_INFO("Windows x64 > Running App . . .");

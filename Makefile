@@ -30,7 +30,7 @@ MINGWINC = C:/msys64/mingw64/include
 DEF = -D UNICODE -D WINDOWS 
 
 # linker flags
-LNK = -static-libstdc++ -static-libgcc -lmingw32 -lopengl32 -lgdi32 -lcomdlg32
+LNK = -static-libstdc++ -static-libgcc -lmingw32 -lopengl32 -lgdi32 -lcomdlg32 -ld3d11
 
 # DONOT EDIT BEYOND THIS POINT!!! ===============================================
 
@@ -62,7 +62,7 @@ debug:
 
 -include $(DEPS)
 $(BINARY): $(OBJ)
-	$(CC) -o $@ $(LIB) $^ $(LNK) $(LNKFLAGS)
+	$(CC) -o $@ $(LIB) $^ $(LNK) $(LNKFLAGS) -g
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $<

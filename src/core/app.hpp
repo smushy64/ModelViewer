@@ -11,7 +11,7 @@
 namespace Core {
 
 namespace UI {
-    class Canvas;
+    class Interface;
 }
 
 struct SettingsINI {
@@ -25,7 +25,7 @@ struct AppData {
     bool isRunning;
     f32 deltaTime;
     Platform::Renderer* renderer;
-    Core::UI::Canvas canvas;
+    Core::UI::Interface ui;
     glm::vec2 screenResolution;
     Input input;
     Core::EventQueue events;

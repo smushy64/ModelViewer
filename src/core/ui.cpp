@@ -1,16 +1,15 @@
 #include "ui.hpp"
 #include "debug.hpp"
 #include "global.hpp"
+#include "utils.hpp"
 #include "platform/pointer.hpp"
 #include "platform/renderer.hpp"
 using namespace Core::UI;
 
-Label::Label( const std::string& text, const Core::FontAtlas& font )
-: m_text(text), m_fontPtr(&font) {}
-LabelButton::LabelButton( const std::string& text, const Core::FontAtlas& font, const glm::vec2* resolution )
-: m_text(text), m_fontPtr(&font), m_resolution(resolution) {
-    UpdateBounds();
-}
+Label::Label( const std::string& text, const Core::FontAtlas* font )
+: m_text(text), m_fontPtr(font) {}
+LabelButton::LabelButton( const std::string& text, const Core::FontAtlas* font )
+: m_text(text), m_fontPtr(font) {}
 void LabelButton::UpdateState( Core::Input& input ) {
     if( input.mouseButtons[(usize)Core::MouseCode::RIGHT] ) {
         m_elementState = UI::ElementState::NORMAL;
@@ -44,7 +43,7 @@ void LabelButton::UpdateState( Core::Input& input ) {
         m_elementState = UI::ElementState::NORMAL;
     }
 }
-void LabelButton::UpdateBounds() {
+void LabelButton::UpdateBounds( const glm::vec2& resolution ) {
     if( m_fontPtr == nullptr ) {
         LOG_WARN("UI > Could not calculate bounding box for Label Button, font pointer is null!");
         return;
@@ -95,14 +94,14 @@ void LabelButton::UpdateBounds() {
         } break;
     }
 
-    UpdateScreenSpaceBounds();
+    UpdateScreenSpaceBounds( resolution );
 }
-void LabelButton::UpdateScreenSpaceBounds() {
+void LabelButton::UpdateScreenSpaceBounds( const glm::vec2& resolution ) {
     m_screenSpaceBoundingBox = glm::vec4(
-        m_screenSpacePosition.x + ( m_boundingBoxOffset.x / m_resolution->x ),
-        m_screenSpacePosition.y + ( m_boundingBoxOffset.y / m_resolution->y ),
-        m_boundingBox.x / m_resolution->x,
-        m_boundingBox.y / m_resolution->y
+        m_screenSpacePosition.x + ( m_boundingBoxOffset.x / resolution.x ),
+        m_screenSpacePosition.y + ( m_boundingBoxOffset.y / resolution.y ),
+        m_boundingBox.x / resolution.x,
+        m_boundingBox.y / resolution.y
     );
 }
 
@@ -117,22 +116,14 @@ const char* Core::UI::ElementStateToString( ElementState state ) {
 
 Canvas::Canvas() { }
 Canvas::~Canvas() { }
-void Canvas::OnResolutionChange( const glm::vec2& ) {
+void Canvas::OnResolutionChange( const glm::vec2& resolution ) {
     for( auto& labelButton : m_labelButtons ) {
-        labelButton.UpdateBounds();
+        labelButton.UpdateBounds( resolution );
     }
 }
 void Canvas::UpdateState( Core::Input& input ) {
     for( auto& labelButton : m_labelButtons ) {
         labelButton.UpdateState( input );
-    }
-}
-void Canvas::Render( Platform::Renderer* renderer ) {
-    for( auto& label : m_labels ) {
-        renderer->RenderText( label );
-    }
-    for( auto& labelButton : m_labelButtons ) {
-        renderer->RenderTextButton( labelButton );
     }
 }
 usize Canvas::PushLabel( Label label ) {
@@ -150,6 +141,82 @@ Label& Canvas::GetLabel(usize index) {
 }
 LabelButton& Canvas::GetLabelButton(usize index) {
     return m_labelButtons[index];
+}
+
+Interface::Interface() {
+    auto versionLabel = Core::UI::Label( Utils::GetProgramTitle(), nullptr );
+    versionLabel.SetAnchorY( Core::YAnchor::BOTTOM );
+    versionLabel.SetPosition( glm::vec2(0.01f, 0.0125f) );
+    versionLabel.SetScale( 0.35f );
+    m_canvas.PushLabel( versionLabel );
+
+    f32 menuXOffset = 0.99f;
+    f32 menuScale = 0.65f;
+
+    auto loadAlbedoButton = Core::UI::LabelButton( "Load Albedo Texture", nullptr );
+    loadAlbedoButton.SetAnchorX( Core::XAnchor::RIGHT );
+    loadAlbedoButton.SetPosition( glm::vec2( menuXOffset, 0.25f ) );
+    loadAlbedoButton.SetScale( menuScale );
+    m_loadAlbedoIndex = m_canvas.PushLabelButton( loadAlbedoButton );
+
+    auto loadSpecularButton = Core::UI::LabelButton( "Load Specular Texture", nullptr );
+    loadSpecularButton.SetAnchorX( Core::XAnchor::RIGHT );
+    loadSpecularButton.SetPosition( glm::vec2( menuXOffset, 0.2f ) );
+    loadSpecularButton.SetScale( menuScale );
+    m_loadSpecularIndex = m_canvas.PushLabelButton( loadSpecularButton );
+
+    auto loadNormalButton = Core::UI::LabelButton( "Load Normal Texture", nullptr );
+    loadNormalButton.SetAnchorX( Core::XAnchor::RIGHT );
+    loadNormalButton.SetPosition( glm::vec2( menuXOffset, 0.15f ) );
+    loadNormalButton.SetScale( menuScale );
+    m_loadNormalIndex = m_canvas.PushLabelButton( loadNormalButton );
+
+    auto loadMeshButton = Core::UI::LabelButton( "Load Mesh", nullptr );
+    loadMeshButton.SetAnchorX( Core::XAnchor::RIGHT );
+    loadMeshButton.SetPosition( glm::vec2( menuXOffset, 0.1f ) );
+    loadMeshButton.SetScale( menuScale );
+    m_loadMeshIndex = m_canvas.PushLabelButton( loadMeshButton );
+
+    auto quitButton = Core::UI::LabelButton( "Quit Program", nullptr );
+    quitButton.SetAnchorX( Core::XAnchor::RIGHT );
+    quitButton.SetPosition( glm::vec2( menuXOffset, 0.05f ) );
+    quitButton.SetScale( menuScale );
+    m_quitIndex = m_canvas.PushLabelButton( quitButton );
+}
+Interface::~Interface() { }
+void Interface::SetFont( const Core::FontAtlas* font ) {
+    for( auto& label : m_canvas.GetLabelsMut() ) {
+        label.SetFont( font );
+    }
+    for( auto& labelButton : m_canvas.GetLabelButtonsMut() ) {
+        labelButton.SetFont( font );
+    }
+}
+void Interface::SetLoadMeshCallback( ButtonCallback callback, void* params ) {
+    m_canvas.GetLabelButton( m_loadMeshIndex ).SetCallback( callback );
+    m_canvas.GetLabelButton( m_loadMeshIndex ).SetCallbackParameter( params );
+}
+void Interface::SetLoadAlbedoCallback( ButtonCallback callback, void* params ) {
+    m_canvas.GetLabelButton( m_loadAlbedoIndex ).SetCallback( callback );
+    m_canvas.GetLabelButton( m_loadAlbedoIndex ).SetCallbackParameter( params );
+}
+void Interface::SetLoadSpecularCallback( ButtonCallback callback, void* params ) {
+    m_canvas.GetLabelButton( m_loadSpecularIndex ).SetCallback( callback );
+    m_canvas.GetLabelButton( m_loadSpecularIndex ).SetCallbackParameter( params );
+}
+void Interface::SetLoadNormalCallback( ButtonCallback callback, void* params ) {
+    m_canvas.GetLabelButton( m_loadNormalIndex ).SetCallback( callback );
+    m_canvas.GetLabelButton( m_loadNormalIndex ).SetCallbackParameter( params );
+}
+void Interface::SetQuitCallback( ButtonCallback callback, void* params ) {
+    m_canvas.GetLabelButton( m_quitIndex ).SetCallback( callback );
+    m_canvas.GetLabelButton( m_quitIndex ).SetCallbackParameter( params );
+}
+void Interface::UpdateState( Core::Input& userInput ) {
+    m_canvas.UpdateState( userInput );
+}
+void Interface::OnResolutionChange( const glm::vec2& resolution ) {
+    m_canvas.OnResolutionChange( resolution );
 }
 
 bool Core::UI::PointInBoundingBox( const glm::vec2& point, const glm::vec4& bounds ) {

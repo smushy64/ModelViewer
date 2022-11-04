@@ -2,7 +2,8 @@
 
 namespace Platform {
     enum class BackendAPI {
-        OPENGL
+        OPENGL,
+        DIRECTX11,
     };
     const char* BackendToString( BackendAPI backend );
 }

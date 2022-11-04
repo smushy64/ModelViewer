@@ -1,6 +1,6 @@
 #pragma once
 
-#include <windows.h>
+#include "winpch.hpp"
 
 inline HWND  WINDOW_HANDLE;
 inline HDC   DEVICE_CONTEXT;

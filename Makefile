@@ -29,6 +29,10 @@ MINGWINC = C:/msys64/mingw64/include
 # defines
 DEF = -D UNICODE -D WINDOWS 
 
+# precompiled header path
+PCH = ./src/pch.hpp
+WINPCH = ./src/platform/win64/winpch.hpp
+
 # linker flags
 LNK = -static-libstdc++ -static-libgcc -lmingw32 -lopengl32 -lgdi32 -lcomdlg32 -ld3d11
 
@@ -52,7 +56,10 @@ C        = $(foreach D, ./src, $(wildcard $(D)/*.c))
 OBJ      = $(patsubst %.c,%.o, $(C)) $(patsubst %.cpp,%.o, $(CPP))
 DEPS     = $(patsubst %.c,%.d,$(C)) $(patsubst %.cpp,%.d,$(CPP))
 
-all: $(BINARY)
+PCH_TARG = $(PCH).gch
+WINPCH_TARG = $(WINPCH).gch
+
+all: $(PCH_TARG) $(WINPCH_TARG) $(BINARY)
 
 run: all copy
 	$(BINARY)
@@ -70,6 +77,15 @@ $(BINARY): $(OBJ)
 %.o: %.cpp
 	$(CC) $(CFLAGS) -c -o $@ $<
 
+rm_pch:
+	-@rm $(PCH_TARG) $(WINPCH_TARG)
+
+$(PCH_TARG): $(PCH)
+	$(CC) $(CFLAGS) $(PCH)
+
+$(WINPCH_TARG): $(WINPCH)
+	$(CC) $(CFLAGS) $(WINPCH)
+
 copy:
 	-@robocopy $(RES) $(TARGETDIR)/resources/ -e -NFL -NDL -NJH -NJS -nc -ns -np
 
@@ -79,7 +95,7 @@ rm_nul:
 cleano:
 	-@rm $(OBJ) $(DEPS)
 
-clean: cleano
+clean: cleano rm_pch
 	-@rm $(BINARY); rm -r $(TARGETDIR)/resources
 
-.PHONY: run all clean cleano
+.PHONY: run all clean cleano pch rm_pch

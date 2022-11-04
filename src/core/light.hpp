@@ -1,8 +1,5 @@
 #pragma once
-#include "alias.hpp"
-#include "consts.hpp"
-#include <glm/vec3.hpp>
-#include <glm/vec4.hpp>
+#include "pch.hpp"
 
 namespace Platform {
     class UniformBuffer;

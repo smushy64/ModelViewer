@@ -1,10 +1,7 @@
-#include "platform/renderer.hpp"
 #include "text.hpp"
-#include "debug.hpp"
+#include "platform/renderer.hpp"
 #include <sstream>
-#include <vector>
 #include "utils.hpp"
-#include "consts.hpp"
 
 #define STB_RECT_PACK_IMPLEMENTATION 1
 #include "include/stb/stb_rect_pack.h"

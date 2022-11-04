@@ -4,6 +4,7 @@ Project to-do list, items are sorted in order of completion (first->last)
 ### DirectX11/UI update ( ver0.2 )
 - [x] -- DEBUG -- as part of the title when building in debug mode
 - [x] Renderer should render the canvas, not the other way around
+- [x] PCH
 - [ ] DirectX11 Implementation
   - [x] Setup
   - [ ] API

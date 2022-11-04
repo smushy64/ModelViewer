@@ -1,10 +1,8 @@
 #include "obj.hpp"
+#include "pch.hpp"
 #include "platform/io.hpp"
 #include "platform/renderer.hpp"
-#include "debug.hpp"
 #include "utils.hpp"
-#include <vector>
-#include <string>
 
 #define TINYOBJLOADER_IMPLEMENTATION 1
 #include "include/tiny_obj_loader.h"

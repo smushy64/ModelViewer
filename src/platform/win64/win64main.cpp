@@ -5,10 +5,8 @@
 #if __MINGW32__
 #pragma GCC diagnostic ignored "-Wcast-function-type"
 #endif
-
-#include <windows.h>
-#include <windowsx.h>
-#include <d3d11.h>
+#include "pch.hpp"
+#include "winpch.hpp"
 
 #include "alias.hpp"
 #include "debug.hpp"
@@ -25,6 +23,7 @@
 #include "platform/backend.hpp"
 #include "platform/glInit.hpp"
 #include "platform/dx11Init.hpp"
+
 using namespace Platform;
 
 void Win64InitConsole();

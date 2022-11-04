@@ -1,8 +1,7 @@
 #pragma once
-#include "alias.hpp"
+#include "pch.hpp"
 #include "mousecode.hpp"
 #include "keycode.hpp"
-#include <glm/vec2.hpp>
 
 namespace Core {
 

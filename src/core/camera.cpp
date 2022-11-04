@@ -1,7 +1,5 @@
 #include "camera.hpp"
-#include "consts.hpp"
 #include "platform/renderer.hpp"
-#include <glm/gtc/type_ptr.hpp>
 
 Core::Camera::Camera() {
     m_rotation = glm::fquat(1.0f, 0.0f, 0.0f, 0.0f);

@@ -1,5 +1,4 @@
 #include "ui.hpp"
-#include "debug.hpp"
 #include "global.hpp"
 #include "utils.hpp"
 #include "platform/pointer.hpp"

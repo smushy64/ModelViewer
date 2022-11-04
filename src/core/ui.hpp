@@ -1,12 +1,7 @@
 #pragma once
+#include "pch.hpp"
 #include "text.hpp"
 #include "input.hpp"
-
-#include <glm/vec2.hpp>
-#include <glm/vec4.hpp>
-
-#include <string>
-#include <vector>
 
 namespace Platform {
     class Renderer;

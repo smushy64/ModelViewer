@@ -1,20 +1,11 @@
 #pragma once
-
+#include "pch.hpp"
 #include "core/ui.hpp"
 #include "core/text.hpp"
 #include "core/camera.hpp"
 
 #include "consts.hpp"
-#include "alias.hpp"
-#include "debug.hpp"
 #include "backend.hpp"
-
-#include <string>
-#include <vector>
-#include <glm/vec2.hpp>
-#include <glm/vec3.hpp>
-#include <glm/vec4.hpp>
-#include <glm/mat4x4.hpp>
 
 // Forward declarations
 namespace Core {

@@ -1,8 +1,6 @@
 #include "gl.hpp"
 #include "glad/glad.h"
-#include "alias.hpp"
-#include "debug.hpp"
-#include <glm/gtc/type_ptr.hpp>
+#include "pch.hpp"
 
 using namespace Platform;
 

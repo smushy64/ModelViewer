@@ -1,10 +1,7 @@
 #pragma once
-#include "alias.hpp"
-#include "debug.hpp"
+#include "pch.hpp"
 #include "keycode.hpp"
 #include "mousecode.hpp"
-#include <glm/vec2.hpp>
-#include <queue>
 #include "platform/io.hpp"
 
 namespace Core {

@@ -1,5 +1,4 @@
 #include "light.hpp"
-#include <glm/geometric.hpp>
 #include "platform/renderer.hpp"
 
 inline const f32 LIGHT_CONSTANT = 1.0f;

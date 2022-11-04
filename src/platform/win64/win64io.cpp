@@ -2,9 +2,9 @@
 
 // Windows-specific IO functions
 
+#include "win64global.hpp"
 #include "platform/io.hpp"
 #include "debug.hpp"
-#include "win64global.hpp"
 #include <string>
 #include "utils.hpp"
 

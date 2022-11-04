@@ -1,6 +1,5 @@
 #pragma once
-#include "alias.hpp"
-#include <glm/vec2.hpp>
+#include "pch.hpp"
 
 namespace Core {
 

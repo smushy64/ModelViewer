@@ -4,7 +4,6 @@
 #include "event.hpp"
 #include "input.hpp"
 #include "light.hpp"
-#include <queue>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp>
 

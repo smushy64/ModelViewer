@@ -1,5 +1,5 @@
+#include "pch.hpp"
 #include "global.hpp"
-#include "debug.hpp"
 
 #include "platform/io.hpp"
 #include "platform/event.hpp"
@@ -15,10 +15,6 @@
 #include "obj.hpp"
 #include "utils.hpp"
 
-#include <glm/vec4.hpp>
-#include <glm/mat3x3.hpp>
-
-#include <string>
 #include <sstream>
 
 Core::FontAtlas DEFAULT_FONT;

@@ -1,8 +1,6 @@
 #pragma once
-// #include "platform/renderer.hpp"
+#include "pch.hpp"
 #include "platform/io.hpp"
-#include "alias.hpp"
-#include <string>
 #include <map>
 
 namespace Platform {

@@ -1,5 +1,4 @@
 #include "image.hpp"
-#include "debug.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION 1
 #include "include/stb/stb_image.h"

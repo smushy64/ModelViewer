@@ -1,25 +1,29 @@
 #include "renderer.hpp"
 #include "gl.hpp"
 #include "dx11.hpp"
-#include "debug.hpp"
 #include "global.hpp"
 #include "consts.hpp"
 #include "utils.hpp"
 #include "core/ui.hpp"
 #include "core/image.hpp"
 #include "core/light.hpp"
-#include <glm/gtc/type_ptr.hpp>
 
 using namespace Platform;
 
 const char* FONT_VERT_PATH = "./resources/shaders/font/font.glslVert";
 const char* FONT_FRAG_PATH = "./resources/shaders/font/font.glslFrag";
+const char* FONT_VERT_PATH_HLSL = "./resources/shaders/font/font.hlslVert";
+const char* FONT_FRAG_PATH_HLSL = "./resources/shaders/font/font.hlslFrag";
 
 const char* BOUNDS_VERT_PATH = "./resources/shaders/bounds/bounds.glslVert";
 const char* BOUNDS_FRAG_PATH = "./resources/shaders/bounds/bounds.glslFrag";
+const char* BOUNDS_VERT_PATH_HLSL = "./resources/shaders/bounds/bounds.hlslVert";
+const char* BOUNDS_FRAG_PATH_HLSL = "./resources/shaders/bounds/bounds.hlslFrag";
 
 const char* BLINNPHONG_VERT_PATH = "./resources/shaders/blinn_phong/blinn_phong.glslVert";
 const char* BLINNPHONG_FRAG_PATH = "./resources/shaders/blinn_phong/blinn_phong.glslFrag";
+const char* BLINNPHONG_VERT_PATH_HLSL = "./resources/shaders/blinn_phong/blinn_phong.hlslVert";
+const char* BLINNPHONG_FRAG_PATH_HLSL = "./resources/shaders/blinn_phong/blinn_phong.hlslFrag";
 
 const char* Platform::BackendToString( BackendAPI backend ) {
     switch( backend ) {
@@ -146,15 +150,18 @@ Renderer::Renderer( RendererAPI* api ) : m_api(api) {
 bool Renderer::Initialize() {
     m_camera = new Core::Camera();
     m_lights = new Core::Lights();
+    LOG_INFO("Renderer > Camera and Lights created");
 
     auto ortho = glm::ortho( 0.0f, 1.0f, 0.0f, 1.0f );
     m_matrices2D = UniformBuffer::New( sizeof( glm::mat4 ), glm::value_ptr(ortho) );
     m_matrices2D->SetBindingPoint( MATRIX_2D_BINDING_POINT );
+    LOG_INFO("Renderer > 2D Matrices buffered");
 
     m_sharedData = UniformBuffer::New( SHARED_DATA_SIZE, nullptr );
     m_sharedData->SetBindingPoint( SHARED_DATA_BINDING_POINT );
     BufferCameraPosition( glm::vec3(0.0f) );
     BufferClippingFields( glm::vec2( 0.001f, 1000.0f ) );
+    LOG_INFO("Renderer > Shared data buffered");
 
     /* Create Font Mesh */ {
         f32 fontVertices[] = {
@@ -183,9 +190,23 @@ bool Renderer::Initialize() {
         IndexBuffer* fontIndexBuffer = IndexBuffer::New( BufferDataType::UINT, FONT_INDEX_COUNT, &fontIndices );
         m_fontVA->SetIndexBuffer(fontIndexBuffer);
     }
+    
+    LOG_INFO("Renderer > Font mesh created");
+
     /* Create Font Shader */ {
-        TextFile fontVertSrc = LoadTextFile( FONT_VERT_PATH );
-        TextFile fontFragSrc = LoadTextFile( FONT_FRAG_PATH );
+        TextFile fontVertSrc;
+        TextFile fontFragSrc;
+        switch( m_api->GetBackend() ) {
+            case BackendAPI::OPENGL: {
+                fontVertSrc = LoadTextFile( FONT_VERT_PATH );
+                fontFragSrc = LoadTextFile( FONT_FRAG_PATH );
+            } break;
+            case BackendAPI::DIRECTX11: {
+                fontVertSrc = LoadTextFile( FONT_VERT_PATH_HLSL );
+                fontFragSrc = LoadTextFile( FONT_FRAG_PATH_HLSL );
+            } break;
+            default: return false;
+        }
         if( fontVertSrc.size == 0 || fontFragSrc.size == 0 ) {
             LOG_ERROR("Renderer > Failed to load font shaders from disk!");
             return false;
@@ -208,6 +229,9 @@ bool Renderer::Initialize() {
         m_fontShader->UniformInt( texSamplerID, 0 );
         m_fontShader->UniformVec4( m_fontColorID, glm::vec4(1.0f) );
     }
+    
+    LOG_INFO("Renderer > Font shader created");
+
     /* Create Bounds Mesh */ {
         f32 boundsVertices[] = {
             /*POSITION*/ 0.0f, 1.0f,
@@ -235,9 +259,23 @@ bool Renderer::Initialize() {
         m_boundsVA->SetIndexBuffer( boundsIB );
 
     };
+    
+    LOG_INFO("Renderer > Debug bounds mesh created");
+    
     /* Create Bounds Shader */ {
-        TextFile vsrc = LoadTextFile( BOUNDS_VERT_PATH );
-        TextFile fsrc = LoadTextFile( BOUNDS_FRAG_PATH );
+        TextFile vsrc;
+        TextFile fsrc;
+        switch( m_api->GetBackend() ) {
+            case BackendAPI::OPENGL: {
+                vsrc = LoadTextFile( BOUNDS_VERT_PATH );
+                fsrc = LoadTextFile( BOUNDS_FRAG_PATH );
+            } break;
+            case BackendAPI::DIRECTX11: {
+                vsrc = LoadTextFile( BOUNDS_VERT_PATH_HLSL );
+                fsrc = LoadTextFile( BOUNDS_FRAG_PATH_HLSL );
+            } break;
+            default: return false;
+        }
 
         if( vsrc.size == 0 || fsrc.size == 0 ) {
             LOG_ERROR("Renderer > Failed to load bounds source!");
@@ -252,6 +290,9 @@ bool Renderer::Initialize() {
         m_boundsShader->UseShader();
         m_boundsShader->GetUniform( "u_transform", m_boundsTransformID );
     }
+    
+    LOG_INFO("Renderer > Debug bounds shader created");
+    
     /* Create Cube Mesh */ {
         m_meshVA = VertexArray::New();
         m_meshVA->UseArray();
@@ -272,9 +313,23 @@ bool Renderer::Initialize() {
 
         m_meshVA->SetIndexBuffer( iBuffer );
     }
+    
+    LOG_INFO("Renderer > Cube mesh created");
+
     /* Create Blinn-Phong Shader */ {
-        Platform::TextFile vsrc = Platform::LoadTextFile( BLINNPHONG_VERT_PATH );
-        Platform::TextFile fsrc = Platform::LoadTextFile( BLINNPHONG_FRAG_PATH );
+        TextFile vsrc;
+        TextFile fsrc;
+        switch( m_api->GetBackend() ) {
+            case BackendAPI::OPENGL: {
+                vsrc = LoadTextFile( BLINNPHONG_VERT_PATH );
+                fsrc = LoadTextFile( BLINNPHONG_FRAG_PATH );
+            } break;
+            case BackendAPI::DIRECTX11: {
+                vsrc = LoadTextFile( BLINNPHONG_VERT_PATH_HLSL );
+                fsrc = LoadTextFile( BLINNPHONG_FRAG_PATH_HLSL );
+            } break;
+            default: return false;
+        }
 
         if( vsrc.size == 0 || fsrc.size == 0 ) {
             LOG_ERROR("Renderer > Failed to load blinn-phong source!");
@@ -288,6 +343,8 @@ bool Renderer::Initialize() {
 
         m_blinnPhong = new BlinnPhong( shader );
     }
+
+    LOG_INFO("Renderer > Blinn-Phong Shader created");
 
     LOG_INFO("Renderer > Initialized Successfully");
     return true;
@@ -702,6 +759,8 @@ Platform::Shader* Platform::Shader::New( const std::string& vertex, const std::s
     switch( CURRENT_BACKEND ) {
         case BackendAPI::OPENGL:
             return new ShaderOpenGL( vertex, fragment );
+        case BackendAPI::DIRECTX11:
+            return new ShaderDirectX11( vertex, fragment );
         default:{
             LOG_ERROR("Current Backend does not yet implement shaders!");
         }return nullptr;
@@ -712,6 +771,8 @@ Platform::UniformBuffer* Platform::UniformBuffer::New( usize size, const void* d
     switch( CURRENT_BACKEND ) {
         case BackendAPI::OPENGL:
             return new UniformBufferOpenGL( size, data );
+        case BackendAPI::DIRECTX11:
+            return new UniformBufferDirectX11( size, data );
         default:{
             LOG_ERROR("Current Backend does not yet implement buffers!");
         }return nullptr;
@@ -722,6 +783,8 @@ VertexArray* VertexArray::New() {
     switch( CURRENT_BACKEND ) {
         case BackendAPI::OPENGL:
             return new VertexArrayOpenGL();
+        case BackendAPI::DIRECTX11:
+            return new VertexArrayDirectX11();
         default:{
             LOG_ERROR("Current Backend does not yet implement vertex arrays!");
         }return nullptr;
@@ -732,6 +795,8 @@ IndexBuffer* IndexBuffer::New( BufferDataType type, usize count, const void* dat
     switch( CURRENT_BACKEND ) {
         case BackendAPI::OPENGL:
             return new IndexBufferOpenGL( type, count, data );
+        case BackendAPI::DIRECTX11:
+            return new IndexBufferDirectX11( type, count, data );
         default:{
             LOG_ERROR("Current Backend does not yet implement buffers!");
         }return nullptr;
@@ -742,6 +807,8 @@ VertexBuffer* VertexBuffer::New( usize size, const void* data ) {
     switch( CURRENT_BACKEND ) {
         case BackendAPI::OPENGL:
             return new VertexBufferOpenGL( size, data );
+        case BackendAPI::DIRECTX11:
+            return new VertexBufferDirectX11( size, data );
         default:{
             LOG_ERROR("Current Backend does not yet implement buffers!");
         }return nullptr;
@@ -760,6 +827,16 @@ Texture2D* Texture2D::New(
     switch( CURRENT_BACKEND ) {
         case BackendAPI::OPENGL:
             return new Texture2DOpenGL(
+                dimensions,
+                data,
+                format,
+                internalFormat,
+                dataType,
+                mipmapLevel,
+                storeData
+            );
+        case BackendAPI::DIRECTX11:
+            return new Texture2DDirectX11(
                 dimensions,
                 data,
                 format,

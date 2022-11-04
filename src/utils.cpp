@@ -2,6 +2,7 @@
 #include "alias.hpp"
 #include "debug.hpp"
 #include "consts.hpp"
+#include "global.hpp"
 #include "platform/renderer.hpp"
 
 #include <locale>
@@ -190,11 +191,12 @@ std::vector<u32> Utils::CubeIndices() {
 }
 
 std::string Utils::GetProgramTitle() {
-#ifdef DEBUG
     std::string title = PROGRAM_TITLE;
-    title = title + " -- DEBUG --";
+    title = title + " | " + Platform::BackendToString( CURRENT_BACKEND );
+#ifdef DEBUG
+    title = title + " | -- DEBUG --";
     return title;
 #else
-    return PROGRAM_TITLE;
+    return title;
 #endif
 }

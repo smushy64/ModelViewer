@@ -1,36 +1,32 @@
 # Desired compiler and C++ version
-CC = g++ -std=c++17
-DD = gdb
+CC = g++ -std=c++20
 
 # Change between DEBUG/RELEASE
 
 # RELEASE BUILD
 # CFLAGS    = $(RELEASE)
 # LNKFLAGS  = --static -mwindows
-# TARGETDIR = ./bin/release
+# TARGETDIR = ./build/release
 
 # DEBUG BUILD
 CFLAGS    = $(DEBUG)
 LNKFLAGS  = --static
-TARGETDIR = ./bin/debug
+TARGETDIR = ./build/debug
 
 # Executable name
 EXE = ModelViewer.exe
 
 # Source code paths
-DIR = ./src ./src/platform ./src/platform/win64 ./src/core
-
-# Resources path
-RES = ./resources
-
-# Mingw include path
-MINGWINC = C:/msys64/mingw64/include
+SRC = $(dir $(wildcard ./src/*/.))
 
 # defines
-DEF = -D UNICODE -D WINDOWS 
+DEF = -D UNICODE -D WINDOWS
+
+# pre-compiled header
+PCH = ./src/pch.hpp
 
 # linker flags
-LNK = -static-libstdc++ -static-libgcc -lmingw32 -lopengl32 -lgdi32 -lcomdlg32
+LNK = -static-libstdc++ -static-libgcc -lmingw32
 
 # DONOT EDIT BEYOND THIS POINT!!! ===============================================
 
@@ -45,20 +41,16 @@ ROPT     = -O2
 DFLAGS   = $(WARN) $(DEF) $(DOPT) -D DEBUG
 RFLAGS   = $(DEF) $(ROPT)
 DEPFLAGS = -MP -MD
-INC      = ./src $(MINGWINC)
+INC      = ./src
 
-CPP      = $(foreach D, $(DIR), $(wildcard $(D)/*.cpp))
-C        = $(foreach D, ./src, $(wildcard $(D)/*.c))
+CPP      = $(foreach D, $(SRC), $(wildcard $(D)*.cpp))
+C        = $(foreach D, $(SRC), $(wildcard $(D)*.c))
 OBJ      = $(patsubst %.c,%.o, $(C)) $(patsubst %.cpp,%.o, $(CPP))
 DEPS     = $(patsubst %.c,%.d,$(C)) $(patsubst %.cpp,%.d,$(CPP))
 
-all: $(BINARY)
+PCH_TARG = $(PCH).gch
 
-run: all copy
-	$(BINARY)
-
-debug:
-	$(DD) $(BINARY)
+all: $(PCH_TARG) $(BINARY)
 
 -include $(DEPS)
 $(BINARY): $(OBJ)
@@ -70,16 +62,10 @@ $(BINARY): $(OBJ)
 %.o: %.cpp
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-copy:
-	-@robocopy $(RES) $(TARGETDIR)/resources/ -e -NFL -NDL -NJH -NJS -nc -ns -np
+$(PCH_TARG): $(PCH)
+	$(CC) $(CFLAGS) $(PCH)
 
-rm_nul:
-	-@rm nul
+clean:
+	-@rm $(BINARY); -@rm $(OBJ) $(DEPS); -@rm $(PCH_TARG)
 
-cleano:
-	-@rm $(OBJ) $(DEPS)
-
-clean: cleano
-	-@rm $(BINARY); rm -r $(TARGETDIR)/resources
-
-.PHONY: run all clean cleano
+.PHONY: all clean

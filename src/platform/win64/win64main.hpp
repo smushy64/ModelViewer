@@ -4,12 +4,9 @@
  * File Created: November 12, 2022 
  */
 #ifdef WINDOWS
-#include "win64main.hpp"
+#pragma once
 
-i32 APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE, PSTR, i32 ) {
-    return 0;
-}
-
-
+#include <windows.h>
+#include "pch.hpp"
 
 #endif

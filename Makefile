@@ -1,24 +1,20 @@
-# Desired compiler and C++ version
-CC = g++ -std=c++17
-DD = gdb
-
 # Change between DEBUG/RELEASE
 
 # RELEASE BUILD
 # CFLAGS    = $(RELEASE)
 # LNKFLAGS  = --static -mwindows
-# TARGETDIR = ./bin/release
+# TARGETDIR = ./build/release
 
 # DEBUG BUILD
 CFLAGS    = $(DEBUG)
 LNKFLAGS  = --static
-TARGETDIR = ./bin/debug
+TARGETDIR = ./build/debug
 
 # Executable name
 EXE = ModelViewer.exe
 
 # Source code paths
-DIR = ./src ./src/platform ./src/platform/win64 ./src/core
+DIR = ./src ./src/platform ./src/platform/win64 ./src/platform/dx11 ./src/platform/gl ./src/core
 
 # Resources path
 RES = ./resources
@@ -33,10 +29,16 @@ DEF = -D UNICODE -D WINDOWS
 PCH = ./src/pch.hpp
 WINPCH = ./src/platform/win64/winpch.hpp
 
+# windows-specific linker flags, not necessary for non-windows builds
+WINLNK = -lgdi32 -lcomdlg32 -ld3d11 -ld3dcompiler
 # linker flags
-LNK = -static-libstdc++ -static-libgcc -lmingw32 -lopengl32 -lgdi32 -lcomdlg32 -ld3d11
+LNK = -static-libstdc++ -static-libgcc -lmingw32 -lopengl32 $(WINLNK)
 
 # DONOT EDIT BEYOND THIS POINT!!! ===============================================
+
+# Desired compiler and C++ version
+CC = g++ -std=c++17
+DD = gdb
 
 DEBUG   = $(DFLAGS) $(foreach D, $(INC), -I$(D)) $(DEPFLAGS) 
 RELEASE = $(RFLAGS) $(foreach D, $(INC), -I$(D)) $(DEPFLAGS)
@@ -44,10 +46,8 @@ RELEASE = $(RFLAGS) $(foreach D, $(INC), -I$(D)) $(DEPFLAGS)
 BINARY = $(TARGETDIR)/$(EXE)
 
 WARN     = -Wall -Wextra
-DOPT     = -O0 -g
-ROPT     = -O2
-DFLAGS   = $(WARN) $(DEF) $(DOPT) -D DEBUG
-RFLAGS   = $(DEF) $(ROPT)
+DFLAGS   = $(WARN) $(DEF) -O0 -g -D DEBUG
+RFLAGS   = $(DEF) -O2
 DEPFLAGS = -MP -MD
 INC      = ./src $(MINGWINC)
 
@@ -61,7 +61,7 @@ WINPCH_TARG = $(WINPCH).gch
 
 all: $(PCH_TARG) $(WINPCH_TARG) $(BINARY)
 
-run: all copy
+run: copy all
 	$(BINARY)
 
 debug:

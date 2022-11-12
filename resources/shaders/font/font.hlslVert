@@ -1,1 +1,6 @@
- 
+float4 main( float4 posUv : POSITION ) : SV_Position {
+    // gl_Position = u_viewProjection * u_transform * vec4(v_vertex.xy, 0.0, 1.0);
+    // // flip v because stbtt loads it in flipped
+    // v2f.uv = vec2( v_vertex.z, 1.0 - v_vertex.w );
+    return float4( posUv.xy, 0.0f, 1.0f );
+}

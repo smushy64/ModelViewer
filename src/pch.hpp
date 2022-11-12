@@ -15,5 +15,6 @@
 #include "macro.hpp"
 #include "debug.hpp"
 #include "consts.hpp"
+#include "global.hpp"
 
 #endif

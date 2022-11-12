@@ -2,18 +2,14 @@
 
 // ignore compiler warning
 // casting function pointers from GetProcAddress/wglGetProcAddress is the intended usage
-#if __MINGW32__
+#ifdef __GNUG__
 #pragma GCC diagnostic ignored "-Wcast-function-type"
 #endif
+
 #include "pch.hpp"
 #include "winpch.hpp"
 
-#include "alias.hpp"
-#include "debug.hpp"
-#include "global.hpp"
 #include "utils.hpp"
-
-#include "win64global.hpp"
 
 #include "core/app.hpp"
 #include "core/event.hpp"
@@ -21,8 +17,8 @@
 #include "platform/renderer.hpp"
 #include "platform/pointer.hpp"
 #include "platform/backend.hpp"
-#include "platform/glInit.hpp"
-#include "platform/dx11Init.hpp"
+#include "platform/gl/glInit.hpp"
+#include "platform/dx11/dx11Init.hpp"
 
 using namespace Platform;
 
@@ -36,12 +32,6 @@ void  Win64DeleteOpenGLContext( HGLRC openglContext );
 HINSTANCE OPENGL_MODULE;
 void* Win64LoadOpenGLFunctions( const char* functionName );
 void Win64OpenGLSwapBuffer();
-
-// ----------------------------------------------------------
-
-// DirectX 11 -----------------------------------------------
-
-
 
 // ----------------------------------------------------------
 
@@ -116,21 +106,15 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE, PSTR, int) {
         case BackendAPI::DIRECTX11: {
             directX11InitData = {};
             DXGI_SWAP_CHAIN_DESC sd = {};
-            sd.BufferDesc.Width                   = 0;
-            sd.BufferDesc.Height                  = 0;
             sd.BufferDesc.Format                  = DXGI_FORMAT_B8G8R8A8_UNORM;
-            sd.BufferDesc.RefreshRate.Numerator   = 0;
-            sd.BufferDesc.RefreshRate.Denominator = 0;
             sd.BufferDesc.Scaling                 = DXGI_MODE_SCALING_UNSPECIFIED;
             sd.BufferDesc.ScanlineOrdering        = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
             sd.SampleDesc.Count                   = 1;
-            sd.SampleDesc.Quality                 = 0;
             sd.BufferUsage                        = DXGI_USAGE_RENDER_TARGET_OUTPUT;
             sd.BufferCount                        = 1;
             sd.OutputWindow                       = WINDOW_HANDLE;
             sd.Windowed                           = TRUE;
             sd.SwapEffect                         = DXGI_SWAP_EFFECT_DISCARD;
-            sd.Flags                              = 0;
             directX11InitData.sd = sd;
         } break;
         default: break;

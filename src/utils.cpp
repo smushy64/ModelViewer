@@ -1,8 +1,5 @@
 #include "utils.hpp"
-#include "alias.hpp"
-#include "debug.hpp"
-#include "consts.hpp"
-#include "global.hpp"
+#include "pch.hpp"
 #include "platform/renderer.hpp"
 
 #include <locale>

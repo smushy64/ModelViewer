@@ -1,5 +1,9 @@
 #pragma once
-#include "core/app.hpp"
+
+// Forward declaration
+namespace Core {
+    struct AppData;
+};
 
 namespace Platform {
     

@@ -203,7 +203,8 @@ vec3 CalcPointLight(
         lightDiffuse,
         lightSpecular
     );
-    float attenuation = 1.0 / ( lightConstant + lightLinear * lightDistance + lightQuadratic * ( lightDistance * lightDistance ) );
+    float lightDistance2 = ( lightDistance * lightDistance );
+    float attenuation = 1.0 / ( lightConstant + lightLinear * lightDistance + lightQuadratic * lightDistance2 );
 
     return lightColor * attenuation;
 }

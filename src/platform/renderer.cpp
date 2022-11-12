@@ -1,6 +1,6 @@
 #include "renderer.hpp"
-#include "gl.hpp"
-#include "dx11.hpp"
+#include "gl/gl.hpp"
+#include "dx11/dx11.hpp"
 #include "global.hpp"
 #include "consts.hpp"
 #include "utils.hpp"

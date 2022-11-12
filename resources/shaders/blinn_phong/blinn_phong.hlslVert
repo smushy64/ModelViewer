@@ -1,1 +1,11 @@
- 
+struct Input {
+    float3 position : POSITION;
+    float2 uv : UV;
+    float3 normal : NORMAL;
+    float3 tangent : TANGENT;
+    float3 bitangent : BINORMAL;
+};
+
+float4 main( Input v ) : SV_POSITION {
+    return float4( v.position, 1.0f );
+}

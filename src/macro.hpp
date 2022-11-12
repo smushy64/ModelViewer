@@ -1,9 +1,5 @@
 #pragma once
 
-// Check for nullptr before calling ->Release()
-#define COM_RELEASE(com) if( com != nullptr ) \
-    com->Release()\
-
 // Check for nullptr before using delete
 #define SAFE_DEL(ptr) if( ptr != nullptr ) \
     delete( ptr )\

@@ -6,9 +6,17 @@
 #if WINDOWS
 #include "win64main.hpp"
 #include "core/app.hpp"
+#include "platform/renderer.hpp"
 #include "util.hpp"
 
+// IMPORTANT(alicia): TEMPP!!!!!!!
+#include <math.h>
+
 HMODULE OPENGL_MODULE;
+HDC DEVICE_CONTEXT;
+void WinSwapBuffers() {
+    SwapBuffers( DEVICE_CONTEXT );
+}
 
 i32 APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE, PSTR, i32 ) {
     INIT_CONSOLE();
@@ -46,6 +54,24 @@ i32 APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE, PSTR, i32 ) {
         return ERROR_RETURN_CODE;
     }
 
+    HGLRC openGLContext;
+
+    // TODO(alicia): check settings.ini for backend to use
+    OPENGL_MODULE = LoadLibrary( L"opengl32.dll" );
+    if(!LoadWGLFunctions( OPENGL_MODULE )) {
+        return ERROR_RETURN_CODE;
+    }
+    DEVICE_CONTEXT = deviceContext;
+    openGLContext  = WinCreateOpenGLContext( DEVICE_CONTEXT );
+    if( !Platform::CreateOpenGLAPI( &app.renderer.api, WinOpenGLLoadProc ) ) {
+        LOG_ERROR("Windows x64 > Failed to create OpenGL API!");
+        return ERROR_RETURN_CODE;
+    }
+    app.renderer.api.SwapBuffers = WinSwapBuffers;
+    app.renderer.api.Initialize();
+    FreeModule( OPENGL_MODULE );
+
+    app.isRunning = true;
     u64 startTime = WinGetTime();
     while( app.isRunning ) {
         f32 elapsedTime = (f32)(WinGetTime() - startTime) / (f32)perfFrequency;
@@ -56,10 +82,15 @@ i32 APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE, PSTR, i32 ) {
         Core::OnUpdate( &app );
     }
 
+    if( openGLContext ) {
+        wglMakeCurrent( nullptr, nullptr );
+        wglDeleteContext( openGLContext );
+    }
+
     return SUCCESS_RETURN_CODE;
 }
 
-void WinProcessMessages( HWND window, Core::AppContext* appContext ) {
+void WinProcessMessages( HWND window, Core::AppContext* ) {
     MSG message = {};
     while(PeekMessage(
         &message,
@@ -81,7 +112,7 @@ LRESULT WinWindowProc( HWND window, UINT message, WPARAM wParam, LPARAM lParam )
     // in that case, just return DefWindowProc
 
     Core::AppContext* appContext = (Core::AppContext*)GetWindowLongPtr( window, GWLP_USERDATA );
-    if(!appContext) {
+    if(!appContext || !appContext->isRunning) {
         return DefWindowProc( window, message, wParam, lParam );
     }
 
@@ -89,6 +120,12 @@ LRESULT WinWindowProc( HWND window, UINT message, WPARAM wParam, LPARAM lParam )
     switch( message ) {
         case WM_CLOSE: {
             Core::OnClose( appContext );
+        } break;
+        case WM_WINDOWPOSCHANGED: {
+            RECT rect = {};
+            if( GetClientRect( window, &rect ) == TRUE ) {
+                Core::OnResolutionUpdate( appContext, rect.right, rect.bottom );
+            }
         } break;
         default: {
             result = DefWindowProc( window, message, wParam, lParam );
@@ -267,7 +304,7 @@ void* WinOpenGLLoadProc( const char* functionName ) {
         fn = (void*)GetProcAddress( OPENGL_MODULE, functionName );
 #if DEBUG
         if(!fn) {
-            LOG_ERROR( "Windows x64 | OpenGL Load Proc > Failed to load function \"%s\"!", functionName );
+            LOG_WARN( "Windows x64 | OpenGL LoadProc > Failed to load function \"%s\"!", functionName );
         }
 #endif
     }

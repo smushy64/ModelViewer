@@ -4,6 +4,6 @@
 #include "alias.hpp"
 #include "log.hpp"
 #include "macro.hpp"
-#include "math.hpp"
+#include "mathex.hpp"
 
 #endif

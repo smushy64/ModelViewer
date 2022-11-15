@@ -5,7 +5,6 @@
  *               Includes stdio header
  *               MSVC: Includes <windows.h>
  *               IMPORTANT: MSVC: only outputs to Visual Studio debug output window!
- *               IMPORTANT: MSVC: colors only work with VSColorOutput64 extension!
  * Author:       Alicia Amarilla (smushy)
  * File Created: November 05, 2022
 */
@@ -24,6 +23,10 @@
 
 #if defined(DEBUG) || defined(_DEBUG)
     #include <stdio.h>
+
+    #if __GNUG__
+        #pragma GCC diagnostic ignored "-Wunused-variable"
+    #endif
 
     /// @brief Current debug log level
     static inline int __DEBUG_LOG_LEVEL = LOG_LEVEL_INFO;
@@ -111,7 +114,7 @@
     #define LOG_ERROR(...)  \
         do{if(LOG_LEVEL_VALID(LOG_LEVEL_ERROR)) {\
             CONSOLE_COLOR_RED();\
-            printf( "[ERROR] " );\
+            printf( "[ERROR | %s(%d)] ", __FILE__, __LINE__ );\
             CONSOLE_COLOR_RESET();\
             printf(__VA_ARGS__);\
             printf("\n");\
@@ -123,7 +126,7 @@
     #define DEBUG_ASSERT_LOG(condition, ...) \
         do{if( !(condition) ) {\
             CONSOLE_COLOR_RED();\
-            printf( "[ASSERTION FAILED] " );\
+            printf( "[ASSERTION FAILED | %s(%d)] ", __FILE__, __LINE__ );\
             CONSOLE_COLOR_RESET();\
             printf(__VA_ARGS__);\
             printf("\n");\
@@ -133,7 +136,7 @@
     /// @brief Crash the program and print unimplemented feature description.
     #define DEBUG_UNIMPLEMENTED(...) \
         CONSOLE_COLOR_RED();\
-        printf( "[UNIMPLEMENTED ERROR] " );\
+        printf( "[UNIMPLEMENTED ERROR | %s(%d)] ", __FILE__, __LINE__ );\
         CONSOLE_COLOR_RESET();\
         printf(__VA_ARGS__);\
         printf("\n");\
@@ -142,7 +145,7 @@
     /// @brief Crash the program and print reason for crash.
     #define PANIC(...) \
         CONSOLE_COLOR_RED();\
-        printf( "[PANIC ERROR] " );\
+        printf( "[PANIC ERROR | %s(%d)] ", __FILE__, __LINE__ );\
         CONSOLE_COLOR_RESET();\
         printf(__VA_ARGS__);\
         printf("\n");\
@@ -155,10 +158,21 @@
             GetConsoleMode( hConsole, &dwMode );\
             dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;\
             SetConsoleMode( hConsole, dwMode );\
-            LOG_INFO("Console initialized!");\
+            LOG_INFO("Output debug console initialized!");\
         } while(0)
     #else
-        #define INIT_CONSOLE() LOG_INFO("Console initialized!")
+        #ifdef WINDOWS
+            #define INIT_CONSOLE() do{\
+                static HANDLE hConsole = GetStdHandle( STD_OUTPUT_HANDLE );\
+                DWORD dwMode = 0;\
+                GetConsoleMode( hConsole, &dwMode );\
+                dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;\
+                SetConsoleMode( hConsole, dwMode );\
+                LOG_INFO("Windows x64 > Debug Console initialized");\
+            } while(0)
+        #else
+            #define INIT_CONSOLE() LOG_INFO("Console initialized!")
+        #endif
     #endif
 
 #else

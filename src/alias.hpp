@@ -44,9 +44,9 @@ typedef double f64;
 /// @brief local variable that should persist
 #define local_persist static
 /// @brief global variable
-#define global static
+#define global_var static
 /// @brief function is only available in this translation unit
-#define internal static
+#define internal_var static
 
 /// @brief infinite while loop
 #define loop while( true )
@@ -118,9 +118,9 @@ namespace U32 {
 /// @brief Unsigned integer 64-bit constants
 namespace U64 {
     /// @brief Largest u64 value
-    inline const u64 MAX = 18446744073709551615;
+    inline const u64 MAX = 18446744073709551615ULL;
     /// @brief Smallest u64 value
-    inline const u64 MIN = 0;
+    inline const u64 MIN = 0ULL;
 };
 
 /// @brief Integer 8-bit constants
@@ -150,9 +150,9 @@ namespace I32 {
 /// @brief Integer 64-bit constants
 namespace I64 {
     /// @brief Largest i64 value
-    inline const i64 MAX = 9223372036854775807;
+    inline const i64 MAX = 9223372036854775807LL;
     /// @brief Smallest i64 value
-    inline const i64 MIN = -9223372036854775808;
+    inline const i64 MIN = -9223372036854775807 - 1;
 };
 
 #endif

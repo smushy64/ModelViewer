@@ -40,4 +40,19 @@
 /// @brief Construct a 32-bit RGBA value ( little-endian )
 #define u32_RGBA(r, g, b, a) a << 24 | r << 16 | g << 8 | b << 0
 
+/// @brief loop between from and to
+#define forrange( from, to ) for( isize i = from; i < to; ++i )
+
+/// @brief loop between from and to in reverse
+#define forrange_rev( from, to ) for( isize i = to; i > from; --i )
+
+/// @brief loop for given cycles
+#define forloop( cycles ) for( isize i = 0; i < cycles; ++i )
+
+/// @brief swap pointer 1 and 2
+#define swapPtr( ptr1, ptr2 ) auto* temp = ptr1; ptr1 = ptr2; ptr2 = temp
+
+/// @brief macro for suppressing unused parameters
+#define UNUSED_PARAM(param) (void)(param)
+
 #endif

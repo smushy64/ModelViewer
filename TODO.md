@@ -1,7 +1,19 @@
 ## TODO
 
-### UI update ( ver0.2 )
-- [ ] Panning on the x axis is still not correct
+### Refactor 2
+- [ ] Win64 layer
+  - [ ] Window Creation
+  - [ ] OpenGL Context Creation
+- [ ] OpenGL layer
+  - [ ] Clear
+  - [ ] Swap
+  - [ ] SetClearColor
+  - [ ] SetViewport
+  - [ ] CreateShader
+- [ ] Text Rendering
+  - [ ] Load font
+  - [ ] Load font atlas on GPU
+  - [ ] Render text
 
 ### Normal Map Support + Fixes and Tweaks - Completed 11/2/2022
 - [x] DrawArrays caused segfault
@@ -60,7 +72,7 @@
   - [x] Font shader not being deleted when renderer is deleted?
   - [x] Shader Files not being cleaned up
 
-### Total Rewrite - Completed 10/16/2022
+### Refactor - Completed 10/16/2022
 
 - [x] Win64 layer
   - [x] Window Creation

@@ -17,7 +17,7 @@ TARGETDIR = ./build/debug
 EXE = ModelViewer.exe
 
 # Source code paths
-SRC = $(dir $(wildcard ./src/*/.))
+SRC = ./src ./src/platform ./src/platform/win64 ./src/platform/gl ./src/core
 
 # defines
 DEF = -D UNICODE -D WINDOWS
@@ -26,7 +26,7 @@ DEF = -D UNICODE -D WINDOWS
 PCH = ./src/pch.hpp
 
 # linker flags
-LNK = -static-libstdc++ -static-libgcc -lmingw32
+LNK = -static-libstdc++ -static-libgcc -lmingw32 -lgdi32
 
 # DONOT EDIT BEYOND THIS POINT!!! ===============================================
 
@@ -36,21 +36,22 @@ RELEASE = $(RFLAGS) $(foreach D, $(INC), -I$(D)) $(DEPFLAGS)
 BINARY = $(TARGETDIR)/$(EXE)
 
 WARN     = -Wall -Wextra
-DOPT     = -O0 -g
-ROPT     = -O2
-DFLAGS   = $(WARN) $(DEF) $(DOPT) -D DEBUG
-RFLAGS   = $(DEF) $(ROPT)
+DFLAGS   = $(WARN) $(DEF) -O0 -g -D DEBUG
+RFLAGS   = $(DEF) $(ROPT) -O2
 DEPFLAGS = -MP -MD
 INC      = ./src
 
-CPP      = $(foreach D, $(SRC), $(wildcard $(D)*.cpp))
-C        = $(foreach D, $(SRC), $(wildcard $(D)*.c))
+CPP      = $(foreach D, $(SRC), $(wildcard $(D)/*.cpp))
+C        = $(foreach D, $(SRC), $(wildcard $(D)/*.c))
 OBJ      = $(patsubst %.c,%.o, $(C)) $(patsubst %.cpp,%.o, $(CPP))
 DEPS     = $(patsubst %.c,%.d,$(C)) $(patsubst %.cpp,%.d,$(CPP))
 
 PCH_TARG = $(PCH).gch
 
 all: $(PCH_TARG) $(BINARY)
+
+run: all
+	$(BINARY)
 
 -include $(DEPS)
 $(BINARY): $(OBJ)

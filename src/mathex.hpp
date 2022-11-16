@@ -7,10 +7,6 @@
 #include "alias.hpp"
 #include "math.hpp"
 
-// IMPORTANT(alicia): TEMP
-#include <math.h>
-
-// TODO(alicia): check todo.md
 // TODO(alicia): SIMD!
 
 namespace smath {
@@ -31,6 +27,7 @@ namespace smath {
     struct vec2 {
         f32 x, y;
 
+        vec2() {}
         vec2( f32 x, f32 y ) : x(x), y(y) {}
 
         /// @brief Normalize vector
@@ -145,6 +142,7 @@ namespace smath {
     struct ivec2 {
         i32 x, y;
 
+        ivec2() {}
         ivec2( i32 x, i32 y ) : x(x), y(y) {}
 
         /// @brief Component-wise scale lhs by rhs 
@@ -160,8 +158,8 @@ namespace smath {
         }
         /// @brief clamp x and y between min and max
         void clamp( const ivec2& min, const ivec2& max ) {
-            x = smath::clamp( x, min.x, max.x );
-            y = smath::clamp( y, min.y, max.y );
+            x = smath::clampi( x, min.x, max.x );
+            y = smath::clampi( y, min.y, max.y );
         }
 
         /// @brief Get square magnitude 
@@ -615,7 +613,7 @@ namespace smath {
             ( lhs.w * rhs.z ) + ( rhs.w * lhs.z ) + ( ( lhs.x * rhs.y ) - ( lhs.y * rhs.x ) )
         };
     }
-    inline quat operator*( const quat& lhs, const vec3& rhs ) {
+    inline vec3 operator*( const quat& lhs, const vec3& rhs ) {
         quat p = { 0.0f, rhs.x, rhs.y, rhs.z };
         quat result = lhs * p * lhs.conjugate();
         return { result.x, result.y, result.z };
@@ -728,15 +726,7 @@ namespace smath {
         /// @param transform transform matrix to build normal matrix from
         /// @param result 
         /// @return true if transform matrix can be inverted
-        static bool normalMat( const mat4* transform, mat3* result ) {
-            mat4 inverseTransform = {};
-            if( transform->inverse( &inverseTransform ) ) {
-                *result = inverseTransform.transpose().toMat3();
-                return true;
-            } else {
-                return false;
-            }
-        }
+        static inline bool normalMat( const mat4* transform, mat3* result );
         static mat3 zero() { return {}; }
         static mat3 identity() {
             mat3 result = {};
@@ -779,6 +769,14 @@ namespace smath {
         };
     }
 
+    inline mat4 operator+( const mat4& lhs, const mat4& rhs );
+    inline mat4 operator-( const mat4& lhs, const mat4& rhs );
+    inline mat4 operator*( const mat4& lhs, const f32& rhs ) ;
+    inline mat4 operator*( const f32& lhs, const mat4& rhs ) ;
+    inline mat4 operator/( const mat4& lhs, const f32& rhs ) ;
+    inline mat4 operator*( const mat4& lhs, const mat4& rhs );
+    inline vec4 operator*( const mat4& lhs, const vec4& rhs );
+    inline vec3 operator*( const mat4& lhs, const vec3& rhs );
     /// @brief 4x4 matrix
     struct mat4 {
         f32 _c0r0, _c1r0, _c2r0, _c3r0;
@@ -1114,6 +1112,81 @@ namespace smath {
             ( lhs[1] * rhs.x ) + ( lhs[5] * rhs.y ) + ( lhs[9]  * rhs.z ) + lhs[13],
             ( lhs[2] * rhs.x ) + ( lhs[6] * rhs.y ) + ( lhs[10] * rhs.z ) + lhs[14]
         };
+    }
+
+    /// @brief Linear interpolation
+    /// @param a minimum value
+    /// @param b maximum value
+    /// @param t fraction
+    /// @return blend between a and b, based on fraction t
+    inline vec2 lerp( const vec2& a, const vec2& b, const f32& t ) {
+        return ( 1.0f - t ) * a + b * t;
+    }
+    /// @brief Linear interpolation
+    /// @param a minimum value
+    /// @param b maximum value
+    /// @param t fraction
+    /// @return blend between a and b, based on fraction t
+    inline vec3 lerp( const vec3& a, const vec3& b, const f32& t ) {
+        return ( 1.0f - t ) * a + b * t;
+    }
+    /// @brief Linear interpolation
+    /// @param a minimum value
+    /// @param b maximum value
+    /// @param t fraction
+    /// @return blend between a and b, based on fraction t
+    inline vec4 lerp( const vec4& a, const vec4& b, const f32& t ) {
+        return ( 1.0f - t ) * a + b * t;
+    }
+    /// @brief Linear interpolation
+    /// @param a minimum value
+    /// @param b maximum value
+    /// @param t fraction
+    /// @return blend between a and b, based on fraction t
+    inline quat lerp( const quat& a, const quat& b, const f32& t ) {
+        return ( 1.0f - t ) * a + b * t;
+    }
+    /// @brief Linear interpolation, t is clamped between 0.0-1.0
+    /// @param a minimum value
+    /// @param b maximum value
+    /// @param t 0.0-1.0 fraction
+    /// @return blend between a and b, based on fraction t
+    inline vec2 clampedLerp( const vec2& a, const vec2& b, const f32& t ) {
+        return lerp( a, b, clampf( t, 0.0f, 1.0f ) );
+    }
+    /// @brief Linear interpolation, t is clamped between 0.0-1.0
+    /// @param a minimum value
+    /// @param b maximum value
+    /// @param t 0.0-1.0 fraction
+    /// @return blend between a and b, based on fraction t
+    inline vec3 clampedLerp( const vec3& a, const vec3& b, const f32& t ) {
+        return lerp( a, b, clampf( t, 0.0f, 1.0f ) );
+    }
+    /// @brief Linear interpolation, t is clamped between 0.0-1.0
+    /// @param a minimum value
+    /// @param b maximum value
+    /// @param t 0.0-1.0 fraction
+    /// @return blend between a and b, based on fraction t
+    inline vec4 clampedLerp( const vec4& a, const vec4& b, const f32& t ) {
+        return lerp( a, b, clampf( t, 0.0f, 1.0f ) );
+    }
+    /// @brief Linear interpolation, t is clamped between 0.0-1.0
+    /// @param a minimum value
+    /// @param b maximum value
+    /// @param t 0.0-1.0 fraction
+    /// @return blend between a and b, based on fraction t
+    inline quat clampedLerp( const quat& a, const quat& b, const f32& t ) {
+        return lerp( a, b, clampf( t, 0.0f, 1.0f ) );
+    }
+
+    inline bool mat3::normalMat( const mat4* transform, mat3* result ) {
+        mat4 inverseTransform = {};
+        if( transform->inverse( &inverseTransform ) ) {
+            *result = inverseTransform.transpose().toMat3();
+            return true;
+        } else {
+            return false;
+        }
     }
 
 } // namespace smath

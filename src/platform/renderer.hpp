@@ -12,6 +12,16 @@ struct Shader {
     u32 id;
 };
 
+enum class Structure {
+    SCALAR,
+    VEC2,
+    VEC3,
+    VEC4,
+    MAT3,
+    MAT4
+};
+const char* StructureToString( Structure structure );
+
 enum class Type {
     UNSIGNED_BYTE,
     BYTE,
@@ -22,20 +32,24 @@ enum class Type {
     FLOAT,
     DOUBLE
 };
+const char* TypeToString( Type type );
 
 enum class TextureFormat {
     R, RG, RGB, RGBA
 };
+const char* TextureFormatToString( TextureFormat format );
 enum class TextureWrapMode {
     CLAMP,
     REPEAT,
     MIRROR_REPEAT,
     MIRROR_CLAMP
 };
+const char* TextureWrapModeToString( TextureWrapMode wrapMode );
 enum class TextureMagFilter {
     NEAREST,
     LINEAR
 };
+const char* TextureMagFilterToString( TextureMagFilter magFilter );
 enum class TextureMinFilter {
     NEAREST,
     LINEAR,
@@ -44,6 +58,7 @@ enum class TextureMinFilter {
     NEAREST_MIPMAP_NEAREST,
     NEAREST_MIPMAP_LINEAR
 };
+const char* TextureMinFilterToString( TextureMinFilter minFilter );
 
 struct Texture2D {
     i32 width;
@@ -56,11 +71,15 @@ struct Texture2D {
     TextureMinFilter minFilter;
     u8* data;
     u32 id;
+
+    const char* toString();
 };
 
 enum class RendererBackend {
     OPENGL
 };
+/// @brief Convert renderer backend enum to string
+const char* RendererBackendToString( RendererBackend backend );
 
 typedef void (*InitializeFN)();
 typedef void (*ClearBufferFN)();
@@ -93,8 +112,6 @@ typedef void (*DeleteTextures2DFN)( Texture2D* textures, usize textureCount );
 typedef void (*UseTexture2DFN)( Texture2D* texture, u32 unit );
 typedef void (*SetTexture2DWrapModeFN)( Texture2D* texture, TextureWrapMode wrapX, TextureWrapMode wrapY );
 typedef void (*SetTexture2DFilterFN)( Texture2D* texture, TextureMinFilter minFilter, TextureMagFilter magFilter );
-
-typedef void* (*OpenGLLoadProc)(const char* functionName);
 
 /// Structure containing function pointers to API calls  
 struct RendererAPI {
@@ -188,6 +205,12 @@ struct RendererAPI {
     SetTexture2DFilterFN SetTexture2DFilter;
 };
 
+typedef void* (*OpenGLLoadProc)(const char* functionName);
+
+/// @brief Create OpenGL API
+/// @param api pointer to structure to hold functions
+/// @param loadProc OpenGL load proc
+/// @return true if successful
 bool CreateOpenGLAPI( RendererAPI* api, OpenGLLoadProc loadProc );
 
 } // namespace Platform

@@ -13,6 +13,11 @@
 namespace Core {
     struct AppContext;
 }
+namespace Platform {
+    enum class KeyCode;
+};
+
+Platform::KeyCode VKCodeToKeyCode( u32 VKCode );
 
 #if __GNUG__
 #pragma GCC diagnostic ignored "-Wcast-function-type"
@@ -82,7 +87,7 @@ namespace wglFN {
 #define ERROR_INVALID_PROFILE_ARB                 0x2096
 
 void* WinOpenGLLoadProc( const char* functionName );
-bool LoadWGLFunctions( HMODULE openglModule );
+bool WinLoadWGLFunctions( HMODULE openglModule );
 
 /// @brief The wglCreateContext function creates a new OpenGL rendering context, which is suitable for drawing on the device referenced by hdc. The rendering context has the same pixel format as the device context.
 /// @param unnamedParam1 [HDC] Handle to a device context for which the function creates a suitable OpenGL rendering context.

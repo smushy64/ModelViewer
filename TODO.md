@@ -1,5 +1,18 @@
 ## TODO
 
+### Future Goals
+- Set Window Icon
+- DirectX 11
+- Vulkan
+- Remove glad dependency
+- Remove stb dependencies
+- Remove tinyobjloader dependency
+- Material Editor
+- Lights Editor
+- Multiple Meshes
+- Screenshot
+- Other model formats
+
 ### Refactor 2
 - [x] Win64 layer
   - [x] Window Creation
@@ -87,10 +100,24 @@
   - [x] mat3
   - [x] mat4
   - [x] quat
+- [x] io
+  - [x] SetCursorStyle
+  - [x] SetCursorVisibility
+  - [x] LockCursor
+  - [x] Mouse Input
+    - [x] Buttons
+    - [x] Scroll
+    - [x] Pixel Position
+    - [x] Screen Position
+  - [x] Keyboard Input
+  - [x] Load File
+  - [x] User Load File
+  - [x] Write File
 - [ ] Text Rendering
   - [ ] Load font
   - [ ] Load font atlas on GPU
   - [ ] Render text
+- [x] expand math templates
 
 ### Normal Map Support + Fixes and Tweaks - Completed 11/2/2022
 - [x] DrawArrays caused segfault

@@ -47,7 +47,32 @@
 #define forrange_rev( from, to ) for( isize i = to; i > from; --i )
 
 /// @brief loop for given cycles
+/// DEPRECATED
 #define forloop( cycles ) for( isize i = 0; i < cycles; ++i )
+
+/// @brief loop for given cycles | isize indexer
+/// @param cycles number of cycles
+#define cycles( cycles ) for( isize i = 0; i < cycles; ++i )
+
+/// @brief loop for given cycles | usize indexer
+/// @param cycles number of cycles
+#define ucycles( cycles ) for( usize i = 0; i < cycles; ++i )
+
+/// @brief loop for given cycles | isize indexer
+/// @param cycles number of cycles
+/// @param indexName name of indexer variable
+#define cyclesi( cycles, indexName ) for( isize indexName = 0; indexName < cycles; ++indexName )
+
+/// @brief loop for given cycles
+/// @param cycles number of cycles
+/// @param indexType type of indexer variable
+#define cyclest( cycles, indexType ) for( indexType i = 0; i < cycles; ++i )
+
+/// @brief loop for given cycles
+/// @param cycles number of cycles
+/// @param indexName name of indexer variable
+/// @param indexType type of indexer variable
+#define cyclesti( cycles, indexName, indexType ) for( indexType indexName = 0; indexName < cycles; ++indexName )
 
 /// @brief swap pointer 1 and 2
 #define swapPtr( ptr1, ptr2 ) auto* temp = ptr1; ptr1 = ptr2; ptr2 = temp

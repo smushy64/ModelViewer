@@ -26,7 +26,7 @@ DEF = -D UNICODE -D WINDOWS
 PCH = ./src/pch.hpp
 
 # linker flags
-LNK = -static-libstdc++ -static-libgcc -lmingw32 -lgdi32
+LNK = -static-libstdc++ -static-libgcc -lmingw32 -lgdi32 -lcomdlg32
 
 # DONOT EDIT BEYOND THIS POINT!!! ===============================================
 

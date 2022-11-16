@@ -7,6 +7,8 @@
 #define SMUSHY_MATH 1
 #include "alias.hpp"
 #include <immintrin.h>
+// IMPORTANT(alicia): TEMP
+#include <math.h>
 
 namespace smath {
 
@@ -22,6 +24,10 @@ namespace smath {
 
     /// @brief Floating-point square 
     inline f32 sqrf( const f32& value ) {
+        return value * value;
+    }
+    /// @brief Double Floating-point square 
+    inline f64 sqrd( const f64& value ) {
         return value * value;
     }
     // TODO(alicia): asin!
@@ -40,14 +46,94 @@ namespace smath {
             return asinf( value );
         }
     }
-    /// @brief Clamp a value between min and max values
+    /// @brief Clamp an int between min and max values
     /// @param value value to clamp
     /// @param min minimum range, inclusive
     /// @param max maximum range, inclusive
     /// @return clamped value
-    template<class T>
-    inline constexpr const T& clamp( const T& value, const T& min, const T& max ) {
-        const T t = value < min ? min : value;
+    inline i8 clampi( i8 value, i8 min, i8 max ) {
+        const i8 t = value < min ? min : value;
+        return t > max ? max : t;
+    }
+    /// @brief Clamp an int between min and max values
+    /// @param value value to clamp
+    /// @param min minimum range, inclusive
+    /// @param max maximum range, inclusive
+    /// @return clamped value
+    inline i16 clampi( i16 value, i16 min, i16 max ) {
+        const i16 t = value < min ? min : value;
+        return t > max ? max : t;
+    }
+    /// @brief Clamp an int between min and max values
+    /// @param value value to clamp
+    /// @param min minimum range, inclusive
+    /// @param max maximum range, inclusive
+    /// @return clamped value
+    inline i32 clampi( i32 value, i32 min, i32 max ) {
+        const i32 t = value < min ? min : value;
+        return t > max ? max : t;
+    }
+    /// @brief Clamp an int between min and max values
+    /// @param value value to clamp
+    /// @param min minimum range, inclusive
+    /// @param max maximum range, inclusive
+    /// @return clamped value
+    inline i64 clampi( i64 value, i64 min, i64 max ) {
+        const i64 t = value < min ? min : value;
+        return t > max ? max : t;
+    }
+    /// @brief Clamp an unsigned int between min and max values
+    /// @param value value to clamp
+    /// @param min minimum range, inclusive
+    /// @param max maximum range, inclusive
+    /// @return clamped value
+    inline u8 clampui( u8 value, u8 min, u8 max ) {
+        const u8 t = value < min ? min : value;
+        return t > max ? max : t;
+    }
+    /// @brief Clamp an unsigned int between min and max values
+    /// @param value value to clamp
+    /// @param min minimum range, inclusive
+    /// @param max maximum range, inclusive
+    /// @return clamped value
+    inline u16 clampui( u16 value, u16 min, u16 max ) {
+        const u16 t = value < min ? min : value;
+        return t > max ? max : t;
+    }
+    /// @brief Clamp an unsigned int between min and max values
+    /// @param value value to clamp
+    /// @param min minimum range, inclusive
+    /// @param max maximum range, inclusive
+    /// @return clamped value
+    inline u32 clampui( u32 value, u32 min, u32 max ) {
+        const u32 t = value < min ? min : value;
+        return t > max ? max : t;
+    }
+    /// @brief Clamp an unsigned int between min and max values
+    /// @param value value to clamp
+    /// @param min minimum range, inclusive
+    /// @param max maximum range, inclusive
+    /// @return clamped value
+    inline u64 clampui( u64 value, u64 min, u64 max ) {
+        const u64 t = value < min ? min : value;
+        return t > max ? max : t;
+    }
+    /// @brief Clamp a float between min and max values
+    /// @param value value to clamp
+    /// @param min minimum range, inclusive
+    /// @param max maximum range, inclusive
+    /// @return clamped value
+    inline f32 clampf( f32 value, f32 min, f32 max ) {
+        const f32 t = value < min ? min : value;
+        return t > max ? max : t;
+    }
+    /// @brief Clamp a double between min and max values
+    /// @param value value to clamp
+    /// @param min minimum range, inclusive
+    /// @param max maximum range, inclusive
+    /// @return clamped value
+    inline f64 clampd( f64 value, f64 min, f64 max ) {
+        const f64 t = value < min ? min : value;
         return t > max ? max : t;
     }
     /// @brief Linear interpolation
@@ -55,8 +141,7 @@ namespace smath {
     /// @param b maximum value
     /// @param t fraction
     /// @return blend between a and b, based on fraction t
-    template<class T>
-    inline constexpr T lerp( const T& a, const T& b, const f32& t ) {
+    inline f32 lerp( const f32& a, const f32& b, const f32& t ) {
         return ( 1.0f - t ) * a + b * t;
     }
     /// @brief Linear interpolation
@@ -64,8 +149,7 @@ namespace smath {
     /// @param b maximum value
     /// @param t fraction
     /// @return blend between a and b, based on fraction t
-    template<class T>
-    inline constexpr T lerp( const T& a, const T& b, const f64& t ) {
+    inline f64 lerp( const f64& a, const f64& b, const f64& t ) {
         return ( 1.0 - t ) * a + b * t;
     }
     /// @brief Linear interpolation, t is clamped between 0.0-1.0
@@ -73,26 +157,31 @@ namespace smath {
     /// @param b maximum value
     /// @param t 0.0-1.0 fraction
     /// @return blend between a and b, based on fraction t
-    template<class T>
-    inline constexpr T clampedLerp( const T& a, const T& b, const f32& t ) {
-        return lerp( a, b, clamp( t, 0.0f, 1.0f ) );
+    inline f32 clampedLerp( const f32& a, const f32& b, const f32& t ) {
+        return lerp( a, b, clampf( t, 0.0f, 1.0f ) );
     }
     /// @brief Linear interpolation, t is clamped between 0.0-1.0
     /// @param a minimum value
     /// @param b maximum value
     /// @param t 0.0-1.0 fraction
     /// @return blend between a and b, based on fraction t
-    template<class T>
-    inline constexpr T clampedLerp( const T& a, const T& b, const f64& t ) {
-        return lerp( a, b, clamp( t, 0.0, 1.0 ) );
+    inline f64 clampedLerp( const f64& a, const f64& b, const f64& t ) {
+        return lerp( a, b, clampd( t, 0.0, 1.0 ) );
     }
     /// @brief Inverse linear interpolation
     /// @param a minimum
     /// @param b maximum
     /// @param v value between
     /// @return fraction that value occupies between a and b
-    template<class T>
-    inline constexpr T invLerp( const T& a, const T& b, const T& v ) {
+    inline f32 invLerp( const f32& a, const f32& b, const f32& v ) {
+        return ( v - a ) / ( b - a );
+    }
+    /// @brief Inverse linear interpolation
+    /// @param a minimum
+    /// @param b maximum
+    /// @param v value between
+    /// @return fraction that value occupies between a and b
+    inline f64 invLerp( const f64& a, const f64& b, const f64& v ) {
         return ( v - a ) / ( b - a );
     }
     /// @brief Remap value from input range to output range
@@ -102,15 +191,25 @@ namespace smath {
     /// @param omax output range maximum
     /// @param v value to remap
     /// @return remapped value
-    template<class T>
-    inline constexpr T remap( const T& imin, const T& imax, const T& omin, const T& omax, const T& v ) {
-        const T t = invLerp( imin, imax, v );
+    inline f32 remap( const f32& imin, const f32& imax, const f32& omin, const f32& omax, const f32& v ) {
+        const f32 t = invLerp( imin, imax, v );
+        return lerp( omin, omax, t );
+    }
+    /// @brief Remap value from input range to output range
+    /// @param imin input range minimum
+    /// @param imax input range maximum
+    /// @param omin output range minimum
+    /// @param omax output range maximum
+    /// @param v value to remap
+    /// @return remapped value
+    inline f64 remap( const f64& imin, const f64& imax, const f64& omin, const f64& omax, const f64& v ) {
+        const f64 t = invLerp( imin, imax, v );
         return lerp( omin, omax, t );
     }
     /// @brief Normalize value to range between -1.0-1.0
     /// @param value value to normalize
     /// @return float between -1.0-1.0
-    inline f32 normalizeInt( i8 value ) {
+    inline f32 normalizei( i8 value ) {
         if( value > 0 ) {
             return (f32)value / (f32)I8::MAX;
         } else {
@@ -120,7 +219,7 @@ namespace smath {
     /// @brief Normalize value to range between -1.0-1.0
     /// @param value value to normalize
     /// @return float between -1.0-1.0
-    inline f32 normalizeInt( i16 value ) {
+    inline f32 normalizei( i16 value ) {
         if( value > 0 ) {
             return (f32)value / (f32)I16::MAX;
         } else {
@@ -130,7 +229,7 @@ namespace smath {
     /// @brief Normalize value to range between -1.0-1.0
     /// @param value value to normalize
     /// @return float between -1.0-1.0
-    inline f32 normalizeInt( i32 value ) {
+    inline f32 normalizei( i32 value ) {
         if( value > 0 ) {
             return (f32)value / (f32)I32::MAX;
         } else {
@@ -140,7 +239,7 @@ namespace smath {
     /// @brief Normalize value to range between -1.0-1.0
     /// @param value value to normalize
     /// @return float between -1.0-1.0
-    inline f32 normalizeInt( i64 value ) {
+    inline f32 normalizei( i64 value ) {
         if( value > 0 ) {
             return (f32)value / (f32)I64::MAX;
         } else {
@@ -150,26 +249,26 @@ namespace smath {
     /// @brief Normalize value to range between 0.0-1.0
     /// @param value value to normalize
     /// @return float between 0.0-1.0
-    inline f32 normalizeUint( u8 value ) { return (f32)value / (f32)U8::MAX; }
+    inline f32 normalizeui( u8 value ) { return (f32)value / (f32)U8::MAX; }
     /// @brief Normalize value to range between 0.0-1.0
     /// @param value value to normalize
     /// @return float between 0.0-1.0
-    inline f32 normalizeUint( u16 value ) { return (f32)value / (f32)U16::MAX; }
+    inline f32 normalizeui( u16 value ) { return (f32)value / (f32)U16::MAX; }
     /// @brief Normalize value to range between 0.0-1.0
     /// @param value value to normalize
     /// @return float between 0.0-1.0
-    inline f32 normalizeUint( u32 value ) { return (f32)value / (f32)U32::MAX; }
+    inline f32 normalizeui( u32 value ) { return (f32)value / (f32)U32::MAX; }
     /// @brief Normalize value to range between 0.0-1.0
     /// @param value value to normalize
     /// @return float between 0.0-1.0
-    inline f32 normalizeUint( u64 value ) { return (f32)value / (f32)U64::MAX; }
+    inline f32 normalizeui( u64 value ) { return (f32)value / (f32)U64::MAX; }
 
     /// @brief Floating-point absolute value 
     inline f32 absf( const f32& value ) {
         return value * ( ( value > 0.0f ) - ( value < 0.0f ) );
     }
     /// @brief Double Floating-point absolute value 
-    inline f64 abs( const f64& value ) {
+    inline f64 absd( const f64& value ) {
         return value * ( ( value > 0.0 ) - ( value < 0.0 ) );
     }
     /// @brief Integer absolute value 

@@ -8,11 +8,8 @@
 #include "core/app.hpp"
 #include "platform/renderer.hpp"
 #include "util.hpp"
+#include "platform/io.hpp"
 
-// IMPORTANT(alicia): TEMPP!!!!!!!
-#include <math.h>
-
-HMODULE OPENGL_MODULE;
 HDC DEVICE_CONTEXT;
 void WinSwapBuffers() {
     SwapBuffers( DEVICE_CONTEXT );
@@ -43,7 +40,6 @@ i32 APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE, PSTR, i32 ) {
         windowHeight,
         &app
     );
-
     if( !window ) {
         return ERROR_RETURN_CODE;
     }
@@ -57,21 +53,20 @@ i32 APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE, PSTR, i32 ) {
     HGLRC openGLContext;
 
     // TODO(alicia): check settings.ini for backend to use
-    OPENGL_MODULE = LoadLibrary( L"opengl32.dll" );
-    if(!LoadWGLFunctions( OPENGL_MODULE )) {
+    HMODULE openglModule = LoadLibrary( L"opengl32.dll" );
+    if(!LoadWGLFunctions( openglModule )) {
         return ERROR_RETURN_CODE;
     }
     DEVICE_CONTEXT = deviceContext;
     openGLContext  = WinCreateOpenGLContext( DEVICE_CONTEXT );
-    if( !Platform::CreateOpenGLAPI( &app.renderer.api, WinOpenGLLoadProc ) ) {
+    if( !Platform::CreateOpenGLAPI( &app.rendererAPI, WinOpenGLLoadProc ) ) {
         LOG_ERROR("Windows x64 > Failed to create OpenGL API!");
         return ERROR_RETURN_CODE;
     }
-    app.renderer.api.SwapBuffers = WinSwapBuffers;
-    app.renderer.api.Initialize();
-    FreeModule( OPENGL_MODULE );
+    app.rendererAPI.SwapBuffers = WinSwapBuffers;
+    FreeModule( openglModule );
 
-    app.isRunning = true;
+    Core::OnInit( &app );
     u64 startTime = WinGetTime();
     while( app.isRunning ) {
         f32 elapsedTime = (f32)(WinGetTime() - startTime) / (f32)perfFrequency;
@@ -301,7 +296,11 @@ HGLRC WinCreateOpenGLContext( HDC deviceContext ) {
 void* WinOpenGLLoadProc( const char* functionName ) {
     void* fn = (void*)wglGetProcAddress( functionName );
     if(!fn) {
-        fn = (void*)GetProcAddress( OPENGL_MODULE, functionName );
+        HMODULE openglModule = GetModuleHandle( L"opengl32.dll" );
+        DEBUG_ASSERT_LOG( openglModule,
+            "Windows x64 | OpenGL LoadProc > OpenGL module was not loaded before loading OpenGL functions!"
+        );
+        fn = (void*)GetProcAddress( openglModule, functionName );
 #if DEBUG
         if(!fn) {
             LOG_WARN( "Windows x64 | OpenGL LoadProc > Failed to load function \"%s\"!", functionName );
@@ -312,7 +311,7 @@ void* WinOpenGLLoadProc( const char* functionName ) {
 }
 
 HANDLE HEAP_HANDLE;
-void* WinAlloc( usize size ) {
+void* Platform::Alloc( usize size ) {
     // TODO(alicia): maybe don't use a global here? don't really know how else I would do this tbh
     if(!HEAP_HANDLE) {
         HEAP_HANDLE = GetProcessHeap();
@@ -326,10 +325,36 @@ void* WinAlloc( usize size ) {
     return result;
 }
 
-void WinFree( void* mem ) {
+void Platform::Free( void* mem ) {
     DEBUG_ASSERT_LOG( HEAP_HANDLE, "Handle to the heap is null!" );
     WINBOOL result = HeapFree( HEAP_HANDLE, 0, mem );
     DEBUG_ASSERT_LOG( result != 0, "Heap Free failed here!" );
+}
+
+void Platform::AppendToWindowTitle( const char* append, usize appendLen ) {
+    HWND window = GetActiveWindow();
+    if(!window) {
+        LOG_ERROR("Windows x64 | AppendToWindowTitle > Failed to get window handle!");
+        return;
+    }
+
+    wchar_t appendW[appendLen];
+    strTowstr( append, appendW, appendLen );
+
+    const usize MAX_WINDOW_TITLE_BUFFER = 512;
+    wchar_t windowTitle[MAX_WINDOW_TITLE_BUFFER];
+    GetWindowText( window, windowTitle, MAX_WINDOW_TITLE_BUFFER );
+    usize windowTitleLen = strLenW( windowTitle );
+
+    usize newTitleLen = appendLen + windowTitleLen;
+    wchar_t newTitle[newTitleLen];
+    strConcatW(
+        windowTitleLen, windowTitle,
+        appendLen, appendW,
+        newTitleLen, newTitle
+    );
+    SetWindowText( window, newTitle );
+    CloseHandle( window );
 }
 
 u64 WinGetTime() {

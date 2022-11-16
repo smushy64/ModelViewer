@@ -1,15 +1,92 @@
 ## TODO
 
 ### Refactor 2
-- [ ] Win64 layer
-  - [ ] Window Creation
-  - [ ] OpenGL Context Creation
+- [x] Win64 layer
+  - [x] Window Creation
+  - [x] OpenGL Context Creation
 - [ ] OpenGL layer
-  - [ ] Clear
-  - [ ] Swap
-  - [ ] SetClearColor
-  - [ ] SetViewport
-  - [ ] CreateShader
+  - [x] Logging
+    - [x] Debug Message Callback
+    - [x] Extensions
+    - [x] Version
+    - [x] Graphics card
+    - [x] Shading Language version
+  - [x] Clear
+  - [x] Swap
+  - [x] SetClearColor
+  - [x] SetViewport
+  - [x] Shaders
+  - [ ] Vertex Arrays
+  - [ ] Vertex Buffers
+  - [ ] Index Buffers
+  - [ ] Uniform Buffers
+  - [x] Texture2D
+- [x] Math library
+  - [x] vec2
+    - [x] magnitude
+    - [x] sqrMagnitude
+    - [x] normal
+    - [x] normalize
+    - [x] angle
+    - [x] clamp
+    - [x] dot
+    - [x] scale
+    - [x] cmp
+    - [x] operator- (negate)
+    - [x] operator==
+    - [x] operator!=2
+    - [x] operator+
+    - [x] operator- (subtract)
+    - [x] operator* f32
+    - [x] operator/ f32
+  - [x] ivec2
+    - [x] mag
+    - [x] sqrmag
+    - [x] clamp min max
+    - [x] scale
+    - [x] cmp
+    - [x] operator- (negate)
+    - [x] operator==
+    - [x] operator!=
+    - [x] operator+
+    - [x] operator- (subtract)
+    - [x] operator* i32
+    - [x] operator/ i32
+  - [x] vec3
+    - [x] magnitude
+    - [x] sqrMagnitude
+    - [x] normal
+    - [x] normalize
+    - [x] angle
+    - [x] reflect
+    - [x] scale
+    - [x] dot
+    - [x] cross
+    - [x] clamp
+    - [x] cmp
+    - [x] operator- (negate)
+    - [x] operator==
+    - [x] operator!=
+    - [x] operator+
+    - [x] operator- (subtract)
+    - [x] operator* f32
+    - [x] operator/ f32
+  - [x] vec4
+    - [x] magnitude
+    - [x] sqrMagnitude
+    - [x] normal
+    - [x] normalize
+    - [x] cmp
+    - [x] operator- (negate)
+    - [x] operator==
+    - [x] operator!=
+    - [x] operator+
+    - [x] operator- (subtract)
+    - [x] operator* f32
+    - [x] operator/ f32
+  - [x] mat3
+  - [x] mat4
+  - [x] quat
 - [ ] Text Rendering
   - [ ] Load font
   - [ ] Load font atlas on GPU

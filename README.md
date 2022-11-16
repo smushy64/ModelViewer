@@ -9,7 +9,6 @@ Nearly all of the code is original with the exception of
   - image
 - [tinyobjloader](https://github.com/tinyobjloader/tinyobjloader)
 - [glad](https://github.com/Dav1dde/glad)
-- [glm](https://github.com/g-truc/glm)
 
 This project is written such that when I learn other rendering APIs I can come back to it and implement those APIs
 

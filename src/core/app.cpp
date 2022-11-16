@@ -6,12 +6,18 @@
 #include "app.hpp"
 
 void Render( Core::AppContext* app ) {
-    app->renderer.api.ClearBuffer();
-    app->renderer.api.SwapBuffers();
+    app->rendererAPI.ClearBuffer();
+    app->rendererAPI.SwapBuffers();
 }
 
 void Core::OnUpdate( AppContext* app ) {
     Render(app);
+}
+
+void Core::OnInit( AppContext* app ) {
+    app->isRunning = true;
+    app->rendererAPI.Initialize();
+    app->rendererAPI.SetClearColor( 1.0f, 0.5f, 0.5f, 1.0f );
 }
 
 Core::AppContext Core::CreateContext() {
@@ -23,6 +29,6 @@ void Core::OnClose( AppContext* app ) {
 }
 
 void Core::OnResolutionUpdate( AppContext* app, i32 width, i32 height ) {
-    app->renderer.api.SetViewport( width, height );
+    app->rendererAPI.SetViewport( width, height );
     Render( app );
 }

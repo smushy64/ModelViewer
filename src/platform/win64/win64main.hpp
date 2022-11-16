@@ -18,13 +18,6 @@ namespace Core {
 #pragma GCC diagnostic ignored "-Wcast-function-type"
 #endif
 
-/// @brief Allocate memory in the heap
-/// @param size amount to alloc
-/// @return Pointer to memory
-void* WinAlloc( usize size );
-/// @brief Free memory in the heap
-/// @param mem pointer to memory
-void WinFree( void* mem );
 /// @brief Format windows error
 /// @param buffer buffer to store error into
 /// @param bufferSize size of the buffer

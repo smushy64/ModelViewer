@@ -13,10 +13,11 @@ namespace Core {
 struct AppContext {
     bool isRunning;
     Time time;
-    Platform::Renderer renderer;
+    Platform::RendererAPI rendererAPI;
 };
 
 AppContext CreateContext();
+void OnInit( AppContext* app );
 void OnClose( AppContext* app );
 void OnUpdate( AppContext* app );
 void OnResolutionUpdate( AppContext* app, i32 width, i32 height );

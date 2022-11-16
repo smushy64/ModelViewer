@@ -10,11 +10,35 @@
 
 namespace smath {
 
+    f32 absf( const f32& value );
+
     /// @brief Floating-point square root
     inline f32 sqrtf( const f32& value ) {
         __m128 temp = _mm_set_ss(value);
         temp = _mm_sqrt_ss( temp );
         return _mm_cvtss_f32( temp );
+    }
+    // TODO(alicia): SIMD?
+
+    /// @brief Floating-point square 
+    inline f32 sqrf( const f32& value ) {
+        return value * value;
+    }
+    // TODO(alicia): asin!
+
+    /// @brief asin that does not return nan. 
+    /// @return If value >= 1, return pi/2 or -(pi/2) depending on sign,
+    /// otherwise return asinf( value ).
+    inline f32 noNaNAsin( f32 value ) {
+        if( absf( value ) >= 1.0f ) {
+            if( value > 0.0f ) {
+                return F32::PI / 2.0f;
+            } else {
+                return -(F32::PI / 2.0f);
+            }
+        } else {
+            return asinf( value );
+        }
     }
     /// @brief Clamp a value between min and max values
     /// @param value value to clamp
@@ -139,7 +163,32 @@ namespace smath {
     /// @param value value to normalize
     /// @return float between 0.0-1.0
     inline f32 normalizeUint( u64 value ) { return (f32)value / (f32)U64::MAX; }
-    
+
+    /// @brief Floating-point absolute value 
+    inline f32 absf( const f32& value ) {
+        return value * ( ( value > 0.0f ) - ( value < 0.0f ) );
+    }
+    /// @brief Double Floating-point absolute value 
+    inline f64 abs( const f64& value ) {
+        return value * ( ( value > 0.0 ) - ( value < 0.0 ) );
+    }
+    /// @brief Integer absolute value 
+    inline i8 absi( const i8& value ) {
+        return value * ( ( value > 0 ) - ( value < 0 ) );
+    }
+    /// @brief Integer absolute value 
+    inline i16 absi( const i16& value ) {
+        return value * ( ( value > 0 ) - ( value < 0 ) );
+    }
+    /// @brief Integer absolute value 
+    inline i32 absi( const i32& value ) {
+        return value * ( ( value > 0 ) - ( value < 0 ) );
+    }
+    /// @brief Integer absolute value 
+    inline i64 absi( const i64& value ) {
+        return value * ( ( value > 0 ) - ( value < 0 ) );
+    }
+
 } // namespace smath
 
 

@@ -7,6 +7,7 @@
 #include "pch.hpp"
 #include "platform/renderer.hpp"
 #include "platform/io.hpp"
+#include "font.hpp"
 
 namespace Core {
 
@@ -37,12 +38,19 @@ struct Input {
     i32 mouseWheel;
 };
 
+struct RenderContext {
+    Platform::Texture2D fontAtlas;
+    Platform::Shader   fontShader;
+};
+
 struct AppContext {
     bool isRunning;
     Time time;
     Platform::RendererAPI rendererAPI;
     Input input;
     smath::ivec2 windowDimensions;
+    Core::FontAtlas defaultFontAtlas;
+    RenderContext renderContext;
 };
 
 AppContext CreateContext();

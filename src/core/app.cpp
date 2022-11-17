@@ -4,12 +4,15 @@
  * File Created: November 14, 2022 
 */
 #include "app.hpp"
+#include "util.hpp"
 using Platform::KeyCode;
 
 void LoadMesh( Core::AppContext* app );
 void LoadAlbedo( Core::AppContext* app );
 void LoadNormal( Core::AppContext* app );
 void LoadSpecular( Core::AppContext* app );
+void InitializeRenderContext( Core::AppContext* app );
+void RenderText( Core::FontAtlas* fontAtlas );
 
 void Render( Core::AppContext* app ) {
     app->rendererAPI.ClearBuffer();
@@ -40,6 +43,32 @@ void Core::OnInit( AppContext* app ) {
     app->isRunning = true;
     app->rendererAPI.Initialize();
     app->rendererAPI.SetClearColor( 1.0f, 0.5f, 0.5f, 1.0f );
+    
+    const char* openSansFilePath = "./resources/open_sans/OpenSans-Regular.ttf";
+    Platform::File openSansFile = {};
+    if(Platform::LoadFile(openSansFilePath, &openSansFile)) {
+        app->defaultFontAtlas = {};
+        if(Core::CreateFontAtlas(
+            &openSansFile,
+            16.0f,
+            512, 512,
+            ' ', '~',
+            &app->defaultFontAtlas
+        )) {
+            LOG_INFO("App > \"%s\" successfully created!", app->defaultFontAtlas.fontName);
+            InitializeRenderContext( app );
+        } else {
+            LOG_ERROR("App > Failed to create font OpenSans!");
+        }
+        Platform::FreeFile( &openSansFile );
+    } else {
+        LOG_ERROR("App > Failed to load OpenSans!");
+    }
+}
+
+void InitializeRenderContext( Core::AppContext* app ) {
+    // TODO(alicia):
+    app->defaultFontAtlas;
 }
 
 Core::AppContext Core::CreateContext() {
@@ -48,6 +77,7 @@ Core::AppContext Core::CreateContext() {
 }
 void Core::OnClose( AppContext* app ) {
     app->isRunning = false;
+    Core::FreeFontAtlas( &app->defaultFontAtlas );
 }
 
 void Core::OnResolutionUpdate( AppContext* app, i32 width, i32 height ) {

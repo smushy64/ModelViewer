@@ -32,7 +32,7 @@ struct File {
 /// @param filePath path to file
 /// @param result file
 /// @return true if successful
-bool LoadFile( char* filePath, File* result );
+bool LoadFile( const char* filePath, File* result );
 
 /// @brief Load file from popup menu
 /// @param result file
@@ -49,6 +49,7 @@ enum class WriteFileType {
     // Create file if does not already exist
     CREATE,
 };
+
 /// @brief Write file to disk
 /// @param filePath path to file
 /// @param buffer buffer to write from
@@ -261,7 +262,7 @@ inline const char* KeyCodeToString( KeyCode key ) {
         case KeyCode::X         : return "X";
         case KeyCode::Y         : return "Y";
         case KeyCode::Z         : return "Z";
-        case KeyCode::KEY_DELETE: return "::";
+        case KeyCode::KEY_DELETE: return "DELETE";
         case KeyCode::CAPSLOCK  : return "CAPSLOCK";
         case KeyCode::F1        : return "F1";
         case KeyCode::F2        : return "F2";
@@ -288,13 +289,13 @@ inline const char* KeyCodeToString( KeyCode key ) {
         case KeyCode::F23       : return "F23";
         case KeyCode::F24       : return "F24";
         case KeyCode::PRINT     : return "PRINT";
-        case KeyCode::SCRLK     : return "SCRLK";
+        case KeyCode::SCRLK     : return "SCROLL_LOCK";
         case KeyCode::PAUSE     : return "PAUSE";
         case KeyCode::INSERT    : return "INSERT";
         case KeyCode::HOME      : return "HOME";
-        case KeyCode::PGUP      : return "PGUP";
+        case KeyCode::PGUP      : return "PAGE_UP";
         case KeyCode::END       : return "END";
-        case KeyCode::PGDWN     : return "PGDWN";
+        case KeyCode::PGDWN     : return "PAGE_DOWN";
         case KeyCode::RIGHT     : return "RIGHT";
         case KeyCode::LEFT      : return "LEFT";
         case KeyCode::DOWN      : return "DOWN";

@@ -557,16 +557,17 @@ bool WinLoadFileFromHandle( HANDLE fileHandle, Platform::File* result ) {
     return true;
 }
 
-bool Platform::LoadFile( char* filePath, File* result ) {
-    result = {};
-    result->filePath = filePath;
-
+bool Platform::LoadFile( const char* filePath, File* result ) {
     usize filePathLen = strLen( filePath );
     if( filePathLen == 0 ) {
         result = {};
         LOG_WARN( "Windows x64 > Attempted to load file from empty path!" );
         return false;
     }
+    result->filePathLen = filePathLen;
+    result->filePath = (char*)Platform::Alloc(result->filePathLen);
+    strCopy( filePath, result->filePathLen, result->filePath );
+
     wchar_t wfilePath[filePathLen];
     strTowstr( filePath, wfilePath, filePathLen );
 
@@ -643,6 +644,7 @@ bool Platform::UserLoadFile( const char* dialogTitle, File* result ) {
 
 void Platform::FreeFile( File* file ) {
     Platform::Free( file->data );
+    Platform::Free( file->filePath );
     file = {};
 }
 
@@ -670,9 +672,9 @@ bool Platform::WriteFile( const char* filePath, void* buffer, usize bufferSize, 
     HANDLE fileHandle = CreateFile(
         wfilePath,
         GENERIC_WRITE,
-        NULL, NULL,
+        0, NULL,
         createDisposition,
-        NULL, NULL
+        0, NULL
     );
     if( fileHandle == INVALID_HANDLE_VALUE ) {
         LOG_WINDOWS_ERROR();
@@ -692,7 +694,7 @@ bool Platform::WriteFile( const char* filePath, void* buffer, usize bufferSize, 
     CloseHandle( fileHandle );
 
     if( bytesWritten != bytesToWrite ) {
-        LOG_ERROR("Windows x64 > Failed to write %i bytes, wrote %i bytes instead?", bytesToWrite, bytesWritten);
+        LOG_ERROR("Windows x64 > Failed to write %li bytes, wrote %li bytes instead?", bytesToWrite, bytesWritten);
         return false;
     }
     

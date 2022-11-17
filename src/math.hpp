@@ -288,6 +288,115 @@ namespace smath {
         return value * ( ( value > 0 ) - ( value < 0 ) );
     }
 
+    /// @brief Truncate i64->i32 and clamp to max/min i32 range
+    inline i32 clampTrunc64to32( i64 value ) {
+        if( value > (i64)I32::MAX ) {
+            return I32::MAX;
+        } else if( value < (i64)I32::MIN ) {
+            return I32::MIN;
+        } else {
+            return (i32)value;
+        }
+    }
+    /// @brief Truncate i64->i16 and clamp to max/min i16 range
+    inline i16 clampTrunc64to16( i64 value ) {
+        if( value > (i64)I16::MAX ) {
+            return I16::MAX;
+        } else if( value < (i64)I16::MIN ) {
+            return I16::MIN;
+        } else {
+            return (i16)value;
+        }
+    }
+    /// @brief Truncate i64->i8 and clamp to max/min i8 range
+    inline i8 clampTrunc64to8( i64 value ) {
+        if( value > (i64)I8::MAX ) {
+            return I8::MAX;
+        } else if( value < (i64)I8::MIN ) {
+            return I8::MIN;
+        } else {
+            return (i8)value;
+        }
+    }
+    /// @brief Truncate u64->u32 and clamp to max u32 range
+    inline u32 clampTrunc64to32( u64 value ) {
+        if( value > (u64)U32::MAX ) {
+            return U32::MAX;
+        } else {
+            return (u32)value;
+        }
+    }
+    /// @brief Truncate u64->u32 and clamp to max u16 range
+    inline u16 clampTrunc64to16( u64 value ) {
+        if( value > (u64)U16::MAX ) {
+            return U16::MAX;
+        } else {
+            return (u16)value;
+        }
+    }
+    /// @brief Truncate u64->u8 and clamp to max u8 range
+    inline u8 clampTrunc64to8( u64 value ) {
+        if( value > (u64)U8::MAX ) {
+            return U8::MAX;
+        } else {
+            return (u8)value;
+        }
+    }
+    /// @brief Truncate i32->i16 and clamp to max/min i16 range
+    inline i16 clampTrunc32to16( i32 value ) {
+        if( value > (i32)I16::MAX ) {
+            return I16::MAX;
+        } else if( value < (i32)I16::MIN ) {
+            return I16::MIN;
+        } else {
+            return (i16)value;
+        }
+    }
+    /// @brief Truncate i32->i8 and clamp to max/min i8 range
+    inline i8 clampTrunc32to8( i32 value ) {
+        if( value > (i32)I8::MAX ) {
+            return I8::MAX;
+        } else if( value < (i32)I8::MIN ) {
+            return I8::MIN;
+        } else {
+            return (i8)value;
+        }
+    }
+    /// @brief Truncate u32->u16 and clamp to max u16 range
+    inline u16 clampTrunc32to16( u32 value ) {
+        if( value > (u32)U16::MAX ) {
+            return U16::MAX;
+        } else {
+            return (u16)value;
+        }
+    }
+    /// @brief Truncate u32->u8 and clamp to max u8 range
+    inline u8 clampTrunc32to8( u32 value ) {
+        if( value > (u32)U8::MAX ) {
+            return U8::MAX;
+        } else {
+            return (u8)value;
+        }
+    }
+    /// @brief Truncate i16->i8 and clamp to max/min i8 range
+    inline i8 clampTrunc16to8( i16 value ) {
+        if( value > (i16)I8::MAX ) {
+            return I8::MAX;
+        } else if( value < (i16)I8::MIN ) {
+            return I8::MIN;
+        } else {
+            return (i8)value;
+        }
+    }
+    /// @brief Truncate u16->u8 and clamp to max u8 range
+    inline u8 clampTrunc16to8( u16 value ) {
+        if( value > (u16)U8::MAX ) {
+            return U8::MAX;
+        } else {
+            return (u8)value;
+        }
+    }
+
 } // namespace smath
 
 

@@ -114,7 +114,7 @@
   - [x] User Load File
   - [x] Write File
 - [ ] Text Rendering
-  - [ ] Load font
+  - [x] Load font
   - [ ] Load font atlas on GPU
   - [ ] Render text
 - [x] expand math templates

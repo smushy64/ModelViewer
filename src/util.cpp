@@ -5,6 +5,7 @@
  */
 #include "util.hpp"
 #include "pch.hpp"
+#include "platform/io.hpp"
 
 void strTowstr( const char* src, wchar_t* dst, usize dstMaxLen ) {
     mbstowcs( &dst[0], src, dstMaxLen );
@@ -33,6 +34,22 @@ usize strLenW( const wchar_t* str ) {
 bool strCmp( const char* strA, const char* strB ) {
     usize strALen = strLen(strA);
     usize strBLen = strLen(strB);
+    if( strALen != strBLen ) {
+        return false;
+    }
+
+    forloop( (isize)strALen ) {
+        char charA = strA[i];
+        char charB = strB[i];
+        if( charA != charB ) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool strCmp( usize strALen, const char* strA, usize strBLen, const char* strB ) {
     if( strALen != strBLen ) {
         return false;
     }
@@ -96,4 +113,88 @@ void strConcatW(
         *dst++ = *srcB++;
     }
     *dst++ = 0;
+}
+
+bool getSubStrPos( usize strLen, const char* str, usize subStrLen, const char* subStr, usize* pos ) {
+    usize counter = 1;
+    while( *str++ ) {
+        if( *str == subStr[0] ) {
+            if( strLen - counter < subStrLen ) {
+                return false;
+            }
+            if(strCmp( subStrLen, str, subStrLen, subStr )) {
+                *pos = counter;
+                return true;
+            }
+        } else {
+            ++counter;
+        }
+    }
+    return false;
+}
+
+void strClearSubStr(
+    usize srcLen, const char* src,
+    usize subStrLen, const char* subStr,
+    usize maxDstLen, char* dst
+) {
+    usize subStrPos = 0;
+    if( !getSubStrPos(
+        srcLen, src,
+        subStrLen, subStr,
+        &subStrPos
+    ) ) {
+        LOG_WARN("Clear Substring > Substring \"%s\" was not found in source string \"%s\"!",
+            subStr, src
+        );
+        return;
+    }
+
+    usize pos = 0;
+    usize charsWritten = 0;
+    do {
+        if( pos < subStrPos || pos >= subStrPos + subStrLen ) {
+            *dst++ = *src;
+            charsWritten++;
+        }
+        pos++;
+        if( charsWritten == maxDstLen ) {
+            break;
+        }
+    } while( *src++ );
+}
+
+void strInit( usize len, char* buffer ) {
+    ucycles( len ) {
+        buffer[i] = ' ';
+    }
+    buffer[len] = '\0';
+}
+
+bool isCharPresent( const char* str, char toFind ) {
+    do {
+        if( *str == toFind ) {
+            return true;
+        }
+    } while( *str++ );
+    return false;
+}
+
+bool findChar( const char* str, char toFind, usize* pos ) {
+    usize position = 0;
+    do {
+        if( *str == toFind ) {
+            *pos = position;
+            return true;
+        }
+        position++;
+    } while( *str++ );
+    return false;
+}
+
+void strCopy( const char* src, usize maxDstLen, char* dst ) {
+    ucycles( maxDstLen ) {
+        dst[i] = src[i];
+    }
+    dst[maxDstLen] = '\0';
 }

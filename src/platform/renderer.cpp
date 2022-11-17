@@ -106,8 +106,3 @@ const char* StructureToString( Structure structure ) {
         default: return "UNKNOWN";
     }
 }
-
-const char* Texture2D::toString() {
-    DEBUG_UNIMPLEMENTED("Texture2D::toString not yet implemented!");
-    return "";
-}

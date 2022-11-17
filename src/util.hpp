@@ -60,3 +60,34 @@ void strConcatW(
     usize srcBSize, const wchar_t* srcB,
     usize dstSize, wchar_t* dst
 );
+
+/// @brief get position of substr in str
+/// @param srcLen size of src str
+/// @param src source str
+/// @param subStrLen size of substr
+/// @param subStr 
+/// @param pos [out] position of substr
+/// @return true if substr is found
+bool getSubStrPos( usize strLen, const char* str, usize subStrLen, const char* subStr, usize* pos );
+
+/// @brief clear substr from src str
+/// @param srcLen size of src str
+/// @param src source str
+/// @param subStrLen size of substr
+/// @param subStr sub str
+/// @param maxDstLen maximum amount of characters in dst
+/// @param dst [out] destination string buffer
+void strClearSubStr(usize srcLen, const char* src,
+    usize subStrLen, const char* subStr,
+    usize maxDstLen, char* dst
+);
+
+/// @brief initialize a char buffer with spaces and terminate with null
+void strInit( usize len, char* buffer );
+
+bool isCharPresent( const char* str, char toFind );
+
+bool findChar( const char* str, char toFind, usize* pos );
+
+/// @brief copy null-terminated string to destination
+void strCopy( const char* src, usize maxDstLen, char* dst );

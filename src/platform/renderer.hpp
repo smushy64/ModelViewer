@@ -71,8 +71,6 @@ struct Texture2D {
     TextureMinFilter minFilter;
     u8* data;
     u32 id;
-
-    const char* toString();
 };
 
 enum class RendererBackend {

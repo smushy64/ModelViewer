@@ -14,10 +14,17 @@
 - Other model formats
 
 ### Refactor 2
+- [x] Review every call to "strLen"
+  - It reports the string length up to but not including the null-terminator
+  - Also rewrite strcopy so that it respects the bounds of the str ( non-inclusive maxDstLen )
+  - Ended up rewriting all string-related functions in util.hpp, turns out char buffers are hard to deal with.
+    Who woulda thunk?
+- [x] Delete copy constructor for Platform::VertexBufferLayout, make it move only
+  - Got rid of construct/destructor instead, too much of a hassle so i made vertex buffer layout a pod
 - [x] Win64 layer
   - [x] Window Creation
   - [x] OpenGL Context Creation
-- [ ] OpenGL layer
+- [x] OpenGL layer
   - [x] Logging
     - [x] Debug Message Callback
     - [x] Extensions
@@ -29,10 +36,10 @@
   - [x] SetClearColor
   - [x] SetViewport
   - [x] Shaders
-  - [ ] Vertex Arrays
-  - [ ] Vertex Buffers
-  - [ ] Index Buffers
-  - [ ] Uniform Buffers
+  - [x] Vertex Arrays
+  - [x] Vertex Buffers
+  - [x] Index Buffers
+  - [x] Uniform Buffers
   - [x] Texture2D
 - [x] Math library
   - [x] vec2

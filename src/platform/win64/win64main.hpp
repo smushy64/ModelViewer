@@ -37,7 +37,7 @@ u64 WinGetTime();
     char buffer[512];\
     DWORD errorCode = 0;\
     WinFormatError( buffer, 512, &errorCode );\
-    LOG_ERROR("Windows x64(%li) > %s", errorCode, buffer );\
+    LOG_ERROR("Windows x64(#%lX) > %s", errorCode, buffer );\
 } while(0)
 #define SUCCESS_RETURN_CODE 0
 #define ERROR_RETURN_CODE -1

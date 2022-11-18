@@ -26,7 +26,7 @@ void ProcessFilePathToFontName( usize filePathLen, const char* filePath, usize m
     usize outPos = 0;
     usize lastSlashPos = 0;
     usize count = 0;
-    while( findChar( &filePath[lastSlashPos+count], '/', &outPos ) ) {
+    while( getCharPosition( &filePath[lastSlashPos+count], '/', &outPos ) ) {
         lastSlashPos += outPos;
         count++;
     }
@@ -40,11 +40,7 @@ void ProcessFilePathToFontName( usize filePathLen, const char* filePath, usize m
         }
         fontName[i] = filePath[i + lastSlashPos];
     }
-    if( fileNameLastPathLen > maxFontNameLen ) {
-        fontName[maxFontNameLen-1] = '\0';
-    } else {
-        fontName[fileNameLastPathLen] = '\0';
-    }
+    fontName[fileNameLastPathLen - 1] = '\0';
 }
 
 bool Core::CreateFontAtlas(
@@ -76,15 +72,15 @@ bool Core::CreateFontAtlas(
         LOG_ERROR( "Create Font Atlas > Failed to allocate %llu bytes for atlas bitmap!", bitmapSize );
         return false;
     }
-    result->fontNameLen = strLen( result->fontName );
-    result->pointSize = pointSize;
-    
     ProcessFilePathToFontName(
         fontFile->filePathLen,
         fontFile->filePath,
         MAX_FONT_NAME_LEN,
         result->fontName
     );
+    result->fontNameLen = stringLen( result->fontName ) + 1;
+    result->pointSize = pointSize;
+    
 
     stbtt_pack_context packContext;
     if( !stbtt_PackBegin(
@@ -190,16 +186,14 @@ bool Core::CreateFontAtlas(
     return true;
 }
 
-bool Core::FontMap::get( char key, FontMetrics* result ) {
-    result = {};
+Core::FontMetrics* Core::FontMap::get( char key) {
     ucycles( count ) {
         if( map[i].key == key ) {
-            result = &map[i].metrics;
-            return true;
+            return &map[i].metrics;
         }
     }
     LOG_WARN("Font Map > Character \'%c\' not found!", key);
-    return false;
+    return nullptr;
 }
 
 void Core::FreeFontAtlas( FontAtlas* fontAtlas ) {

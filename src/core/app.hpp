@@ -38,9 +38,19 @@ struct Input {
     i32 mouseWheel;
 };
 
+#define RENDERER_2D_MATRICES_BINDING_POINT 0
+
+#define RENDER_CONTEXT_TEXTURE_COUNT 1
+#define RENDER_CONTEXT_SHADER_COUNT 1
+#define RENDER_CONTEXT_UNIFORM_BUFFER_COUNT 1
 struct RenderContext {
-    Platform::Texture2D fontAtlas;
+    Platform::Texture2D fontAtlasTexture;
+
     Platform::Shader   fontShader;
+
+    Platform::UniformBuffer matrices2DBuffer;
+
+    i32 fontShaderUniformColor;
 };
 
 struct AppContext {
@@ -54,7 +64,7 @@ struct AppContext {
 };
 
 AppContext CreateContext();
-void OnInit( AppContext* app );
+bool OnInit( AppContext* app );
 void OnClose( AppContext* app );
 void OnUpdate( AppContext* app );
 void OnAppActivated( AppContext* app );

@@ -7,15 +7,21 @@
 #include "pch.hpp"
 #include "platform/io.hpp"
 
-void strTowstr( const char* src, wchar_t* dst, usize dstMaxLen ) {
-    mbstowcs( &dst[0], src, dstMaxLen );
+void stringToWstring( const char* src, usize dstSize, wchar_t* dst ) {
+    mbstowcs( &dst[0], src, dstSize );
+}
+void wstringToString( const wchar_t* src, usize dstSize, char* dst ) {
+    wcstombs( &dst[0], src, dstSize );
 }
 
-void wstrTostr( const wchar_t* src, char* dst, usize dstMaxLen ) {
-    wcstombs( &dst[0], src, dstMaxLen );
+usize stringLen( const char* str ) {
+    usize result = 0;
+    while(*str++) {
+        ++result;
+    }
+    return result;
 }
-
-usize strLen( const char* str ) {
+usize stringLen( const wchar_t* str ) {
     usize result = 0;
     while(*str++) {
         ++result;
@@ -23,25 +29,56 @@ usize strLen( const char* str ) {
     return result;
 }
 
-usize strLenW( const wchar_t* str ) {
-    usize result = 0;
-    while(*str++) {
-        ++result;
-    }
-    return result;
-}
-
-bool strCmp( const char* strA, const char* strB ) {
-    usize strALen = strLen(strA);
-    usize strBLen = strLen(strB);
+bool stringCmp( usize strALen, const char* strA, usize strBLen, const char* strB ) {
     if( strALen != strBLen ) {
         return false;
     }
 
-    forloop( (isize)strALen ) {
-        char charA = strA[i];
-        char charB = strB[i];
-        if( charA != charB ) {
+    ucycles( strALen ) {
+        if( strA[i] != strB[i] ) {
+            return false;
+        }
+    }
+
+    return true;
+}
+bool stringCmp( const char* strA, const char* strB ) {
+    usize strALen = stringLen(strA) + 1;
+    usize strBLen = stringLen(strB) + 1;
+    if( strALen != strBLen ) {
+        return false;
+    }
+
+    ucycles( strALen ) {
+        if( strA[i] != strB[i] ) {
+            return false;
+        }
+    }
+
+    return true;
+}
+bool stringCmp( usize strALen, const wchar_t* strA, usize strBLen, const wchar_t* strB ) {
+    if( strALen != strBLen ) {
+        return false;
+    }
+
+    ucycles( strALen ) {
+        if( strA[i] != strB[i] ) {
+            return false;
+        }
+    }
+
+    return true;
+}
+bool stringCmp( const wchar_t* strA, const wchar_t* strB ) {
+    usize strALen = stringLen(strA) + 1;
+    usize strBLen = stringLen(strB) + 1;
+    if( strALen != strBLen ) {
+        return false;
+    }
+
+    ucycles( strALen ) {
+        if( strA[i] != strB[i] ) {
             return false;
         }
     }
@@ -49,152 +86,297 @@ bool strCmp( const char* strA, const char* strB ) {
     return true;
 }
 
-bool strCmp( usize strALen, const char* strA, usize strBLen, const char* strB ) {
-    if( strALen != strBLen ) {
-        return false;
-    }
-
-    forloop( (isize)strALen ) {
-        char charA = strA[i];
-        char charB = strB[i];
-        if( charA != charB ) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
-bool strCmpW( const wchar_t* strA, const wchar_t* strB ) {
-    usize strALen = strLenW(strA);
-    usize strBLen = strLenW(strB);
-    if( strALen != strBLen ) {
-        return false;
-    }
-
-    forloop( (isize)strALen ) {
-        wchar_t charA = strA[i];
-        wchar_t charB = strB[i];
-        if( charA != charB ) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
-void strConcat(
-    usize srcASize, const char* srcA,
-    usize srcBSize, const char* srcB,
-    usize dstSize, char* dst
+void stringConcat(
+    usize srcALen, const char* srcA,
+    usize srcBLen, const char* srcB,
+    usize dstLen, char* dst
 ) {
-    // TODO(alicia): dst bounds checking!!!
-    UNUSED_PARAM(dstSize);
-    forloop( (isize)srcASize ) {
-        *dst++ = *srcA++;
-    }
-    forloop( (isize)srcBSize ) {
-        *dst++ = *srcB++;
-    }
-    *dst++ = 0;
-}
+    usize nullPosition = dstLen - 1;
 
-void strConcatW(
-    usize srcASize, const wchar_t* srcA,
-    usize srcBSize, const wchar_t* srcB,
-    usize dstSize, wchar_t* dst
+    for( usize i = 0; i < srcALen; ++i ) {
+        if( i >= dstLen ) {
+            dst[nullPosition] = '\0';
+            return;
+        }
+        dst[i] = srcA[i];
+    }
+    for( usize i = srcALen; i < srcBLen; ++i ) {
+        if( i >= dstLen ) {
+            dst[nullPosition] = '\0';
+            return;
+        }
+        dst[i] = srcB[i - srcALen];
+    }
+    dst[nullPosition] = '\0';
+}
+void stringConcat(
+    const char* srcA,
+    const char* srcB,
+    usize dstLen, char* dst
 ) {
-    // TODO(alicia): dst bounds checking!!!
-    UNUSED_PARAM(dstSize);
-    forloop( (isize)srcASize ) {
-        *dst++ = *srcA++;
+    stringConcat( stringLen( srcA ) + 1, srcA, stringLen( srcB ) + 1, srcB, dstLen, dst );
+}
+void stringConcat(
+    usize srcALen, const wchar_t* srcA,
+    usize srcBLen, const wchar_t* srcB,
+    usize dstLen, wchar_t* dst
+) {
+    usize nullPosition = dstLen - 1;
+
+    for( usize i = 0; i < srcALen; ++i ) {
+        if( i >= dstLen ) {
+            dst[nullPosition] = '\0';
+            return;
+        }
+        dst[i] = srcA[i];
     }
-    forloop( (isize)srcBSize ) {
-        *dst++ = *srcB++;
+    for( usize i = srcALen; i < srcBLen; ++i ) {
+        if( i >= dstLen ) {
+            dst[nullPosition] = '\0';
+            return;
+        }
+        dst[i] = srcB[i - srcALen];
     }
-    *dst++ = 0;
+    dst[nullPosition] = '\0';
+}
+void stringConcat(
+    const wchar_t* srcA,
+    const wchar_t* srcB,
+    usize dstLen, wchar_t* dst
+) {
+    stringConcat( stringLen( srcA ) + 1, srcA, stringLen( srcB ) + 1, srcB, dstLen, dst );
 }
 
-bool getSubStrPos( usize strLen, const char* str, usize subStrLen, const char* subStr, usize* pos ) {
-    usize counter = 1;
-    while( *str++ ) {
-        if( *str == subStr[0] ) {
-            if( strLen - counter < subStrLen ) {
+bool subStringPos(
+    usize srcLen,
+    const char* src,
+    usize subStrLen,
+    const char* subStr,
+    usize* result
+) {
+    ucycles( srcLen ) {
+        if( src[i] == subStr[0] ) {
+            if( srcLen - i < subStrLen ) {
                 return false;
             }
-            if(strCmp( subStrLen, str, subStrLen, subStr )) {
-                *pos = counter;
+
+            if( stringCmp( subStrLen, &src[i], subStrLen, subStr ) ) {
+                *result = i;
                 return true;
             }
-        } else {
-            ++counter;
         }
     }
     return false;
 }
-
-void strClearSubStr(
-    usize srcLen, const char* src,
-    usize subStrLen, const char* subStr,
-    usize maxDstLen, char* dst
+bool subStringPos(
+    const char* src,
+    const char* subStr,
+    usize* result
 ) {
-    usize subStrPos = 0;
-    if( !getSubStrPos(
-        srcLen, src,
-        subStrLen, subStr,
-        &subStrPos
-    ) ) {
-        LOG_WARN("Clear Substring > Substring \"%s\" was not found in source string \"%s\"!",
-            subStr, src
-        );
+    return subStringPos( stringLen( src ) + 1, src, stringLen( subStr ) + 1, subStr, result );
+}
+bool subStringPos(
+    usize srcLen,
+    const wchar_t* src,
+    usize subStrLen,
+    const wchar_t* subStr,
+    usize* result
+) {
+    ucycles( srcLen ) {
+        if( src[i] == subStr[0] ) {
+            if( srcLen - i < subStrLen ) {
+                return false;
+            }
+
+            if( stringCmp( subStrLen, &src[i], subStrLen, subStr ) ) {
+                *result = i;
+                return true;
+            }
+        }
+    }
+    return false;
+}
+bool subStringPos(
+    const wchar_t* src,
+    const wchar_t* subStr,
+    usize* result
+) {
+    return subStringPos( stringLen( src ) + 1, src, stringLen( subStr ) + 1, subStr, result );
+}
+
+void deleteSubString(
+    usize srcLen,
+    const char* src,
+    usize subStrLen,
+    const char* subStr,
+    usize dstLen,
+    char* dst
+) {
+    usize subStringPosition = 0;
+    if( !subStringPos( srcLen, src, subStrLen, subStr, &subStringPosition ) ) {
         return;
     }
 
-    usize pos = 0;
-    usize charsWritten = 0;
-    do {
-        if( pos < subStrPos || pos >= subStrPos + subStrLen ) {
-            *dst++ = *src;
-            charsWritten++;
+    usize nullPosition = dstLen - 1;
+
+    ucycles( srcLen ) {
+        if( i >= nullPosition ) {
+            dst[nullPosition] = '\0';
+            return;
         }
-        pos++;
-        if( charsWritten == maxDstLen ) {
-            break;
+
+        if( i < subStringPosition || i >= subStringPosition + subStrLen ) {
+            dst[i] = src[i];
         }
-    } while( *src++ );
+    }
+
+    dst[nullPosition] = '\0';
+}
+void deleteSubString(
+    const char* src,
+    const char* subStr,
+    usize dstLen,
+    char* dst
+) {
+    deleteSubString(
+        stringLen( src ) + 1,
+        src,
+        stringLen( subStr ) + 1,
+        subStr,
+        dstLen,
+        dst
+    );
+}
+void deleteSubString(
+    usize srcLen,
+    const wchar_t* src,
+    usize subStrLen,
+    const wchar_t* subStr,
+    usize dstLen,
+    wchar_t* dst
+) {
+    usize subStringPosition = 0;
+    if( !subStringPos( srcLen, src, subStrLen, subStr, &subStringPosition ) ) {
+        return;
+    }
+
+    usize nullPosition = dstLen - 1;
+
+    ucycles( srcLen ) {
+        if( i >= nullPosition ) {
+            dst[nullPosition] = '\0';
+            return;
+        }
+
+        if( i < subStringPosition || i >= subStringPosition + subStrLen ) {
+            dst[i] = src[i];
+        }
+    }
+
+    dst[nullPosition] = '\0';
+}
+void deleteSubString(
+    const wchar_t* src,
+    const wchar_t* subStr,
+    usize dstLen,
+    wchar_t* dst
+) {
+    deleteSubString(
+        stringLen( src ) + 1,
+        src,
+        stringLen( subStr ) + 1,
+        subStr,
+        dstLen,
+        dst
+    );
 }
 
-void strInit( usize len, char* buffer ) {
-    ucycles( len ) {
+void initStringBuffer( usize size, char* buffer ) {
+    ucycles( size ) {
         buffer[i] = ' ';
     }
-    buffer[len] = '\0';
+    usize nullPostion = size - 1;
+
+    buffer[nullPostion] = '\0';
+}
+void initStringBuffer( usize size, wchar_t* buffer ) {
+    ucycles( size ) {
+        buffer[i] = ' ';
+    }
+    usize nullPostion = size - 1;
+
+    buffer[nullPostion] = '\0';
 }
 
-bool isCharPresent( const char* str, char toFind ) {
-    do {
-        if( *str == toFind ) {
+bool stringContains( usize strLen, const char* str, char charToFind ) {
+    ucycles( strLen ) {
+        if( str[strLen] == charToFind ) {
             return true;
         }
-    } while( *str++ );
+    }
     return false;
 }
-
-bool findChar( const char* str, char toFind, usize* pos ) {
-    usize position = 0;
-    do {
-        if( *str == toFind ) {
-            *pos = position;
+bool stringContains( const char* str, char charToFind ) {
+    return stringContains( stringLen( str ) + 1, str, charToFind );
+}
+bool stringContains( usize strLen, const wchar_t* str, wchar_t charToFind ) {
+    ucycles( strLen ) {
+        if( str[strLen] == charToFind ) {
             return true;
         }
-        position++;
-    } while( *str++ );
+    }
     return false;
 }
+bool stringContains( const wchar_t* str, wchar_t charToFind ) {
+    return stringContains( stringLen( str ) + 1, str, charToFind );
+}
 
-void strCopy( const char* src, usize maxDstLen, char* dst ) {
-    ucycles( maxDstLen ) {
+bool getCharPosition( usize strLen, const char* str, char charToFind, usize* result ) {
+    ucycles( strLen ) {
+        if( str[i] == charToFind ) {
+            *result = i;
+            return true;
+        }
+    }
+    return false;
+}
+bool getCharPosition( const char* str, char charToFind, usize* result ) {
+    return getCharPosition( stringLen( str ) + 1, str, charToFind, result );
+}
+bool getCharPosition( usize strLen, const wchar_t* str, wchar_t charToFind, usize* result ) {
+    ucycles( strLen ) {
+        if( str[i] == charToFind ) {
+            *result = i;
+            return true;
+        }
+    }
+    return false;
+}
+bool getCharPosition( const wchar_t* str, wchar_t charToFind, usize* result ) {
+    return getCharPosition( stringLen( str ) + 1, str, charToFind, result );
+}
+
+void stringCopy( usize srcLen, const char* src, usize dstSize, char* dst ) {
+    usize charsToCopy = srcLen < dstSize ? srcLen : dstSize;
+    ucycles( charsToCopy ) {
         dst[i] = src[i];
     }
-    dst[maxDstLen] = '\0';
+    usize nullPosition = dstSize - 1;
+
+    dst[nullPosition] = '\0';
+}
+void stringCopy( const char* src, usize dstSize, char* dst ) {
+    stringCopy( stringLen(src) + 1, src, dstSize, dst );
+}
+void stringCopy( usize srcLen, const wchar_t* src, usize dstSize, wchar_t* dst ) {
+    usize charsToCopy = srcLen < dstSize ? srcLen : dstSize;
+    ucycles( charsToCopy ) {
+        dst[i] = src[i];
+    }
+    usize nullPosition = dstSize - 1;
+
+    dst[nullPosition] = '\0';
+}
+void stringCopy( const wchar_t* src, usize dstSize, wchar_t* dst ) {
+    stringCopy( stringLen(src) + 1, src, dstSize, dst );
 }

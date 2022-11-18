@@ -43,6 +43,9 @@
 /// @brief loop between from and to
 #define forrange( from, to ) for( isize i = from; i < to; ++i )
 
+/// @brief loop between from and to
+#define uforrange( from, to ) for( usize i = from; i < to; ++i )
+
 /// @brief loop between from and to in reverse
 #define forrange_rev( from, to ) for( isize i = to; i > from; --i )
 
@@ -57,6 +60,11 @@
 /// @brief loop for given cycles | usize indexer
 /// @param cycles number of cycles
 #define ucycles( cycles ) for( usize i = 0; i < cycles; ++i )
+
+/// @brief loop for given cycles | usize indexer
+/// @param cycles number of cycles
+/// @param indexName name of indexer variable
+#define ucyclesi( cycles, indexName ) for( usize indexName = 0; indexName < cycles; ++indexName )
 
 /// @brief loop for given cycles | isize indexer
 /// @param cycles number of cycles

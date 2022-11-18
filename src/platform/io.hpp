@@ -21,6 +21,55 @@ void* Alloc( usize size );
 /// @param mem pointer to memory
 void Free( void* mem );
 
+// NOTE(alicia): MemCopy isn't really platform specific but it makes sense to put it in the same
+// header as Alloc and Free
+
+/// @brief Copy memory from source to destination
+/// @param size size of source buffer, destination buffer must be greater than or equals to size of source buffer
+/// @param src source buffer
+/// @param dst destination buffer
+inline void MemCopy( usize size, const void* src, void* dst ) {
+    // size_t aligned
+    if( size % sizeof(usize) == 0 ) {
+        usize* srcBytes  = (usize*)src;
+        usize* dstBytes  = (usize*)dst;
+        usize iterations = size / sizeof(usize);
+        ucycles( iterations ) {
+            dstBytes[i] = srcBytes[i];
+        }
+        return;
+    }
+
+    // not-size_t aligned
+    u8* srcBytes = (u8*)src;
+    u8* dstBytes = (u8*)dst;
+    ucycles( size ) {
+        dstBytes[i] = srcBytes[i];
+    }
+}
+
+// TODO(alicia): optimize memcopy range
+
+inline void MemCopyRanges(
+    usize srcRangeBegin, usize srcRangeEnd,
+    void* src,
+    usize dstRangeBegin, usize dstRangeEnd,
+    void* dst
+) {
+    usize srcRangeLen = srcRangeEnd - srcRangeBegin;
+    usize dstRangeLen = dstRangeEnd - dstRangeBegin;
+    DEBUG_ASSERT_LOG( srcRangeLen == dstRangeLen,
+        "MemCopyRanges > srcRangeLen must equal dstRangeLen! src: %llu dst: %llu",
+        srcRangeLen, dstRangeLen
+    );
+
+    u8* srcBytes = (u8*)src + srcRangeBegin;
+    u8* dstBytes = (u8*)dst + dstRangeBegin;
+    ucycles( dstRangeLen ) {
+        dstBytes[i] = srcBytes[i];
+    }
+}
+
 struct File {
     void* data;
     usize size;

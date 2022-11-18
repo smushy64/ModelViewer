@@ -17,7 +17,263 @@ GLenum TextureWrapModeToGLenum( Platform::TextureWrapMode mode );
 GLenum TextureMinFilterToGLenum( Platform::TextureMinFilter filter );
 GLenum TextureMagFilterToGLenum( Platform::TextureMagFilter filter );
 GLenum TextureFormatToGLenum( Platform::TextureFormat format );
-GLenum TypeToGLenum( Platform::Type format );
+GLenum DataTypeToGLenum( Platform::DataType format );
+GLenum BlendFactorToGLenum( Platform::BlendFactor factor );
+GLenum BlendEqToGLenum( Platform::BlendEq eq );
+
+void Platform::OpenGLDeleteBuffers( usize bufferCount, u32* bufferIDs ) {
+    glDeleteBuffers( bufferCount, bufferIDs );
+}
+
+Platform::IndexBuffer Platform::OpenGLCreateIndexBuffer( usize bufferSize, void* indices, DataType indexDataType ) {
+    DEBUG_ASSERT_LOG(
+        indexDataType == DataType::UNSIGNED_BYTE ||
+        indexDataType == DataType::UNSIGNED_SHORT ||
+        indexDataType == DataType::UNSIGNED_INT,
+        "Index Data type can only be unsigned byte, short or int! Data type given: %s",
+        Platform::DataTypeToString( indexDataType )
+    );
+
+    IndexBuffer result = {};
+    result.dataType   = indexDataType;
+    result.bufferSize = bufferSize;
+    result.indexCount = result.bufferSize / Platform::DataTypeSize( result.dataType );
+    result.indices    = Platform::Alloc( result.bufferSize );
+
+    Platform::MemCopy( result.bufferSize, indices, result.indices );
+
+    glGenBuffers( 1, &result.id );
+    glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, result.id );
+    glBufferData(
+        GL_ELEMENT_ARRAY_BUFFER,
+        (GLsizeiptr)bufferSize,
+        result.indices,
+        GL_STATIC_DRAW // TODO(alicia): usage?
+    );
+    
+    return result;
+}
+void Platform::OpenGLUseIndexBuffer( IndexBuffer* buffer ) {
+    glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, buffer->id );
+}
+void Platform::OpenGLDeleteIndexBuffers( usize count, IndexBuffer* buffers ) {
+    u32 indexBufferIDs[count];
+    ucycles( count ) {
+        indexBufferIDs[i] = buffers[i].id;
+        if( buffers[i].indices ) {
+            Platform::Free( buffers[i].indices );
+        }
+    }
+    glDeleteBuffers( count, indexBufferIDs );
+}
+
+Platform::VertexBuffer Platform::OpenGLCreateVertexBuffer( usize bufferSize, void* vertices, VertexBufferLayout layout ) {
+    VertexBuffer result = {};
+    result.layout       = layout;
+    result.bufferSize   = bufferSize;
+    result.vertices     = Platform::Alloc( result.bufferSize );
+
+    Platform::MemCopy( result.bufferSize, vertices, result.vertices );
+
+    glGenBuffers( 1, &result.id );
+    glBindBuffer( GL_ARRAY_BUFFER, result.id );
+    glBufferData(
+        GL_ARRAY_BUFFER,
+        (GLsizeiptr)result.bufferSize,
+        vertices,
+        GL_STATIC_DRAW
+    );
+
+    ucycles( result.layout.elementCount ) {
+        glEnableVertexAttribArray(i);
+        glVertexAttribPointer(
+            i,
+            Platform::DataStructureCount( result.layout.elements[i].structure ),
+            DataTypeToGLenum( result.layout.elements[i].dataType ),
+            result.layout.elements[i].normalized ? GL_TRUE : GL_FALSE,
+            result.layout.stride,
+            (void*)result.layout.elementOffsets[i]
+        );
+    }
+
+    return result;
+}
+void Platform::OpenGLUseVertexBuffer( VertexBuffer* buffer ) {
+    glBindBuffer( GL_ARRAY_BUFFER, buffer->id );
+}
+void Platform::OpenGLDeleteVertexBuffers( usize count, VertexBuffer* buffers ) {
+    u32 vertexBufferIDs[count];
+    ucycles( count ) {
+        vertexBufferIDs[i] = buffers[i].id;
+        if( buffers[i].vertices ) {
+            Platform::Free( buffers[i].vertices );
+        }
+        Platform::FreeVertexBufferLayout( &buffers[i].layout );
+    }
+    glDeleteBuffers( count, vertexBufferIDs );
+}
+
+Platform::VertexArray Platform::OpenGLCreateVertexArray() {
+    VertexArray result = {};
+    result.vertexBufferCount = 0;
+    glGenVertexArrays( 1, &result.id );
+    glBindVertexArray( result.id );
+    return result;
+}
+void Platform::OpenGLDeleteVertexArrays( usize count, VertexArray* vertexArrays ) {
+    // collect buffer ids from vertex arrays and free memory
+    // collect vertex array ids
+
+    u32 vertexArrayIDs[count];
+    usize bufferCount = 0;
+    ucycles( count ) {
+        vertexArrayIDs[i] = vertexArrays[i].id;
+        bufferCount += vertexArrays[i].vertexBufferCount;
+        if( vertexArrays[i].indexBuffer ) {
+            bufferCount++;
+        }
+    }
+
+    u32 bufferIDs[bufferCount];
+    usize bufferIndex = 0;
+    ucycles( count ) {
+        if( vertexArrays[i].buffers ) {
+            ucyclesi( vertexArrays[i].vertexBufferCount, j ) {
+                bufferIDs[bufferIndex] = vertexArrays[i].buffers[j].id;
+                Platform::Free( vertexArrays[i].buffers[j].vertices );
+                Platform::FreeVertexBufferLayout( &vertexArrays[i].buffers[j].layout );
+                bufferIndex++;
+            }
+        }
+        if( vertexArrays[i].indexBuffer ) {
+            bufferIDs[bufferIndex] = vertexArrays[i].indexBuffer->id;
+            Platform::Free( vertexArrays[i].indexBuffer->indices );
+            bufferIndex++;
+        }
+    }
+    glDeleteBuffers( bufferCount, bufferIDs );
+    glDeleteVertexArrays( count, vertexArrayIDs );
+}
+void Platform::OpenGLUseVertexArray( VertexArray* vertexArray ) {
+    glBindVertexArray( vertexArray->id );
+}
+void Platform::OpenGLVertexArrayBindVertexBuffer( VertexArray* vertexArray, VertexBuffer buffer ) {
+    // NOTE(alicia): This is probably the least performant way to do this
+    // but considering this project is for learning/showing my programming skills
+    // it's ok :)
+    
+    // if vertex array already has buffers
+    if( vertexArray->vertexBufferCount > 0 ) {
+        usize previousCount = vertexArray->vertexBufferCount;
+        vertexArray->vertexBufferCount++;
+        VertexBuffer temp[vertexArray->vertexBufferCount];
+        Platform::MemCopy(
+            sizeof(VertexBuffer) * previousCount,
+            vertexArray->buffers,
+            temp
+        );
+        Platform::Free( vertexArray->buffers );
+        Platform::MemCopy( sizeof(VertexBuffer), &buffer, &temp[previousCount] );
+        usize newSize = vertexArray->vertexBufferCount * sizeof(VertexBuffer);
+        vertexArray->buffers = (VertexBuffer*)Platform::Alloc( newSize );
+        Platform::MemCopy( newSize, temp, vertexArray->buffers );
+    }
+    // if vertex array does not yet have any buffers
+    else {
+        vertexArray->buffers = (VertexBuffer*)Platform::Alloc( sizeof(VertexBuffer) );
+        Platform::MemCopy( sizeof(VertexBuffer), &buffer, vertexArray->buffers );
+        vertexArray->vertexBufferCount = 1;
+    }
+}
+void Platform::OpenGLVertexArrayBindIndexBuffer( VertexArray* vertexArray, IndexBuffer buffer ) {
+    if( vertexArray->indexBuffer ) {
+        Platform::OpenGLDeleteIndexBuffers( 1, vertexArray->indexBuffer );
+        Platform::Free( vertexArray->indexBuffer );
+    }
+
+    vertexArray->indexBuffer = (IndexBuffer*)Platform::Alloc( sizeof(IndexBuffer) );
+    Platform::MemCopy( sizeof(IndexBuffer), &buffer, vertexArray->indexBuffer );
+}
+
+Platform::UniformBuffer Platform::OpenGLCreateUniformBuffer( usize size, void* data ) {
+    UniformBuffer result = {};
+    result.size = size;
+    glGenBuffers( 1, &result.id );
+    glBindBuffer( GL_UNIFORM_BUFFER, result.id );
+    glBufferData(
+        GL_UNIFORM_BUFFER,
+        (GLsizeiptr)result.size,
+        data,
+        GL_STATIC_DRAW // TODO: usage
+    );
+    return result;
+}
+void Platform::OpenGLDeleteUniformBuffers( UniformBuffer* buffers, usize bufferCount ) {
+    GLuint uniformBufferIDs[bufferCount];
+    ucycles( bufferCount ) {
+        uniformBufferIDs[i] = buffers[i].id;
+    }
+    glDeleteBuffers( bufferCount, uniformBufferIDs );
+}
+void Platform::OpenGLUniformBufferData(UniformBuffer* uniformBuffer, usize size, void* data) {
+    DEBUG_ASSERT_LOG( size == uniformBuffer->size,
+        "OpenGL | UniformBufferData > Uniform Buffer size(%llu) does not match input size(%llu)!",
+        uniformBuffer->size, size
+    );
+    glBindBuffer( GL_UNIFORM_BUFFER, uniformBuffer->id );
+    glBufferData(
+        GL_UNIFORM_BUFFER,
+        (GLsizeiptr)size,
+        data,
+        GL_STATIC_DRAW // TODO: usage
+    );
+}
+void Platform::OpenGLUniformBufferSubData(UniformBuffer* uniformBuffer, usize offset, usize size, void* data) {
+    DEBUG_ASSERT_LOG( offset < uniformBuffer->size,
+        "OpenGL | UniformBufferSubData > Offset(%llu) is greater than Uniform Buffer size(%llu)!",
+        offset, uniformBuffer->size
+    );
+    DEBUG_ASSERT_LOG( size < uniformBuffer->size,
+        "OpenGL | UniformBufferSubData > Size(%llu) is greater than Uniform Buffer size(%llu)!",
+        size, uniformBuffer->size
+    );
+    DEBUG_ASSERT_LOG( offset + size <= uniformBuffer->size,
+        "OpenGL | UniformBufferSubData > Offset + Size (%llu) is greater than Uniform Buffer size(%llu)!",
+        offset + size, uniformBuffer->size
+    );
+
+    glBindBuffer( GL_UNIFORM_BUFFER, uniformBuffer->id );
+    glBufferSubData(
+        GL_UNIFORM_BUFFER,
+        (GLintptr)offset,
+        (GLsizeiptr)size,
+        data
+    );
+}
+void Platform::OpenGLUniformBufferSetBindingPoint(UniformBuffer* uniformBuffer, u32 bindingPoint) {
+    glBindBufferBase( GL_UNIFORM_BUFFER, bindingPoint, uniformBuffer->id );
+}
+void Platform::OpenGLUniformBufferSetBindingPointRange(UniformBuffer* uniformBuffer, u32 bindingPoint, usize offset, usize size) {
+    DEBUG_ASSERT_LOG( offset < uniformBuffer->size,
+        "OpenGL | UniformBufferSetBindingPointRange > Offset(%llu) is greater than Uniform Buffer size(%llu)!",
+        offset, uniformBuffer->size
+    );
+    DEBUG_ASSERT_LOG( size < uniformBuffer->size,
+        "OpenGL | UniformBufferSetBindingPointRange > Size(%llu) is greater than Uniform Buffer size(%llu)!",
+        size, uniformBuffer->size
+    );
+    DEBUG_ASSERT_LOG( offset + size <= uniformBuffer->size,
+        "OpenGL | UniformBufferSetBindingPointRange > Offset + Size (%llu) is greater than Uniform Buffer size(%llu)!",
+        offset + size, uniformBuffer->size
+    );
+    glBindBufferRange(
+        GL_UNIFORM_BUFFER,
+        bindingPoint,
+        uniformBuffer->id,
+        offset,
+        size
+    );
+}
 
 void Platform::OpenGLSetTexture2DWrapMode( Texture2D* texture, TextureWrapMode wrapX, TextureWrapMode wrapY ) {
     glBindTexture( GL_TEXTURE_2D, texture->id );
@@ -41,7 +297,7 @@ Platform::Texture2D Platform::OpenGLCreateTexture2D(
     i32 height,
     u8* data,
     TextureFormat format,
-    Type dataType,
+    DataType dataType,
     TextureWrapMode wrapX,
     TextureWrapMode wrapY,
     TextureMinFilter minFilter,
@@ -63,7 +319,7 @@ Platform::Texture2D Platform::OpenGLCreateTexture2D(
         result.width, result.height,
         TEX_NO_BORDER,
         TextureFormatToGLenum(result.format),
-        TypeToGLenum( result.dataType ),
+        DataTypeToGLenum( result.dataType ),
         result.data
     );
     glGenerateMipmap( GL_TEXTURE_2D );
@@ -75,7 +331,7 @@ Platform::Texture2D Platform::OpenGLCreateTexture2D(
 }
 void Platform::OpenGLDeleteTextures2D( Texture2D* textures, usize textureCount ) {
     GLuint textureIDs[textureCount];
-    forloop( (isize)textureCount ) {
+    ucycles( textureCount ) {
         textureIDs[i] = textures[i].id;
     }
     glDeleteTextures( textureCount, textureIDs );
@@ -89,6 +345,21 @@ void Platform::OpenGLUniformUInt( Shader* shader, i32 uniform, u32 value ) {
 }
 void Platform::OpenGLUniformInt( Shader* shader, i32 uniform, i32 value ) {
     glProgramUniform1i( shader->id, uniform, value );
+}
+void Platform::OpenGLUniformVec2( Shader* shader, i32 uniform, smath::vec2* value ) {
+    glProgramUniform2fv( shader->id, uniform, 1, value->valuePtr() );
+}
+void Platform::OpenGLUniformVec3( Shader* shader, i32 uniform, smath::vec3* value ) {
+    glProgramUniform3fv( shader->id, uniform, 1, value->valuePtr() );
+}
+void Platform::OpenGLUniformVec4( Shader* shader, i32 uniform, smath::vec4* value ) {
+    glProgramUniform4fv( shader->id, uniform, 1, value->valuePtr() );
+}
+void Platform::OpenGLUniformMat3( Shader* shader, i32 uniform, smath::mat3* value ) {
+    glProgramUniformMatrix3fv( shader->id, uniform, 1, GL_FALSE, value->valuePtr() );
+}
+void Platform::OpenGLUniformMat4( Shader* shader, i32 uniform, smath::mat4* value ) {
+    glProgramUniformMatrix4fv( shader->id, uniform, 1, GL_FALSE, value->valuePtr() );
 }
 bool Platform::OpenGLGetUniformID( Shader* shader, const char* uniformName, i32* result ) {
     *result = glGetUniformLocation( shader->id, uniformName );
@@ -104,13 +375,13 @@ void Platform::OpenGLUseShader( Shader* shader ) {
 }
 void Platform::OpenGLDeleteShaders( Shader* shaders, usize shaderCount ) {
     u32 ids[shaderCount];
-    forloop((isize)shaderCount) {
+    ucycles(shaderCount) {
         ids[i] = shaders[i].id;
     }
     if(DELETE_PROGRAMS_ARB) {
         glDeleteProgramsARB( shaderCount, ids );
     } else {
-        forloop( (isize)shaderCount ) {
+        ucycles( shaderCount ) {
             glDeleteProgram( ids[i] );
         }
     }
@@ -211,6 +482,36 @@ void Platform::OpenGLSetClearColor( f32 r, f32 g, f32 b, f32 a ) {
 void Platform::OpenGLSetViewport( i32 width, i32 height ) {
     glViewport( 0, 0, width, height );
 }
+void Platform::OpenGLSetPackAlignment( i32 packAlignment ) {
+    glPixelStorei( GL_PACK_ALIGNMENT, packAlignment );
+}
+void Platform::OpenGLSetUnPackAlignment( i32 unpackAlignment ) {
+    glPixelStorei( GL_UNPACK_ALIGNMENT, unpackAlignment );
+}
+void Platform::OpenGLSetBlendingEnable( bool enable ) {
+    if( enable ) {
+        glEnable( GL_BLEND );
+    } else {
+        glDisable( GL_BLEND );
+    }
+}
+bool Platform::OpenGLIsBlendingEnabled() {
+    return glIsEnabled( GL_BLEND ) == GL_TRUE ? true : false;
+}
+void Platform::OpenGLSetBlendFunction( BlendFactor srcColor, BlendFactor dstColor, BlendFactor srcAlpha, BlendFactor dstAlpha ) {
+    glBlendFuncSeparate(
+        BlendFactorToGLenum( srcColor ),
+        BlendFactorToGLenum( dstColor ),
+        BlendFactorToGLenum( srcAlpha ),
+        BlendFactorToGLenum( dstAlpha )
+    );
+}
+void Platform::OpenGLSetBlendEquation( BlendEq colorEq, BlendEq alphaEq ) {
+    glBlendEquationSeparate(
+        BlendEqToGLenum( colorEq ),
+        BlendEqToGLenum( alphaEq )
+    );
+}
 
 const char* DebugSourceToString( GLenum source ) {
     switch(source) {
@@ -246,7 +547,7 @@ void OpenGLDebugMessageCallback (
 ) {
     switch(severity) {
         case GL_DEBUG_SEVERITY_HIGH: {
-            LOG_ERROR("OpenGL(%i) > [SRC %s] [TYPE %s] %s",
+            LOG_ERROR("OpenGL(%i) > [SRC: %s] [TYPE: %s] %s",
                 id,
                 DebugSourceToString( source ),
                 DebugTypeToString( type ),
@@ -255,7 +556,7 @@ void OpenGLDebugMessageCallback (
         } break;
         case GL_DEBUG_SEVERITY_MEDIUM:
         case GL_DEBUG_SEVERITY_LOW: {
-            LOG_WARN("OpenGL(%i) > [SRC %s] [TYPE %s] %s",
+            LOG_WARN("OpenGL(%i) > [SRC: %s] [TYPE: %s] %s",
                 id,
                 DebugSourceToString( source ),
                 DebugTypeToString( type ),
@@ -263,7 +564,7 @@ void OpenGLDebugMessageCallback (
             );
         } break;
         default: case GL_DEBUG_SEVERITY_NOTIFICATION: {
-            LOG_INFO("OpenGL(%i) > [SRC %s] [TYPE %s] %s",
+            LOG_INFO("OpenGL(%i) > [SRC: %s] [TYPE: %s] %s",
                 id,
                 DebugSourceToString( source ),
                 DebugTypeToString( type ),
@@ -285,12 +586,12 @@ void Platform::OpenGLInitialize() {
     // Append to window title " | OpenGL *version* "
     const char* version = (const char*)glGetString( GL_VERSION );
     LOG_INFO("OpenGL Version: %s", version);
-    usize versionLen = strLen(version);
+    usize versionLen = stringLen(version) + 1;
     const char* titleAppend = " | OpenGL ";
-    usize titleAppendLen = strLen( titleAppend );
+    usize titleAppendLen = stringLen( titleAppend ) + 1;
     usize newTitleAppendLen = versionLen + titleAppendLen;
     char newTitleAppend[newTitleAppendLen];
-    strConcat(
+    stringConcat(
         titleAppendLen, titleAppend,
         versionLen, version,
         newTitleAppendLen, newTitleAppend
@@ -356,18 +657,53 @@ GLenum TextureFormatToGLenum( Platform::TextureFormat format ) {
         default: return GL_INVALID_ENUM;
     }
 }
-GLenum TypeToGLenum( Platform::Type format ) {
+GLenum DataTypeToGLenum( Platform::DataType format ) {
     using namespace Platform;
     switch( format ) {
-        case Type::UNSIGNED_BYTE:  return GL_UNSIGNED_BYTE;
-        case Type::BYTE:           return GL_BYTE;
-        case Type::UNSIGNED_SHORT: return GL_UNSIGNED_SHORT;
-        case Type::SHORT:          return GL_SHORT;
-        case Type::UNSIGNED_INT:   return GL_UNSIGNED_INT;
-        case Type::INT:            return GL_INT;
-        case Type::FLOAT:          return GL_FLOAT;
-        case Type::DOUBLE:         return GL_DOUBLE;
+        case DataType::UNSIGNED_BYTE:  return GL_UNSIGNED_BYTE;
+        case DataType::BYTE:           return GL_BYTE;
+        case DataType::UNSIGNED_SHORT: return GL_UNSIGNED_SHORT;
+        case DataType::SHORT:          return GL_SHORT;
+        case DataType::UNSIGNED_INT:   return GL_UNSIGNED_INT;
+        case DataType::INT:            return GL_INT;
+        case DataType::FLOAT:          return GL_FLOAT;
+        case DataType::DOUBLE:         return GL_DOUBLE;
         default: return GL_INVALID_ENUM;
     }
 }
-
+GLenum BlendFactorToGLenum( Platform::BlendFactor factor ) {
+    using namespace Platform;
+    switch( factor ) {
+        case BlendFactor::ZERO:                     return GL_ZERO;
+        case BlendFactor::ONE:                      return GL_ONE;
+        case BlendFactor::SRC_COLOR:                return GL_SRC_COLOR;
+        case BlendFactor::ONE_MINUS_SRC_COLOR:      return GL_ONE_MINUS_SRC_COLOR;
+        case BlendFactor::DST_COLOR:                return GL_DST_COLOR;
+        case BlendFactor::ONE_MINUS_DST_COLOR:      return GL_ONE_MINUS_DST_COLOR;
+        case BlendFactor::SRC_ALPHA:                return GL_SRC_ALPHA;
+        case BlendFactor::ONE_MINUS_SRC_ALPHA:      return GL_ONE_MINUS_SRC_ALPHA;
+        case BlendFactor::DST_ALPHA:                return GL_DST_ALPHA;
+        case BlendFactor::ONE_MINUS_DST_ALPHA:      return GL_ONE_MINUS_DST_ALPHA;
+        case BlendFactor::CONSTANT_COLOR:           return GL_CONSTANT_COLOR;
+        case BlendFactor::ONE_MINUS_CONSTANT_COLOR: return GL_ONE_MINUS_CONSTANT_COLOR;
+        case BlendFactor::CONSTANT_ALPHA:           return GL_CONSTANT_ALPHA;
+        case BlendFactor::ONE_MINUS_CONSTANT_ALPHA: return GL_ONE_MINUS_CONSTANT_ALPHA;
+        case BlendFactor::SRC_ALPHA_SATURATE:       return GL_SRC_ALPHA_SATURATE;
+        case BlendFactor::SRC1_COLOR:               return GL_SRC1_COLOR;
+        case BlendFactor::ONE_MINUS_SRC1_COLOR:     return GL_ONE_MINUS_SRC1_COLOR;
+        case BlendFactor::SRC1_ALPHA:               return GL_SRC1_ALPHA;
+        case BlendFactor::ONE_MINUS_SRC1_ALPHA:     return GL_ONE_MINUS_SRC1_ALPHA;
+        default: return GL_INVALID_ENUM;
+    }
+}
+GLenum BlendEqToGLenum( Platform::BlendEq eq ) {
+    using namespace Platform;
+    switch( eq ) {
+        case BlendEq::ADD:     return GL_FUNC_ADD;
+        case BlendEq::SUB:     return GL_FUNC_SUBTRACT;
+        case BlendEq::REV_SUB: return GL_FUNC_REVERSE_SUBTRACT;
+        case BlendEq::MIN:     return GL_MIN;
+        case BlendEq::MAX:     return GL_MAX;
+        default: return GL_INVALID_ENUM;
+    }
+}

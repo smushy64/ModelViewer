@@ -39,9 +39,8 @@ struct FontMap {
     FontMetricsKV* map;
     /// @brief Retrieve a FontMetrics struct from the map
     /// @param key key to search for
-    /// @param result [out] FontMetrics
-    /// @return true if found
-    bool get( char key, FontMetrics* result );
+    /// @return pointer to font metrics, null if not found
+    FontMetrics* get( char key );
 };
 
 struct FontAtlas {

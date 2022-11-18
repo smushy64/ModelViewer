@@ -91,7 +91,9 @@ i32 APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE, PSTR, i32 ) {
         } break;
     }
 
-    Core::OnInit( &app );
+    if(!Core::OnInit( &app )) {
+        return ERROR_RETURN_CODE;
+    }
     u64 startTime = WinGetTime();
     while( app.isRunning ) {
         f32 elapsedTime = (f32)(WinGetTime() - startTime) / (f32)perfFrequency;
@@ -182,7 +184,9 @@ LRESULT WinWindowProc( HWND window, UINT message, WPARAM wParam, LPARAM lParam )
         } break;
         case WM_WINDOWPOSCHANGED: {
             RECT rect = {};
-            if( GetClientRect( window, &rect ) == TRUE ) {
+            if( GetClientRect( window, &rect ) == TRUE &&
+                ( rect.right != WINDOW_WIDTH || rect.bottom != WINDOW_HEIGHT )
+            ) {
                 WINDOW_WIDTH  = rect.right;
                 WINDOW_HEIGHT = rect.bottom;
                 Core::OnResolutionUpdate( appContext, rect.right, rect.bottom );
@@ -258,14 +262,14 @@ HWND WinCreateWindow(
         return nullptr;
     }
 
-    #define TITLE_BUFFER_SIZE 512
-    wchar_t titleBuffer[TITLE_BUFFER_SIZE];
-    strTowstr( windowTitle, titleBuffer, TITLE_BUFFER_SIZE );
+    usize windowTitleLen = stringLen( windowTitle ) + 1;
+    wchar_t wWindowTitle[windowTitleLen];
+    stringToWstring( windowTitle, windowTitleLen, wWindowTitle );
 
     HWND result = CreateWindowEx(
         dwExStyle,
         windowClass.lpszClassName,
-        titleBuffer,
+        wWindowTitle,
         dwStyle,
         CW_USEDEFAULT, CW_USEDEFAULT,
         winRect.right  - winRect.left,
@@ -290,7 +294,7 @@ HWND WinCreateWindow(
 
 void WinFormatError( char* buffer, usize bufferSize, LPDWORD errorCode ) {
     *errorCode = GetLastError();
-    FormatMessageA(
+    DWORD charCount = FormatMessageA(
         FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
         nullptr,
         *errorCode,
@@ -299,6 +303,8 @@ void WinFormatError( char* buffer, usize bufferSize, LPDWORD errorCode ) {
         (DWORD)bufferSize,
         nullptr
     );
+    // remove the trailing newline
+    buffer[charCount-1] = '\0';
 }
 
 bool WinLoadWGLFunctions( HMODULE openglModule ) {
@@ -423,7 +429,7 @@ void* Platform::Alloc( usize size ) {
 void Platform::Free( void* mem ) {
     DEBUG_ASSERT_LOG( HEAP_HANDLE, "Handle to the heap is null!" );
     WINBOOL result = HeapFree( HEAP_HANDLE, 0, mem );
-    DEBUG_ASSERT_LOG( result != 0, "Heap Free failed here!" );
+    DEBUG_ASSERT_LOG( result != 0, "Heap Free failed here!"  );
 }
 
 void Platform::AppendToWindowTitle( const char* append, usize appendLen ) {
@@ -434,16 +440,16 @@ void Platform::AppendToWindowTitle( const char* append, usize appendLen ) {
     }
 
     wchar_t appendW[appendLen];
-    strTowstr( append, appendW, appendLen );
+    stringToWstring( append, appendLen, appendW );
 
     const usize MAX_WINDOW_TITLE_BUFFER = 512;
     wchar_t windowTitle[MAX_WINDOW_TITLE_BUFFER];
     GetWindowText( window, windowTitle, MAX_WINDOW_TITLE_BUFFER );
-    usize windowTitleLen = strLenW( windowTitle );
+    usize windowTitleLen = stringLen( windowTitle ) + 1;
 
     usize newTitleLen = appendLen + windowTitleLen;
     wchar_t newTitle[newTitleLen];
-    strConcatW(
+    stringConcat(
         windowTitleLen, windowTitle,
         appendLen, appendW,
         newTitleLen, newTitle
@@ -517,6 +523,7 @@ bool WinLoadFileFromHandle( HANDLE fileHandle, Platform::File* result ) {
     LARGE_INTEGER fileSize;
     if( GetFileSizeEx( fileHandle, &fileSize ) == FALSE ) {
         LOG_WINDOWS_ERROR();
+        Platform::Free( result->filePath );
         result = {};
         CloseHandle( fileHandle );
         return false;
@@ -546,6 +553,7 @@ bool WinLoadFileFromHandle( HANDLE fileHandle, Platform::File* result ) {
     ) && bytesRead == bytesToRead;
     if( !readResult ) {
         LOG_WINDOWS_ERROR();
+        Platform::Free( result->filePath );
         Platform::Free( result->data );
         result = {};
         CloseHandle( fileHandle );
@@ -558,7 +566,7 @@ bool WinLoadFileFromHandle( HANDLE fileHandle, Platform::File* result ) {
 }
 
 bool Platform::LoadFile( const char* filePath, File* result ) {
-    usize filePathLen = strLen( filePath );
+    usize filePathLen = stringLen( filePath ) + 1;
     if( filePathLen == 0 ) {
         result = {};
         LOG_WARN( "Windows x64 > Attempted to load file from empty path!" );
@@ -566,10 +574,10 @@ bool Platform::LoadFile( const char* filePath, File* result ) {
     }
     result->filePathLen = filePathLen;
     result->filePath = (char*)Platform::Alloc(result->filePathLen);
-    strCopy( filePath, result->filePathLen, result->filePath );
+    stringCopy( filePath, result->filePathLen, result->filePath );
 
     wchar_t wfilePath[filePathLen];
-    strTowstr( filePath, wfilePath, filePathLen );
+    stringToWstring( result->filePath, result->filePathLen, wfilePath );
 
     HANDLE fileHandle = CreateFile(
         wfilePath,
@@ -582,6 +590,8 @@ bool Platform::LoadFile( const char* filePath, File* result ) {
 
     if( fileHandle == INVALID_HANDLE_VALUE ) {
         LOG_WINDOWS_ERROR();
+        LOG_ERROR("File path: %s", result->filePath);
+        Platform::Free( result->filePath );
         result = {};
         return false;
     }
@@ -592,9 +602,9 @@ bool Platform::LoadFile( const char* filePath, File* result ) {
 bool Platform::UserLoadFile( const char* dialogTitle, File* result ) {
     const usize MAX_FILE_NAME = 512;
 
-    usize dialogTitleLen = strLen(dialogTitle);
+    usize dialogTitleLen = stringLen(dialogTitle) + 1;
     wchar_t wdialogTitle[dialogTitleLen];
-    strTowstr( dialogTitle, wdialogTitle, dialogTitleLen );
+    stringToWstring( dialogTitle, dialogTitleLen, wdialogTitle );
 
     // buffer for file name
     wchar_t szFile[MAX_FILE_NAME];
@@ -629,11 +639,9 @@ bool Platform::UserLoadFile( const char* dialogTitle, File* result ) {
         0, 0
     );
 
-    usize fileNameLen = strLenW( openFileName.lpstrFile );
-    char fileName[fileNameLen];
-    wstrTostr( openFileName.lpstrFile, fileName, fileNameLen );
-    result->filePath    = fileName;
-    result->filePathLen = fileNameLen;
+    result->filePathLen = stringLen( openFileName.lpstrFile ) + 1;
+    result->filePath    = (char*)Platform::Alloc( result->filePathLen );
+    wstringToString( openFileName.lpstrFile, result->filePathLen, result->filePath );
 
     bool success = WinLoadFileFromHandle( fileHandle, result );
 
@@ -661,13 +669,13 @@ bool Platform::WriteFile( const char* filePath, void* buffer, usize bufferSize, 
         } break;
     }
 
-    usize filePathLen = strLen( filePath );
+    usize filePathLen = stringLen( filePath ) + 1;
     if( filePathLen == 0 ) {
         LOG_WARN( "Windows x64 > Attempted to write file to empty path!" );
         return false;
     }
     wchar_t wfilePath[filePathLen];
-    strTowstr( filePath, wfilePath, filePathLen );
+    stringToWstring( filePath, filePathLen, wfilePath );
 
     HANDLE fileHandle = CreateFile(
         wfilePath,

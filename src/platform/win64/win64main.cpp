@@ -52,11 +52,12 @@ i32 APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE, PSTR, i32 ) {
     }
 
     Core::AppContext app = Core::CreateContext();
+    app.windowDimensions = smath::ivec2( WINDOW_WIDTH, WINDOW_HEIGHT );
     HWND window = WinCreateWindow(
         hInstance,
         windowTitle,
-        WINDOW_WIDTH,
-        WINDOW_HEIGHT,
+        app.windowDimensions.x,
+        app.windowDimensions.y,
         &app
     );
     if( !window ) {
@@ -105,8 +106,16 @@ i32 APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE, PSTR, i32 ) {
     }
 
     if( openGLContext ) {
-        wglMakeCurrent( nullptr, nullptr );
-        wglDeleteContext( openGLContext );
+        if(wglMakeCurrent( deviceContext, nullptr ) == FALSE) {
+            LOG_WINDOWS_ERROR();
+        } else {
+            LOG_INFO("Windows x64 > Made OpenGL context no longer current.");
+        }
+        if(wglDeleteContext( openGLContext ) == FALSE) {
+            LOG_WINDOWS_ERROR();
+        } else {
+            LOG_INFO("Windows x64 > Deleted OpenGL context.");
+        }
     }
 
     return SUCCESS_RETURN_CODE;

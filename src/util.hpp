@@ -288,3 +288,25 @@ void stringCopy( usize srcLen, const wchar_t* src, usize dstSize, wchar_t* dst )
 /// @param dstSize size of destination buffer, including null-terminator
 /// @param dst destination buffer
 void stringCopy( const wchar_t* src, usize dstSize, wchar_t* dst );
+
+/// My own implementation of std::vector
+class DynList {
+    /// @brief reserve space
+    /// @param capacity how many elements should be allocated
+    /// @param elementSize size of each element in bytes
+    DynList( usize capacity, usize elementSize );
+    /// @brief allocate extra space by element count. Bytes allocated will be (elementCount * elementSize) + previous size
+    /// @param elementCount number of new elements to alloc
+    void alloc( usize elementCount );
+    /// @brief push new element into list. 
+    /// @param dataToCopy 
+    void push( void* dataToCopy );
+private:
+    usize m_elementSize; // size of each element
+    usize m_elementCapacity; // capacity of list ( how many elements it can hold )
+    usize m_elementCount; // how many elements exist in list
+    usize m_capacity; // capacity of list ( how much memory it has allocated )
+    usize m_size; // occupied bytes ( out of capacity )
+    void* m_data;
+
+};

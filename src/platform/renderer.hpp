@@ -144,6 +144,7 @@ VertexBufferLayout CreateVertexBufferLayout( usize elementCount, VertexBufferEle
 void FreeVertexBufferLayout( VertexBufferLayout* layout );
 
 struct VertexBuffer {
+    usize   vertexCount;
     usize   bufferSize;
     void*   vertices;
     u32     id;
@@ -151,6 +152,7 @@ struct VertexBuffer {
 };
 
 struct VertexArray {
+    usize totalVertexCount;
     usize vertexBufferCount;
     VertexBuffer* buffers;
     IndexBuffer* indexBuffer;
@@ -180,6 +182,7 @@ typedef void (*SetBlendingEnableFN)( bool enable );
 typedef bool (*IsBlendingEnabledFN)();
 typedef void (*SetBlendFunctionFN)( BlendFactor srcColor, BlendFactor dstColor, BlendFactor srcAlpha, BlendFactor dstAlpha );
 typedef void (*SetBlendEquationFN)( BlendEq colorEq, BlendEq alphaEq );
+typedef void (*DrawVertexArrayFN)( VertexArray* vertexArray );
 
 // NOTE(alicia): Vertex Array
 typedef VertexArray (*CreateVertexArrayFN)();
@@ -194,13 +197,13 @@ typedef void (*UseVertexBufferFN)( VertexBuffer* buffer );
 typedef void (*DeleteVertexBuffersFN)( usize count, VertexBuffer* buffers );
 
 // NOTE(alicia): Index Buffer
-typedef IndexBuffer (*CreateIndexBufferFN)( usize bufferSize, void* indices, DataType indexDataType );
+typedef IndexBuffer (*CreateIndexBufferFN)( usize indexCount, void* indices, DataType indexDataType );
 typedef void (*UseIndexBufferFN)( IndexBuffer* buffer );
 typedef void (*DeleteIndexBuffersFN)( usize count, IndexBuffer* buffers );
 
 // NOTE(alicia): Uniform buffer
 typedef UniformBuffer (*CreateUniformBufferFN)( usize size, void* data );
-typedef void (*DeleteUniformBuffersFN)( UniformBuffer* buffers, usize bufferCount );
+typedef void (*DeleteUniformBuffersFN)( usize bufferCount, UniformBuffer* buffers );
 typedef void (*UniformBufferDataFN)(UniformBuffer* uniformBuffer, usize size, void* data);
 typedef void (*UniformBufferSubDataFN)(UniformBuffer* uniformBuffer, usize offset, usize size, void* data);
 typedef void (*UniformBufferSetBindingPointFN)(UniformBuffer* uniformBuffer, u32 bindingPoint);
@@ -211,7 +214,7 @@ typedef void (*DeleteBuffersFN)( usize bufferCount, u32* bufferIDs );
 
 // NOTE(alicia): Shader
 typedef bool (*CreateShaderFN)( const char* vertexSrc, usize vertexLen, const char* fragmentSrc, usize fragmentLen, Shader* result );
-typedef void (*DeleteShadersFN)( Shader* shaders, usize shaderCount );
+typedef void (*DeleteShadersFN)( usize shaderCount, Shader* shaders );
 typedef void (*UseShaderFN)( Shader* shader );
 typedef bool (*GetUniformIDFN)( Shader* shader, const char* uniformName, i32* result );
 typedef void (*UniformFloatFN)( Shader* shader, i32 uniform, f32 value );
@@ -235,19 +238,19 @@ typedef Texture2D (*CreateTexture2DFN)(
     TextureMinFilter minFilter,
     TextureMagFilter magFilter
 );
-typedef void (*DeleteTextures2DFN)( Texture2D* textures, usize textureCount );
+typedef void (*DeleteTextures2DFN)( usize textureCount, Texture2D* textures );
 typedef void (*UseTexture2DFN)( Texture2D* texture, u32 unit );
 typedef void (*SetTexture2DWrapModeFN)( Texture2D* texture, TextureWrapMode wrapX, TextureWrapMode wrapY );
 typedef void (*SetTexture2DFilterFN)( Texture2D* texture, TextureMinFilter minFilter, TextureMagFilter magFilter );
 
-/// Structure containing function pointers to API calls  
+/// Struct containing function pointers to API calls  
 struct RendererAPI {
     /// @brief Initialize API
     InitializeFN Initialize;
     /// @brief Clear Buffer
     ClearBufferFN ClearBuffer;
     /// @brief Swap Buffers
-    ///  IMPORTANT: This function is supplied by the platform for OpenGL!!!
+    ///  IMPORTANT: This function is supplied by the platform layer for OpenGL!!!
     SwapBuffersFN SwapBuffers;
     /// @brief Set color to clear buffers to
     /// @param r,g,b,a [f32] Clear color
@@ -276,6 +279,10 @@ struct RendererAPI {
     /// @param colorEq color equation
     /// @param alphaEq alpha equation
     SetBlendEquationFN SetBlendEquation;
+    /// @brief Draw vertex array.
+    /// If vertex array has an index buffer, draw indexed triangles, else draw contiguous vertices.
+    /// @param vertexArray [VertexArray*] vertex array to draw
+    DrawVertexArrayFN DrawVertexArray;
 
     /// @brief Create new vertex array 
     CreateVertexArrayFN CreateVertexArray;
@@ -305,7 +312,7 @@ struct RendererAPI {
     /// @param vertexArrays [VertexBuffer*] vertex buffers
     DeleteVertexBuffersFN DeleteVertexBuffers;
     /// @brief Create new index buffer
-    /// @param bufferSize [usize] size of buffer in bytes
+    /// @param indexCount [usize] number of indices in buffer
     /// @param indices [void*] indices
     /// @param indexDataType [DataType] data type of indices
     CreateIndexBufferFN CreateIndexBuffer;
@@ -323,8 +330,8 @@ struct RendererAPI {
     /// @param data [void*] data
     CreateUniformBufferFN CreateUniformBuffer;
     /// @brief Delete uniform buffers
-    /// @param buffers [UniformBuffer*] buffers to delete
     /// @param bufferCount [usize] number of buffers
+    /// @param buffers [UniformBuffer*] buffers to delete
     DeleteUniformBuffersFN DeleteUniformBuffers;
     /// @brief Upload data to uniform buffer
     /// @param uniformBuffer [UniformBuffer*] Uniform buffer to buffer data into
@@ -361,8 +368,8 @@ struct RendererAPI {
     /// @return true if successful, false if not
     CreateShaderFN CreateShader;
     /// @brief Delete shaders
-    /// @param shaders [Shader*] shaders to delete
     /// @param shaderCount [usize] number of shaders to delete
+    /// @param shaders [Shader*] shaders to delete
     DeleteShadersFN DeleteShaders;
     /// @brief Use given shader
     /// @param shader [Shader*] shader to use
@@ -429,8 +436,8 @@ struct RendererAPI {
     /// @return [Texture2D] texture 2D
     CreateTexture2DFN CreateTexture2D;
     /// @brief Delete textures
-    /// @param textures [Texture2D*] textures to delete
     /// @param textureCount [usize] number of textures to delete
+    /// @param textures [Texture2D*] textures to delete
     DeleteTextures2DFN DeleteTextures2D;
     /// @brief Use given texture
     /// @param texture [Texture2D*] texture to use

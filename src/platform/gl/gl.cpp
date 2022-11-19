@@ -21,11 +21,28 @@ GLenum DataTypeToGLenum( Platform::DataType format );
 GLenum BlendFactorToGLenum( Platform::BlendFactor factor );
 GLenum BlendEqToGLenum( Platform::BlendEq eq );
 
+void Platform::OpenGLDrawVertexArray( VertexArray* vertexArray ) {
+    if( vertexArray->indexBuffer ) {
+        glDrawElements(
+            GL_TRIANGLES,
+            vertexArray->indexBuffer->indexCount,
+            DataTypeToGLenum( vertexArray->indexBuffer->dataType ),
+            nullptr
+        );
+    } else {
+        // TODO(alicia): make sure at some point that this works
+        glDrawArrays(
+            GL_TRIANGLES,
+            0, vertexArray->totalVertexCount
+        );
+    }
+}
+
 void Platform::OpenGLDeleteBuffers( usize bufferCount, u32* bufferIDs ) {
     glDeleteBuffers( bufferCount, bufferIDs );
 }
 
-Platform::IndexBuffer Platform::OpenGLCreateIndexBuffer( usize bufferSize, void* indices, DataType indexDataType ) {
+Platform::IndexBuffer Platform::OpenGLCreateIndexBuffer( usize indexCount, void* indices, DataType indexDataType ) {
     DEBUG_ASSERT_LOG(
         indexDataType == DataType::UNSIGNED_BYTE ||
         indexDataType == DataType::UNSIGNED_SHORT ||
@@ -36,8 +53,8 @@ Platform::IndexBuffer Platform::OpenGLCreateIndexBuffer( usize bufferSize, void*
 
     IndexBuffer result = {};
     result.dataType   = indexDataType;
-    result.bufferSize = bufferSize;
-    result.indexCount = result.bufferSize / Platform::DataTypeSize( result.dataType );
+    result.indexCount = indexCount;
+    result.bufferSize = result.indexCount * Platform::DataTypeSize( result.dataType );
     result.indices    = Platform::Alloc( result.bufferSize );
 
     Platform::MemCopy( result.bufferSize, indices, result.indices );
@@ -46,7 +63,7 @@ Platform::IndexBuffer Platform::OpenGLCreateIndexBuffer( usize bufferSize, void*
     glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, result.id );
     glBufferData(
         GL_ELEMENT_ARRAY_BUFFER,
-        (GLsizeiptr)bufferSize,
+        (GLsizeiptr)result.bufferSize,
         result.indices,
         GL_STATIC_DRAW // TODO(alicia): usage?
     );
@@ -72,6 +89,7 @@ Platform::VertexBuffer Platform::OpenGLCreateVertexBuffer( usize bufferSize, voi
     result.layout       = layout;
     result.bufferSize   = bufferSize;
     result.vertices     = Platform::Alloc( result.bufferSize );
+    result.vertexCount  = result.bufferSize / result.layout.stride;
 
     Platform::MemCopy( result.bufferSize, vertices, result.vertices );
 
@@ -85,15 +103,15 @@ Platform::VertexBuffer Platform::OpenGLCreateVertexBuffer( usize bufferSize, voi
     );
 
     ucycles( result.layout.elementCount ) {
-        glEnableVertexAttribArray(i);
         glVertexAttribPointer(
             i,
             Platform::DataStructureCount( result.layout.elements[i].structure ),
             DataTypeToGLenum( result.layout.elements[i].dataType ),
             result.layout.elements[i].normalized ? GL_TRUE : GL_FALSE,
             result.layout.stride,
-            (void*)result.layout.elementOffsets[i]
+            (const void*)result.layout.elementOffsets[i]
         );
+        glEnableVertexAttribArray(i);
     }
 
     return result;
@@ -117,7 +135,6 @@ Platform::VertexArray Platform::OpenGLCreateVertexArray() {
     VertexArray result = {};
     result.vertexBufferCount = 0;
     glGenVertexArrays( 1, &result.id );
-    glBindVertexArray( result.id );
     return result;
 }
 void Platform::OpenGLDeleteVertexArrays( usize count, VertexArray* vertexArrays ) {
@@ -164,6 +181,7 @@ void Platform::OpenGLVertexArrayBindVertexBuffer( VertexArray* vertexArray, Vert
     
     // if vertex array already has buffers
     if( vertexArray->vertexBufferCount > 0 ) {
+        vertexArray->totalVertexCount += buffer.vertexCount;
         usize previousCount = vertexArray->vertexBufferCount;
         vertexArray->vertexBufferCount++;
         VertexBuffer temp[vertexArray->vertexBufferCount];
@@ -180,6 +198,7 @@ void Platform::OpenGLVertexArrayBindVertexBuffer( VertexArray* vertexArray, Vert
     }
     // if vertex array does not yet have any buffers
     else {
+        vertexArray->totalVertexCount = buffer.vertexCount;
         vertexArray->buffers = (VertexBuffer*)Platform::Alloc( sizeof(VertexBuffer) );
         Platform::MemCopy( sizeof(VertexBuffer), &buffer, vertexArray->buffers );
         vertexArray->vertexBufferCount = 1;
@@ -208,7 +227,7 @@ Platform::UniformBuffer Platform::OpenGLCreateUniformBuffer( usize size, void* d
     );
     return result;
 }
-void Platform::OpenGLDeleteUniformBuffers( UniformBuffer* buffers, usize bufferCount ) {
+void Platform::OpenGLDeleteUniformBuffers( usize bufferCount, UniformBuffer* buffers ) {
     GLuint uniformBufferIDs[bufferCount];
     ucycles( bufferCount ) {
         uniformBufferIDs[i] = buffers[i].id;
@@ -304,9 +323,11 @@ Platform::Texture2D Platform::OpenGLCreateTexture2D(
     TextureMagFilter magFilter
 ) {
     Texture2D result = {};
-    result.data      = data;
     result.width     = width;
     result.height    = height;
+    usize dataSize   = result.width * result.height;
+    result.data      = (u8*)Platform::Alloc( result.width * result.height );
+    Platform::MemCopy( dataSize, data, result.data );
     result.format    = format;
     result.dataType  = dataType;
 
@@ -329,10 +350,13 @@ Platform::Texture2D Platform::OpenGLCreateTexture2D(
 
     return result;
 }
-void Platform::OpenGLDeleteTextures2D( Texture2D* textures, usize textureCount ) {
+void Platform::OpenGLDeleteTextures2D( usize textureCount, Texture2D* textures ) {
     GLuint textureIDs[textureCount];
     ucycles( textureCount ) {
         textureIDs[i] = textures[i].id;
+        if( textures[i].data ) {
+            Platform::Free( textures[i].data );
+        }
     }
     glDeleteTextures( textureCount, textureIDs );
 }
@@ -362,18 +386,20 @@ void Platform::OpenGLUniformMat4( Shader* shader, i32 uniform, smath::mat4* valu
     glProgramUniformMatrix4fv( shader->id, uniform, 1, GL_FALSE, value->valuePtr() );
 }
 bool Platform::OpenGLGetUniformID( Shader* shader, const char* uniformName, i32* result ) {
-    *result = glGetUniformLocation( shader->id, uniformName );
-    if( *result < 0 ) {
+    i32 id = 0;
+    id = glGetUniformLocation( shader->id, uniformName );
+    if( id < 0 ) {
         LOG_ERROR("OpenGL > Uniform \"%s\" could not be found!", uniformName );
         return false;
     } else {
+        *result = id;
         return true;
     }
 }
 void Platform::OpenGLUseShader( Shader* shader ) {
     glUseProgram( shader->id );
 }
-void Platform::OpenGLDeleteShaders( Shader* shaders, usize shaderCount ) {
+void Platform::OpenGLDeleteShaders( usize shaderCount, Shader* shaders ) {
     u32 ids[shaderCount];
     ucycles(shaderCount) {
         ids[i] = shaders[i].id;

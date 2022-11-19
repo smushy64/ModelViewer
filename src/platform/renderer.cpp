@@ -24,6 +24,7 @@ bool Platform::CreateOpenGLAPI( RendererAPI* api, OpenGLLoadProc loadProc ) {
     api->IsBlendingEnabled  = OpenGLIsBlendingEnabled;
     api->SetBlendFunction   = OpenGLSetBlendFunction;
     api->SetBlendEquation   = OpenGLSetBlendEquation;
+    api->DrawVertexArray    = OpenGLDrawVertexArray;
 
     // NOTE(alicia): Shader
 
@@ -43,6 +44,7 @@ bool Platform::CreateOpenGLAPI( RendererAPI* api, OpenGLLoadProc loadProc ) {
     // NOTE(alicia): Texture2D
 
     api->CreateTexture2D      = OpenGLCreateTexture2D;
+    api->DeleteTextures2D     = OpenGLDeleteTextures2D;
     api->UseTexture2D         = OpenGLUseTexture2D;
     api->SetTexture2DFilter   = OpenGLSetTexture2DFilter;
     api->SetTexture2DWrapMode = OpenGLSetTexture2DWrapMode;
@@ -213,7 +215,7 @@ usize Platform::DataStructureCount( DataStructure structure ) {
 
 VertexBufferLayout Platform::CreateVertexBufferLayout( usize elementCount, VertexBufferElement* elements ) {
     VertexBufferLayout result = {};
-    result.elementCount   = elementCount;
+    result.elementCount = elementCount;
 
     usize elementsSize = elementCount * sizeof( VertexBufferElement );
     result.elements = (VertexBufferElement*)Platform::Alloc( elementsSize );
@@ -222,12 +224,13 @@ VertexBufferLayout Platform::CreateVertexBufferLayout( usize elementCount, Verte
     result.elementOffsets = (usize*)Platform::Alloc( elementCount * sizeof( usize ) );
     result.stride = 0;
 
-
     ucycles( elementCount ) {
-        usize elementSize       = DataTypeSize(elements[i].dataType) * DataStructureCount(elements[i].structure);
+        usize elementSize = DataTypeSize(result.elements[i].dataType) *
+            DataStructureCount(result.elements[i].structure);
         result.elementOffsets[i] = result.stride;
         result.stride           += elementSize;
     }
+
     return result;
 }
 void Platform::FreeVertexBufferLayout( VertexBufferLayout* layout ) {

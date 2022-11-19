@@ -35,6 +35,7 @@ void OpenGLSetBlendingEnable( bool enable );
 bool OpenGLIsBlendingEnabled();
 void OpenGLSetBlendFunction( BlendFactor srcColor, BlendFactor dstColor, BlendFactor srcAlpha, BlendFactor dstAlpha );
 void OpenGLSetBlendEquation( BlendEq colorEq, BlendEq alphaEq );
+void OpenGLDrawVertexArray( VertexArray* vertexArray );
 
 // NOTE(alicia): shader
 
@@ -45,7 +46,7 @@ bool OpenGLCreateShader(
     usize fragmentLen,
     Shader* result
 );
-void OpenGLDeleteShaders( Shader* shaders, usize shaderCount );
+void OpenGLDeleteShaders( usize shaderCount, Shader* shaders );
 void OpenGLUseShader( Shader* shader );
 bool OpenGLGetUniformID( Shader* shader, const char* uniformName, i32* result );
 void OpenGLUniformFloat( Shader* shader, i32 uniform, f32 value );
@@ -70,7 +71,7 @@ Texture2D OpenGLCreateTexture2D(
     TextureMinFilter minFilter,
     TextureMagFilter magFilter
 );
-void OpenGLDeleteTextures2D( Texture2D* textures, usize textureCount );
+void OpenGLDeleteTextures2D( usize textureCount, Texture2D* textures );
 void OpenGLUseTexture2D( Texture2D* texture, u32 unit );
 void OpenGLSetTexture2DWrapMode( Texture2D* texture, TextureWrapMode wrapX, TextureWrapMode wrapY );
 void OpenGLSetTexture2DFilter( Texture2D* texture, TextureMinFilter minFilter, TextureMagFilter magFilter );
@@ -91,14 +92,14 @@ void OpenGLDeleteVertexBuffers( usize count, VertexBuffer* buffers );
 
 // NOTE(alicia): Index Buffer
 
-IndexBuffer OpenGLCreateIndexBuffer( usize bufferSize, void* indices, DataType indexDataType );
+IndexBuffer OpenGLCreateIndexBuffer( usize indexCount, void* indices, DataType indexDataType );
 void OpenGLUseIndexBuffer( IndexBuffer* buffer );
 void OpenGLDeleteIndexBuffers( usize count, IndexBuffer* buffers );
 
 // NOTE(alicia): Uniform Buffer
 
 UniformBuffer OpenGLCreateUniformBuffer( usize size, void* data );
-void OpenGLDeleteUniformBuffers( UniformBuffer* buffers, usize bufferCount );
+void OpenGLDeleteUniformBuffers( usize bufferCount, UniformBuffer* buffers );
 void OpenGLUniformBufferData(UniformBuffer* uniformBuffer, usize size, void* data);
 void OpenGLUniformBufferSubData(UniformBuffer* uniformBuffer, usize offset, usize size, void* data);
 void OpenGLUniformBufferSetBindingPoint(UniformBuffer* uniformBuffer, u32 bindingPoint);

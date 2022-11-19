@@ -13,6 +13,5 @@ uniform mat4 u_transform;
 
 void main() {
     gl_Position = u_viewProjection * u_transform * vec4(v_vertex.xy, 0.0, 1.0);
-    // flip v because stbtt loads it in flipped
     v2f.uv = vec2( v_vertex.z, 1.0 - v_vertex.w );
 }

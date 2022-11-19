@@ -5,6 +5,7 @@
 */
 #include "app.hpp"
 #include "util.hpp"
+
 using Platform::KeyCode;
 
 enum class TextAlignment {
@@ -33,26 +34,10 @@ void RenderText(
     Core::FontAtlas* fontAtlas,
     Core::AppContext* app
 );
-
-void Render( Core::AppContext* app ) {
-    app->rendererAPI.ClearBuffer();
-    app->rendererAPI.SwapBuffers();
-    return;
-
-    smath::vec2 textPos = smath::vec2::one() * 0.5f;
-    smath::vec4 textCol = smath::vec4::one();
-    RenderText(
-        "Hello World",
-        &textPos,
-        1.0f,
-        &textCol,
-        TextAlignment::LEFT_BOTTOM,
-        &app->defaultFontAtlas,
-        app
-    );
-}
+void Render( Core::AppContext* app );
 
 void Core::OnUpdate( AppContext* app ) {
+    static bool rendered = false;
     if( Platform::IsAppActive() ) {
         
         if( app->input.IsKeyDown( KeyCode::CTRL ) ) {
@@ -68,7 +53,10 @@ void Core::OnUpdate( AppContext* app ) {
         }
 
         Platform::ResetCursorStyle();
-        Render(app);
+        if(!rendered) {
+            Render(app);
+            rendered = true;
+        }
     }
 }
 
@@ -83,7 +71,7 @@ bool Core::OnInit( AppContext* app ) {
         app->defaultFontAtlas = {};
         if(Core::CreateFontAtlas(
             &openSansFile,
-            16.0f,
+            64.0f,
             512, 512,
             ' ', '~',
             &app->defaultFontAtlas
@@ -105,6 +93,8 @@ bool Core::OnInit( AppContext* app ) {
 }
 
 bool InitializeRenderContext( Core::AppContext* app ) {
+    Core::RenderContext*   ctx = &app->renderContext;
+    Platform::RendererAPI* api = &app->rendererAPI;
     Platform::File fontVertFile = {};
     if(!Platform::LoadFile( "./resources/shaders/font/font.glslVert", &fontVertFile )) {
         LOG_ERROR("App > Failed to load font vert file!");
@@ -117,31 +107,90 @@ bool InitializeRenderContext( Core::AppContext* app ) {
         return false;
     }
 
-    bool fontShaderResult = app->rendererAPI.CreateShader(
+    bool fontShaderResult = api->CreateShader(
         (char*)fontVertFile.data, fontVertFile.size,
         (char*)fontFragFile.data, fontFragFile.size,
-        &app->renderContext.fontShader
+        &ctx->fontShader
     );
     Platform::FreeFile( &fontVertFile );
     Platform::FreeFile( &fontFragFile );
 
-    if(!fontShaderResult) {
-        LOG_ERROR("App > Failed to compile font shader!");
+    Platform::File boundsVertFile = {};
+    if(!Platform::LoadFile( "./resources/shaders/bounds/bounds.glslVert", &boundsVertFile )) {
+        LOG_ERROR("App > Failed to load bounds vert file!");
+        return false;
+    }
+    Platform::File boundsFragFile = {};
+    if(!Platform::LoadFile( "./resources/shaders/bounds/bounds.glslFrag", &boundsFragFile )) {
+        LOG_ERROR("App > Failed to load bounds frag file!");
+        Platform::FreeFile( &boundsVertFile );
         return false;
     }
 
-    smath::mat4 iden = smath::mat4::identity();
-    app->renderContext.matrices2DBuffer = app->rendererAPI.CreateUniformBuffer(
-        sizeof( smath::mat4 ),
-        &iden
+    bool boundsShaderResult = api->CreateShader(
+        (char*)boundsVertFile.data, boundsVertFile.size,
+        (char*)boundsFragFile.data, boundsFragFile.size,
+        &ctx->boundsShader
     );
-    app->rendererAPI.UniformBufferSetBindingPoint(
-        &app->renderContext.matrices2DBuffer,
+    Platform::FreeFile( &boundsVertFile );
+    Platform::FreeFile( &boundsFragFile );
+
+    if(!boundsShaderResult) {
+        LOG_ERROR("App > Failed to compile bounds shader!");
+        return false;
+    }
+    if(!api->GetUniformID(
+        &ctx->fontShader,
+        "u_transform",
+        &ctx->fontShaderUniformTransform
+    )) {
+        return false;
+    }
+    if(!api->GetUniformID(
+        &ctx->fontShader,
+        "u_fontCoords",
+        &ctx->fontShaderUniformFontCoords
+    )) {
+        return false;
+    }
+    if(!api->GetUniformID(
+        &ctx->fontShader,
+        "u_color",
+        &ctx->fontShaderUniformColor
+    )) {
+        return false;
+    }
+    if(!api->GetUniformID(
+        &ctx->boundsShader,
+        "u_transform",
+        &ctx->boundsShaderUniformTransform
+    )) {
+        return false;
+    }
+    smath::vec4 defaultFontColor = smath::vec4::one();
+    api->UniformVec4(
+        &ctx->fontShader,
+        ctx->fontShaderUniformColor,
+        &defaultFontColor
+    );
+
+    smath::mat4 mat2d = smath::mat4::ortho(
+        0.0f,
+        (f32)app->windowDimensions.x,
+        0.0f,
+        (f32)app->windowDimensions.y
+    );
+    ctx->matrices2DBuffer = api->CreateUniformBuffer(
+        sizeof( smath::mat4 ),
+        mat2d.valuePtr()
+    );
+    api->UniformBufferSetBindingPoint(
+        &ctx->matrices2DBuffer,
         RENDERER_2D_MATRICES_BINDING_POINT
     );
 
-    app->rendererAPI.SetUnPackAlignment( RENDERER_PACK_ALIGNMENT_1 );
-    app->renderContext.fontAtlasTexture = app->rendererAPI.CreateTexture2D(
+    api->SetUnPackAlignment( RENDERER_PACK_ALIGNMENT_1 );
+    ctx->fontAtlasTexture = api->CreateTexture2D(
         app->defaultFontAtlas.width,
         app->defaultFontAtlas.height,
         app->defaultFontAtlas.bitmap,
@@ -152,34 +201,102 @@ bool InitializeRenderContext( Core::AppContext* app ) {
         Platform::TextureMinFilter::LINEAR,
         Platform::TextureMagFilter::LINEAR
     );
-    app->rendererAPI.SetUnPackAlignment( RENDERER_PACK_ALIGNMENT_DEFAULT );
+    api->SetUnPackAlignment( RENDERER_PACK_ALIGNMENT_DEFAULT );
 
     Platform::Free( app->defaultFontAtlas.bitmap );
+    app->defaultFontAtlas.bitmap = nullptr;
 
-    app->rendererAPI.GetUniformID(
-        &app->renderContext.fontShader,
-        "u_color",
-        &app->renderContext.fontShaderUniformColor
+    f32 fontVertices[] = {
+        /*POSITION*/ 0.0f, 1.0f, /*UV*/ 0.0f, 1.0f,
+        /*POSITION*/ 1.0f, 1.0f, /*UV*/ 1.0f, 1.0f,
+        /*POSITION*/ 0.0f, 0.0f, /*UV*/ 0.0f, 0.0f,
+        /*POSITION*/ 1.0f, 0.0f, /*UV*/ 1.0f, 0.0f
+    };
+    const usize FONT_VERTEX_COUNT = 16;
+    u16 fontIndices[] = {
+        2, 1, 0,
+        1, 2, 3
+    };
+    const usize FONT_INDEX_COUNT = 6;
+
+    ctx->fontVertexArray = api->CreateVertexArray();
+    api->UseVertexArray( &ctx->fontVertexArray );
+
+    Platform::VertexBufferElement fontVertexElements[] = {
+        { Platform::DataStructure::VEC4, Platform::DataType::FLOAT, false }
+    };
+    const usize FONT_VERTEX_ELEMENTS = 1;
+    Platform::VertexBufferLayout fontVertexLayout = Platform::CreateVertexBufferLayout(
+        FONT_VERTEX_ELEMENTS,
+        fontVertexElements
     );
 
-    Platform::VertexArray va  = app->rendererAPI.CreateVertexArray();
-    f32 vertices[] = {
-        0.5f, 0.0f, -0.5f,
-        0.5f, 0.0f, -0.5f,
+    Platform::VertexBuffer fontVertexBuffer = api->CreateVertexBuffer(
+        FONT_VERTEX_COUNT * sizeof(f32),
+        &fontVertices,
+        fontVertexLayout
+    );
+    api->VertexArrayBindVertexBuffer(
+        &ctx->fontVertexArray,
+        fontVertexBuffer
+    );
+
+    Platform::IndexBuffer fontIndexBuffer = api->CreateIndexBuffer(
+        FONT_INDEX_COUNT,
+        fontIndices,
+        Platform::DataType::UNSIGNED_SHORT
+    );
+    api->VertexArrayBindIndexBuffer(
+        &ctx->fontVertexArray,
+        fontIndexBuffer
+    );
+
+    // NOTE(alicia): bounds mesh
+
+    f32 boundsVertices[] = {
+        /*POSITION*/ 0.0f, 1.0f,
+        /*POSITION*/ 1.0f, 1.0f,
+        /*POSITION*/ 0.0f, 0.0f,
+        /*POSITION*/ 1.0f, 0.0f
     };
-    Platform::VertexBufferElement elements[] = {
-        { Platform::DataStructure::VEC3, Platform::DataType::FLOAT, false }
+    const usize BOUNDS_VERTEX_COUNT = 8;
+    u16 boundsIndices[] = {
+        2, 1, 0,
+        1, 2, 3
     };
-    Platform::VertexBufferLayout layout = Platform::CreateVertexBufferLayout( 1, elements );
-    Platform::VertexBuffer vb = app->rendererAPI.CreateVertexBuffer( 6ULL * sizeof(f32), &vertices, layout );
-    app->rendererAPI.VertexArrayBindVertexBuffer( &va, vb );
+    const usize BOUNDS_INDEX_COUNT = 6;
 
-    u32 indices[] = { 0, 1 };
-    Platform::IndexBuffer ib = app->rendererAPI.CreateIndexBuffer( 2ULL * sizeof(u32), indices, Platform::DataType::UNSIGNED_INT );
-    app->rendererAPI.VertexArrayBindIndexBuffer( &va, ib );
+    ctx->boundsVertexArray = api->CreateVertexArray();
+    api->UseVertexArray( &ctx->boundsVertexArray );
 
-    app->rendererAPI.DeleteVertexArrays( 1, &va );
+    Platform::VertexBufferElement boundsVertexElements[] = {
+        { Platform::DataStructure::VEC2, Platform::DataType::FLOAT, false }
+    };
+    const usize BOUNDS_VERTEX_ELEMENTS = 1;
+    Platform::VertexBufferLayout boundsVertexLayout = Platform::CreateVertexBufferLayout(
+        BOUNDS_VERTEX_ELEMENTS,
+        boundsVertexElements
+    );
 
+    Platform::VertexBuffer boundsVertexBuffer = api->CreateVertexBuffer(
+        BOUNDS_VERTEX_COUNT * sizeof(f32),
+        &boundsVertices,
+        boundsVertexLayout
+    );
+    api->VertexArrayBindVertexBuffer(
+        &ctx->boundsVertexArray,
+        boundsVertexBuffer
+    );
+
+    Platform::IndexBuffer boundsIndexBuffer = api->CreateIndexBuffer(
+        BOUNDS_INDEX_COUNT,
+        boundsIndices,
+        Platform::DataType::UNSIGNED_SHORT
+    );
+    api->VertexArrayBindIndexBuffer(
+        &ctx->boundsVertexArray,
+        boundsIndexBuffer
+    );
 
     return true;
 }
@@ -192,18 +309,49 @@ void Core::OnClose( AppContext* app ) {
     app->isRunning = false;
     Core::FreeFontAtlas( &app->defaultFontAtlas );
     app->rendererAPI.DeleteTextures2D(
-        &app->renderContext.fontAtlasTexture,
-        RENDER_CONTEXT_TEXTURE_COUNT
+        RENDER_CONTEXT_TEXTURE_COUNT,
+        &app->renderContext.fontAtlasTexture
     );
     app->rendererAPI.DeleteShaders(
-        &app->renderContext.fontShader,
-        RENDER_CONTEXT_SHADER_COUNT
+        RENDER_CONTEXT_SHADER_COUNT,
+        &app->renderContext.fontShader
     );
     app->rendererAPI.DeleteUniformBuffers(
-        &app->renderContext.matrices2DBuffer,
-        RENDER_CONTEXT_UNIFORM_BUFFER_COUNT
+        RENDER_CONTEXT_UNIFORM_BUFFER_COUNT,
+        &app->renderContext.matrices2DBuffer
+    );
+    app->rendererAPI.DeleteVertexArrays(
+        RENDER_CONTEXT_VERTEX_ARRAY_COUNT,
+        &app->renderContext.fontVertexArray
     );
 }
+
+void Render( Core::AppContext* app ) {
+    app->rendererAPI.ClearBuffer();
+
+    smath::vec2 textPos = smath::vec2::one() * 0.5f;
+    smath::vec4 textCol = smath::vec4::one();
+    RenderText(
+        "Hello World",
+        &textPos,
+        1.0f,
+        &textCol,
+        TextAlignment::CENTER_CENTER,
+        &app->defaultFontAtlas,
+        app
+    );
+
+    app->rendererAPI.SwapBuffers();
+}
+
+void RenderCharacter(
+    Platform::RendererAPI* api,
+    Core::RenderContext* ctx,
+    Core::FontMetrics* charMetrics,
+    smath::vec2* charPosition,
+    smath::vec2* pixelPosition,
+    f32 scale
+);
 
 void RenderText(
     const char* text,
@@ -214,13 +362,8 @@ void RenderText(
     Core::FontAtlas* fontAtlas,
     Core::AppContext* app
 ) {
-    UNUSED_PARAM(text);
-    UNUSED_PARAM(screenPos);
-    UNUSED_PARAM(scale);
-    UNUSED_PARAM(color);
-    UNUSED_PARAM(alignment);
-    UNUSED_PARAM(fontAtlas);
-    UNUSED_PARAM(app);
+    usize textLen = stringLen( text );
+
     Platform::RendererAPI* api = &app->rendererAPI;
     Core::RenderContext* ctx   = &app->renderContext;
 
@@ -238,12 +381,128 @@ void RenderText(
         ctx->fontShaderUniformColor,
         color
     );
+    api->UseTexture2D(
+        &ctx->fontAtlasTexture,
+        RENDER_CONTEXT_FONT_TEXTURE_UNIT
+    );
+    api->UseVertexArray( &ctx->fontVertexArray );
+
+    smath::vec2 pixelPosition = smath::vec2(
+        screenPos->x * (f32)app->windowDimensions.x,
+        screenPos->y * (f32)app->windowDimensions.y
+    );
+
+    f32 originX = pixelPosition.x;
+    f32 yOffset = 0.0f;
+    f32 textWidth = 0.0f;
+    ucycles( textLen ) {
+        char currentChar = text[i];
+        Core::FontMetrics* charMetrics = fontAtlas->metrics.get( currentChar );
+        if( !charMetrics ) {
+            LOG_WARN("App > Character \'%c\' not found in font \"%s\"!",
+                currentChar, fontAtlas->fontName
+            );
+            continue;
+        }
+        textWidth += charMetrics->advance * scale;
+    }
+    switch( alignment ) {
+        case TextAlignment::CENTER_CENTER:
+        case TextAlignment::CENTER_TOP:
+        case TextAlignment::CENTER_BOTTOM: {
+            originX -= textWidth / 2.0f;
+        } break;
+        case TextAlignment::RIGHT_CENTER:
+        case TextAlignment::RIGHT_TOP:
+        case TextAlignment::RIGHT_BOTTOM: {
+            originX -= textWidth;
+        } break;
+        default: break;
+    }
+
+    switch( alignment ) {
+        case TextAlignment::LEFT_CENTER:
+        case TextAlignment::CENTER_CENTER:
+        case TextAlignment::RIGHT_CENTER: {
+            yOffset = -( ( fontAtlas->pointSize / 2.0f ) * scale );
+        } break;
+        case TextAlignment::LEFT_TOP:
+        case TextAlignment::CENTER_TOP:
+        case TextAlignment::RIGHT_TOP: {
+            yOffset = -( fontAtlas->pointSize * scale );
+        } break;
+        default: break;
+    }
+
+    ucycles( textLen ) {
+        char currentChar = text[i];
+        Core::FontMetrics* charMetrics = fontAtlas->metrics.get( currentChar );
+        if( !charMetrics ) {
+            LOG_WARN("App > Character \'%c\' not found in font \"%s\"!",
+                currentChar, fontAtlas->fontName
+            );
+            continue;
+        }
+        smath::vec2 charPosition = smath::vec2( originX, yOffset );
+        RenderCharacter(
+            api, ctx,
+            charMetrics,
+            &charPosition,
+            &pixelPosition,
+            scale
+        );
+        originX += charMetrics->advance * scale;
+    }
+
+    api->SetBlendingEnable( false );
+}
+
+void RenderCharacter(
+    Platform::RendererAPI* api,
+    Core::RenderContext* ctx,
+    Core::FontMetrics* charMetrics,
+    smath::vec2* charPosition,
+    smath::vec2* pixelPosition,
+    f32 scale
+) {
+    smath::vec3 characterScale = smath::vec3( charMetrics->width, charMetrics->height, 0.0f ) * scale;
+    smath::vec3 characterTranslate = smath::vec3(
+        charPosition->x + ( (f32)charMetrics->leftBearing * scale ),
+        ( pixelPosition->y + charPosition->y ) - ( (f32)charMetrics->topBearing * scale ),
+        0.0f
+    );
+
+    smath::mat4 transform; {
+        smath::mat4 translate = smath::mat4::translate( characterTranslate );
+        smath::mat4 scale     = smath::mat4::scale( characterScale );
+        transform = translate * scale;
+    };
+
+    api->UniformMat4(
+        &ctx->fontShader,
+        ctx->fontShaderUniformTransform,
+        &transform
+    );
+    smath::vec4 fontCoords = smath::vec4(
+        charMetrics->atlasX,
+        charMetrics->atlasY,
+        charMetrics->atlasW,
+        charMetrics->atlasH
+    );
+    api->UniformVec4(
+        &ctx->fontShader,
+        ctx->fontShaderUniformFontCoords,
+        &fontCoords
+    );
+    api->DrawVertexArray( &ctx->fontVertexArray );
+
 }
 
 void Core::OnResolutionUpdate( AppContext* app, i32 width, i32 height ) {
     if(!app->isRunning) {
         return;
     }
+
     app->rendererAPI.SetViewport( width, height );
     app->windowDimensions.x = width;
     app->windowDimensions.y = height;

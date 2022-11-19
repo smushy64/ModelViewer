@@ -4,7 +4,7 @@ in struct {
     vec2 uv;
 } v2f;
 
-uniform sampler2D u_texture;
+uniform layout(binding = 0) sampler2D u_texture;
 uniform vec4      u_color;
 uniform vec4      u_fontCoords;
 
@@ -16,6 +16,5 @@ void main() {
     );
 
     float alpha = texture(u_texture, atlasCoord).r;
-
     FRAG_COLOR = vec4(u_color.rgb, u_color.a * alpha);
 }

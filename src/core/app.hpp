@@ -40,17 +40,27 @@ struct Input {
 
 #define RENDERER_2D_MATRICES_BINDING_POINT 0
 
+#define RENDER_CONTEXT_FONT_TEXTURE_UNIT 0
 #define RENDER_CONTEXT_TEXTURE_COUNT 1
-#define RENDER_CONTEXT_SHADER_COUNT 1
+#define RENDER_CONTEXT_SHADER_COUNT 2
 #define RENDER_CONTEXT_UNIFORM_BUFFER_COUNT 1
+#define RENDER_CONTEXT_VERTEX_ARRAY_COUNT 2
 struct RenderContext {
     Platform::Texture2D fontAtlasTexture;
 
-    Platform::Shader   fontShader;
+    Platform::Shader fontShader;
+    Platform::Shader boundsShader;
 
     Platform::UniformBuffer matrices2DBuffer;
 
+    Platform::VertexArray fontVertexArray;
+    Platform::VertexArray boundsVertexArray;
+
+    i32 fontShaderUniformTransform;
+    i32 fontShaderUniformFontCoords;
     i32 fontShaderUniformColor;
+
+    i32 boundsShaderUniformTransform;
 };
 
 struct AppContext {

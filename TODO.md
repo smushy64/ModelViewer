@@ -14,6 +14,8 @@
 - Other model formats
 
 ### Refactor 2
+- [x] Quad is not drawing properly? 
+  - Not sure why but index order was what was causing it. I copied the same meshes from before the refactor so that shouldn't have been the problem but anyway, it's solved now.
 - [x] Review every call to "strLen"
   - It reports the string length up to but not including the null-terminator
   - Also rewrite strcopy so that it respects the bounds of the str ( non-inclusive maxDstLen )
@@ -41,6 +43,8 @@
   - [x] Index Buffers
   - [x] Uniform Buffers
   - [x] Texture2D
+  - [x] Draw Elements
+  - [x] Draw Array
 - [x] Math library
   - [x] vec2
     - [x] magnitude
@@ -120,10 +124,11 @@
   - [x] Load File
   - [x] User Load File
   - [x] Write File
-- [ ] Text Rendering
+- [ ] Custom list class
+- [x] Text Rendering
   - [x] Load font
-  - [ ] Load font atlas on GPU
-  - [ ] Render text
+  - [x] Load font atlas on GPU
+  - [x] Render text
 - [x] expand math templates
 
 ### Normal Map Support + Fixes and Tweaks - Completed 11/2/2022

@@ -36,10 +36,26 @@ void CenterCursor( HWND window ) {
 i32 APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE, PSTR, i32 ) {
     INIT_CONSOLE();
 
+    usize windowTitleLen = Core::PROGRAM_TITLE_LEN + 20;
+    char windowTitle[windowTitleLen];
+    stringCopy(
+        Core::PROGRAM_TITLE_LEN,
+        Core::PROGRAM_TITLE,
+        windowTitleLen,
+        windowTitle
+    );
 #if DEBUG
-    const char* windowTitle = "Model Viewer 2.0 | DEBUG";
-#else
-    const char* windowTitle = "Model Viewer 2.0";
+
+    const char* debugTitleAppend = "| DEBUG";
+    stringConcat(
+        Core::PROGRAM_TITLE_LEN,
+        Core::PROGRAM_TITLE,
+        stringLen( debugTitleAppend ) + 1,
+        debugTitleAppend,
+        windowTitleLen,
+        windowTitle
+    );
+
 #endif
 
     // TODO(alicia): parse settings
@@ -96,6 +112,7 @@ i32 APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE, PSTR, i32 ) {
         return ERROR_RETURN_CODE;
     }
     u64 startTime = WinGetTime();
+    DESIRED_CURSOR_STYLE = Platform::CursorStyle::ARROW;
     while( app.isRunning ) {
         f32 elapsedTime = (f32)(WinGetTime() - startTime) / (f32)perfFrequency;
         app.time.deltaTime = elapsedTime - app.time.elapsedTime;
@@ -189,6 +206,7 @@ LRESULT WinWindowProc( HWND window, UINT message, WPARAM wParam, LPARAM lParam )
     LRESULT result = TRUE;
     switch( message ) {
         case WM_CLOSE: {
+            APP_ACTIVE = false;
             Core::OnClose( appContext );
         } break;
         case WM_WINDOWPOSCHANGED: {
@@ -490,8 +508,8 @@ void Platform::SetCursorStyle( CursorStyle style ) {
     if( CURSOR_STYLE == style ) {
         return;
     }
-    SetCursor( LoadCursor( nullptr, WinCursorStyle( style ) ) );
     CURSOR_STYLE = style;
+    SetCursor( LoadCursor( nullptr, WinCursorStyle( style ) ) );
 }
 void Platform::ResetCursorStyle() {
     SetCursorStyle( DESIRED_CURSOR_STYLE );
@@ -816,6 +834,13 @@ Platform::KeyCode VKCodeToKeyCode( u32 VKCode ) {
         case VK_MENU:      return KeyCode::ALT;
         default:           return KeyCode::UNKNOWN;
     }
+}
+
+u64 Platform::GetSystemTime() {
+    FILETIME fileTime = {};
+    GetSystemTimeAsFileTime( &fileTime );
+    u64 fileTime64 = (u64)fileTime.dwHighDateTime << 32 | (u64)fileTime.dwLowDateTime << 0;
+    return fileTime64;
 }
 
 #endif

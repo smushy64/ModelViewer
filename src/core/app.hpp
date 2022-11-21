@@ -11,6 +11,15 @@
 
 namespace Core {
 
+// forward declarations
+enum class Anchor;
+enum class ButtonState;
+typedef void (*ButtonCallbackFN)(void* params);
+class UserInterface;
+
+inline const char* PROGRAM_TITLE     = "Model Viewer | Version 0.2 ";
+inline const usize PROGRAM_TITLE_LEN = 27;
+
 struct Time {
     f32 elapsedTime;
     f32 deltaTime;
@@ -61,9 +70,12 @@ struct RenderContext {
     i32 fontShaderUniformColor;
 
     i32 boundsShaderUniformTransform;
+
+    smath::ivec2 viewport;
 };
 
 struct AppContext {
+    UserInterface* ui;
     bool isRunning;
     Time time;
     Platform::RendererAPI rendererAPI;

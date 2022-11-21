@@ -36,6 +36,7 @@ bool OpenGLIsBlendingEnabled();
 void OpenGLSetBlendFunction( BlendFactor srcColor, BlendFactor dstColor, BlendFactor srcAlpha, BlendFactor dstAlpha );
 void OpenGLSetBlendEquation( BlendEq colorEq, BlendEq alphaEq );
 void OpenGLDrawVertexArray( VertexArray* vertexArray );
+void OpenGLSetWireframeEnabled( bool enabled );
 
 // NOTE(alicia): shader
 

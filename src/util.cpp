@@ -92,6 +92,7 @@ void stringConcat(
     usize dstLen, char* dst
 ) {
     usize nullPosition = dstLen - 1;
+    usize targetLen = srcALen + srcBLen;
 
     for( usize i = 0; i < srcALen; ++i ) {
         if( i >= dstLen ) {
@@ -100,7 +101,7 @@ void stringConcat(
         }
         dst[i] = srcA[i];
     }
-    for( usize i = srcALen; i < srcBLen; ++i ) {
+    for( usize i = srcALen; i < targetLen; ++i ) {
         if( i >= dstLen ) {
             dst[nullPosition] = '\0';
             return;
@@ -122,6 +123,7 @@ void stringConcat(
     usize dstLen, wchar_t* dst
 ) {
     usize nullPosition = dstLen - 1;
+    usize targetLen = srcALen + srcBLen;
 
     for( usize i = 0; i < srcALen; ++i ) {
         if( i >= dstLen ) {
@@ -130,7 +132,7 @@ void stringConcat(
         }
         dst[i] = srcA[i];
     }
-    for( usize i = srcALen; i < srcBLen; ++i ) {
+    for( usize i = srcALen; i < targetLen; ++i ) {
         if( i >= dstLen ) {
             dst[nullPosition] = '\0';
             return;

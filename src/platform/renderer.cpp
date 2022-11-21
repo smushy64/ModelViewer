@@ -14,17 +14,18 @@ bool Platform::CreateOpenGLAPI( RendererAPI* api, OpenGLLoadProc loadProc ) {
         return false;
     }
 
-    api->Initialize         = OpenGLInitialize;
-    api->ClearBuffer        = OpenGLClearBuffer;
-    api->SetClearColor      = OpenGLSetClearColor;
-    api->SetViewport        = OpenGLSetViewport;
-    api->SetPackAlignment   = OpenGLSetPackAlignment;
-    api->SetUnPackAlignment = OpenGLSetUnPackAlignment;
-    api->SetBlendingEnable  = OpenGLSetBlendingEnable;
-    api->IsBlendingEnabled  = OpenGLIsBlendingEnabled;
-    api->SetBlendFunction   = OpenGLSetBlendFunction;
-    api->SetBlendEquation   = OpenGLSetBlendEquation;
-    api->DrawVertexArray    = OpenGLDrawVertexArray;
+    api->Initialize          = OpenGLInitialize;
+    api->ClearBuffer         = OpenGLClearBuffer;
+    api->SetClearColor       = OpenGLSetClearColor;
+    api->SetViewport         = OpenGLSetViewport;
+    api->SetPackAlignment    = OpenGLSetPackAlignment;
+    api->SetUnPackAlignment  = OpenGLSetUnPackAlignment;
+    api->SetBlendingEnable   = OpenGLSetBlendingEnable;
+    api->IsBlendingEnabled   = OpenGLIsBlendingEnabled;
+    api->SetBlendFunction    = OpenGLSetBlendFunction;
+    api->SetBlendEquation    = OpenGLSetBlendEquation;
+    api->DrawVertexArray     = OpenGLDrawVertexArray;
+    api->SetWireframeEnabled = OpenGLSetWireframeEnabled;
 
     // NOTE(alicia): Shader
 

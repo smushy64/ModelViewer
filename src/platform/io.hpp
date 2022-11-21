@@ -12,6 +12,9 @@ namespace Platform {
 /// @param append string to append
 void AppendToWindowTitle( const char* append, usize appendLen );
 
+/// @brief Get system time 
+u64 GetSystemTime();
+
 /// @brief Allocate memory in the heap
 /// @param size amount to alloc
 /// @return Pointer to memory

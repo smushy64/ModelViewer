@@ -183,6 +183,7 @@ typedef bool (*IsBlendingEnabledFN)();
 typedef void (*SetBlendFunctionFN)( BlendFactor srcColor, BlendFactor dstColor, BlendFactor srcAlpha, BlendFactor dstAlpha );
 typedef void (*SetBlendEquationFN)( BlendEq colorEq, BlendEq alphaEq );
 typedef void (*DrawVertexArrayFN)( VertexArray* vertexArray );
+typedef void (*SetWireframeEnabledFN)( bool enabled );
 
 // NOTE(alicia): Vertex Array
 typedef VertexArray (*CreateVertexArrayFN)();
@@ -283,6 +284,8 @@ struct RendererAPI {
     /// If vertex array has an index buffer, draw indexed triangles, else draw contiguous vertices.
     /// @param vertexArray [VertexArray*] vertex array to draw
     DrawVertexArrayFN DrawVertexArray;
+    /// @brief Set wireframe mode enabled or disabled
+    SetWireframeEnabledFN SetWireframeEnabled;
 
     /// @brief Create new vertex array 
     CreateVertexArrayFN CreateVertexArray;

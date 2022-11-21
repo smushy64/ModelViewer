@@ -40,7 +40,7 @@ struct FontMap {
     /// @brief Retrieve a FontMetrics struct from the map
     /// @param key key to search for
     /// @return pointer to font metrics, null if not found
-    FontMetrics* get( char key );
+    FontMetrics* get( char key ) const;
 };
 
 struct FontAtlas {

@@ -21,6 +21,10 @@ GLenum DataTypeToGLenum( Platform::DataType format );
 GLenum BlendFactorToGLenum( Platform::BlendFactor factor );
 GLenum BlendEqToGLenum( Platform::BlendEq eq );
 
+void Platform::OpenGLSetWireframeEnabled( bool enabled ) {
+    glPolygonMode( GL_FRONT_AND_BACK, enabled ? GL_LINE : GL_FILL );
+}
+
 void Platform::OpenGLDrawVertexArray( VertexArray* vertexArray ) {
     if( vertexArray->indexBuffer ) {
         glDrawElements(

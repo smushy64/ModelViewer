@@ -12,6 +12,23 @@
 
 namespace smath {
 
+    inline i64 randi( i64 seed ) {
+        // linear congruential generator :)
+        // i need to do more research on rng's
+
+        i64 a = 122;
+        i64 m = 6454;
+        i64 b = 455;
+
+        static i64 inc = 0;
+
+        i64 result = (a * seed + inc) % m;
+
+        inc = (inc + b) % m;
+
+        return result;
+    }
+
     f32 absf( const f32& value );
 
     /// @brief Floating-point square root

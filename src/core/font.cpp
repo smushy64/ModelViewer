@@ -186,7 +186,7 @@ bool Core::CreateFontAtlas(
     return true;
 }
 
-Core::FontMetrics* Core::FontMap::get( char key) {
+Core::FontMetrics* Core::FontMap::get( char key) const {
     ucycles( count ) {
         if( map[i].key == key ) {
             return &map[i].metrics;

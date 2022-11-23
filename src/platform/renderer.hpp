@@ -72,6 +72,7 @@ enum class TextureFormat {
     R, RG, RGB, RGBA
 };
 const char* TextureFormatToString( TextureFormat format );
+usize TextureFormatComponentCount( Platform::TextureFormat format );
 enum class TextureWrapMode {
     CLAMP,
     REPEAT,
@@ -97,27 +98,20 @@ const char* TextureMinFilterToString( TextureMinFilter minFilter );
 struct Texture2D {
     i32 width;
     i32 height;
+    u32              id;
     DataType         dataType;
     TextureFormat    format;
     TextureWrapMode  wrapModeX;
     TextureWrapMode  wrapModeY;
     TextureMagFilter magFilter;
     TextureMinFilter minFilter;
+    usize            dataSize;
     u8* data;
-    u32 id;
 };
 
 struct UniformBuffer {
     usize size;
     u32 id;
-};
-
-struct Vertex {
-    smath::vec3 position;
-    smath::vec2 uv;
-    smath::vec3 normal;
-    smath::vec3 tangent;
-    smath::vec4 bitangent;
 };
 
 struct IndexBuffer {
@@ -231,7 +225,7 @@ typedef void (*UniformMat4FN)( Shader* shader, i32 uniform, smath::mat4* value )
 typedef Texture2D (*CreateTexture2DFN)(
     i32 width,
     i32 height,
-    u8* data,
+    void* data,
     TextureFormat format,
     DataType dataType,
     TextureWrapMode wrapX,
@@ -429,7 +423,7 @@ struct RendererAPI {
     /// @brief Create texture 2D
     /// @param width [i32] texture width
     /// @param height [i32] texture height
-    /// @param data [u8*] texture data
+    /// @param data [void*] texture data
     /// @param format [TextureFormat] data format
     /// @param dataType [Type] data type
     /// @param wrapX [TextureWrapMode] wrap mode on x-axis

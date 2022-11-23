@@ -6,6 +6,8 @@
 #include "app.hpp"
 #include "util.hpp"
 #include "ui.hpp"
+#include "image.hpp"
+#include "obj.hpp"
 
 using Platform::KeyCode;
 
@@ -16,21 +18,40 @@ void LoadSpecular( void* app );
 bool InitializeRenderContext( Core::AppContext* app );
 
 void Render( Core::AppContext* app ) {
-    app->rendererAPI.ClearBuffer();
 
-    app->ui->renderInterface(
-        &app->rendererAPI,
-        &app->renderContext
+    Platform::RendererAPI* api = &app->rendererAPI;
+    Core::RenderContext*   ctx = &app->renderContext;
+
+    ctx->camera.recalculateView();
+
+    api->UniformBufferData(
+        &ctx->matrices3DBuffer,
+        sizeof( smath::mat4 ) * ctx->camera.matrixCount(),
+        ctx->camera.matrices()
     );
 
-    // RenderUI(
-    //     &app->ui,
-    //     &app->windowDimensions,
-    //     &app->rendererAPI,
-    //     &app->renderContext
-    // );
+    api->UniformBufferSubData(
+        &ctx->dataBuffer,
+        0,
+        sizeof( smath::vec3 ),
+        ctx->camera.position.valuePtr()
+    );
 
-    app->rendererAPI.SwapBuffers();
+    api->ClearBuffer();
+
+    api->UseShader( &ctx->blinnPhongShader );
+    api->UseTexture2D( &ctx->modelAlbedoTexture, RENDER_CONTEXT_ALBEDO_TEXTURE_UNIT );
+    api->UseTexture2D( &ctx->modelSpecularTexture, RENDER_CONTEXT_SPECULAR_TEXTURE_UNIT );
+    api->UseTexture2D( &ctx->modelNormalTexture, RENDER_CONTEXT_NORMAL_TEXTURE_UNIT );
+
+    api->UseVertexArray( &ctx->modelVertexArray );
+    api->DrawVertexArray( &ctx->modelVertexArray );
+
+    api->SetBlendingEnable( true );
+    app->ui->renderInterface( api, ctx );
+    api->SetBlendingEnable( false );
+
+    api->SwapBuffers();
 }
 
 void Core::OnUpdate( AppContext* app ) {
@@ -49,8 +70,104 @@ void Core::OnUpdate( AppContext* app ) {
             }
         }
 
-        app->ui->updateInterface( &app->input );
+        Core::camera* camera = &app->renderContext.camera;
+        smath::vec2* eulerCameraRotation = &app->renderContext.eulerCameraRotation;
+        smath::vec3* targetCameraPosition = &app->renderContext.targetCameraPosition;
+        smath::quat* targetCameraRotation = &app->renderContext.targetCameraRotation;
 
+        if( app->input.rightMouse ) {
+            Platform::SetCursorLocked( true );
+            smath::vec2 lateral = smath::vec2(0.0f);
+            f32 vertical = 0.0f;
+            if( app->input.IsKeyDown( KeyCode::W ) ) {
+                lateral.y = 1.0f;
+            } else if( app->input.IsKeyDown( KeyCode::S ) ) {
+                lateral.y = -1.0f;
+            }
+
+            if( app->input.IsKeyDown( KeyCode::A ) ) {
+                lateral.x = 1.0f;
+            } else if( app->input.IsKeyDown( KeyCode::D ) ) {
+                lateral.x = -1.0f;
+            }
+
+            if( app->input.IsKeyDown( KeyCode::E ) ) {
+                vertical = 1.0f;
+            } else if( app->input.IsKeyDown( KeyCode::Q ) ) {
+                vertical = -1.0f;
+            }
+
+            smath::vec2::normalize( lateral );
+
+            smath::vec3 movement =
+                (lateral.x * camera->right) +
+                (vertical * smath::vec3::up()) +
+                (lateral.y * camera->forward);
+
+            *targetCameraPosition += movement * app->time.deltaTime;
+
+            smath::vec2 deltaMouse = app->input.screenMousePos - app->input.lastScreenMousePos;
+            deltaMouse *= app->time.deltaTime * CAMERA_SENSITIVITY;
+            
+            *eulerCameraRotation -= deltaMouse;
+            eulerCameraRotation->y = smath::clamp(
+                eulerCameraRotation->y,
+                -MAX_CAMERA_Y_ROTATION,
+                MAX_CAMERA_Y_ROTATION
+            );
+
+            smath::quat xRot = smath::quat::angleAxis( eulerCameraRotation->x, smath::vec3::up() );
+            smath::quat yRot = smath::quat::angleAxis( eulerCameraRotation->y, camera->right );
+
+            *targetCameraRotation = yRot * xRot;
+
+        } else {
+            Platform::SetCursorLocked( false );
+            app->ui->updateInterface( &app->input );
+            if( app->input.IsKeyDown( KeyCode::R ) ) {
+                *targetCameraPosition = DEFAULT_CAMERA_POSITION;
+                *targetCameraRotation = DEFAULT_CAMERA_ROTATION;
+                *eulerCameraRotation  = DEFAULT_CAMERA_EROTATION;
+            }
+        }
+        f32 t = app->time.deltaTime * CAMERA_LERP_SPEED;
+        camera->rotation = smath::lerp(
+            camera->rotation,
+            *targetCameraRotation,
+            t
+        );
+        camera->position = smath::lerp(
+            camera->position,
+            *targetCameraPosition,
+            t
+        );
+
+        f32 lastFOVDelta = app->renderContext.cameraFOVDelta;
+        app->renderContext.cameraFOVDelta -= (f32)app->input.mouseWheel * app->time.deltaTime * CAMERA_ZOOM_SPEED;
+        if( app->input.middleMouse ) {
+            app->renderContext.cameraFOVDelta = 0.0f;
+        }
+
+        app->renderContext.cameraTargetFOV = CAMERA_FOV + app->renderContext.cameraFOVDelta;
+        if( app->renderContext.cameraTargetFOV > CAMERA_MAX_FOV ) {
+            app->renderContext.cameraTargetFOV = CAMERA_MAX_FOV;
+            app->renderContext.cameraFOVDelta = lastFOVDelta;
+        } else if( app->renderContext.cameraTargetFOV < CAMERA_MIN_FOV ) {
+            app->renderContext.cameraTargetFOV = CAMERA_MIN_FOV;
+            app->renderContext.cameraFOVDelta = lastFOVDelta;
+        }
+
+        f32 lastFOV = camera->fovRad;
+        camera->fovRad = smath::lerp(
+            camera->fovRad,
+            app->renderContext.cameraTargetFOV,
+            app->time.deltaTime * CAMERA_ZOOM_LERP_SPEED
+        );
+        if( lastFOV != camera->fovRad ) {
+            camera->recalculateProjection();
+        }
+
+        camera->recalculateBasis();
         Render(app);
     }
 }
@@ -114,6 +231,13 @@ bool Core::OnInit( AppContext* app ) {
 bool InitializeRenderContext( Core::AppContext* app ) {
     Core::RenderContext*   ctx = &app->renderContext;
     Platform::RendererAPI* api = &app->rendererAPI;
+
+    ctx->camera.position      = Core::DEFAULT_CAMERA_POSITION;
+    ctx->targetCameraPosition = ctx->camera.position;
+    ctx->camera.rotation      = Core::DEFAULT_CAMERA_ROTATION;
+    ctx->targetCameraRotation = ctx->camera.rotation;
+    ctx->eulerCameraRotation  = Core::DEFAULT_CAMERA_EROTATION;
+
     Platform::File fontVertFile = {};
     if(!Platform::LoadFile( "./resources/shaders/font/font.glslVert", &fontVertFile )) {
         LOG_ERROR("App > Failed to load font vert file!");
@@ -133,6 +257,10 @@ bool InitializeRenderContext( Core::AppContext* app ) {
     );
     Platform::FreeFile( &fontVertFile );
     Platform::FreeFile( &fontFragFile );
+    if(!fontShaderResult) {
+        LOG_ERROR("App > Failed to compile font shader!");
+        return false;
+    }
 
     Platform::File boundsVertFile = {};
     if(!Platform::LoadFile( "./resources/shaders/bounds/bounds.glslVert", &boundsVertFile )) {
@@ -153,11 +281,104 @@ bool InitializeRenderContext( Core::AppContext* app ) {
     );
     Platform::FreeFile( &boundsVertFile );
     Platform::FreeFile( &boundsFragFile );
-
     if(!boundsShaderResult) {
         LOG_ERROR("App > Failed to compile bounds shader!");
         return false;
     }
+
+    Platform::File blinnPhongVertFile = {};
+    if(!Platform::LoadFile( "./resources/shaders/blinn_phong/blinn_phong.glslVert", &blinnPhongVertFile )) {
+        LOG_ERROR("App > Failed to load blinnPhong vert file!");
+        return false;
+    }
+    Platform::File blinnPhongFragFile = {};
+    if(!Platform::LoadFile( "./resources/shaders/blinn_phong/blinn_phong.glslFrag", &blinnPhongFragFile )) {
+        LOG_ERROR("App > Failed to load blinnPhong frag file!");
+        Platform::FreeFile( &blinnPhongVertFile );
+        return false;
+    }
+
+    bool blinnPhongShaderResult = api->CreateShader(
+        (char*)blinnPhongVertFile.data, blinnPhongVertFile.size,
+        (char*)blinnPhongFragFile.data, blinnPhongFragFile.size,
+        &ctx->blinnPhongShader
+    );
+    Platform::FreeFile( &blinnPhongVertFile );
+    Platform::FreeFile( &blinnPhongFragFile );
+    if(!blinnPhongShaderResult) {
+        LOG_ERROR("App > Failed to compile blinnPhong shader!");
+        return false;
+    }
+
+    if(!api->GetUniformID(
+        &ctx->blinnPhongShader,
+        "u_transform",
+        &ctx->blinnPhongUniformTransform
+    )) {
+        return false;
+    }
+    smath::mat4 bpTransform = smath::mat4::translate( 0.0f, 0.0f, 2.0f );
+    api->UniformMat4(
+        &ctx->blinnPhongShader,
+        ctx->blinnPhongUniformTransform,
+        &bpTransform
+    );
+    if(!api->GetUniformID(
+        &ctx->blinnPhongShader,
+        "u_normalMat",
+        &ctx->blinnPhongUniformNormalMat
+    )) {
+        return false;
+    }
+    if(!api->GetUniformID(
+        &ctx->blinnPhongShader,
+        "u_normalTexturePresent",
+        &ctx->blinnPhongUniformNormalTexturePresent
+    )) {
+        return false;
+    }
+
+    api->UniformInt(
+        &ctx->blinnPhongShader,
+        ctx->blinnPhongUniformNormalTexturePresent,
+        0
+    );
+
+    smath::mat3 bpNormalMat = smath::mat3::identity();
+    if(!smath::mat3::normalMat( &bpTransform, &bpNormalMat )) {
+        LOG_DEBUG("normal mat failed!");
+    }
+    api->UniformMat3(
+        &ctx->blinnPhongShader,
+        ctx->blinnPhongUniformNormalMat,
+        &bpNormalMat
+    );
+    if(!api->GetUniformID(
+        &ctx->blinnPhongShader,
+        "u_surfaceTint",
+        &ctx->blinnPhongUniformSurfaceTint
+    )) {
+        return false;
+    }
+    smath::vec3 bpTint = smath::vec3(1.0f);
+    api->UniformVec3(
+        &ctx->blinnPhongShader,
+        ctx->blinnPhongUniformSurfaceTint,
+        &bpTint
+    );
+    if(!api->GetUniformID(
+        &ctx->blinnPhongShader,
+        "u_glossiness",
+        &ctx->blinnPhongUniformGlossiness
+    )) {
+        return false;
+    }
+    api->UniformFloat(
+        &ctx->blinnPhongShader,
+        ctx->blinnPhongUniformGlossiness,
+        32.0f
+    );
+
     if(!api->GetUniformID(
         &ctx->fontShader,
         "u_transform",
@@ -208,6 +429,45 @@ bool InitializeRenderContext( Core::AppContext* app ) {
         RENDERER_2D_MATRICES_BINDING_POINT
     );
 
+    ctx->matrices3DBuffer = api->CreateUniformBuffer(
+        sizeof( smath::mat4 ) * ctx->camera.matrixCount(),
+        ctx->camera.matrices()
+    );
+    api->UniformBufferSetBindingPoint(
+        &ctx->matrices3DBuffer,
+        RENDERER_3D_MATRICES_BINDING_POINT
+    );
+
+    f32 dataBuffer[] = {
+        ctx->camera.position.x,
+        ctx->camera.position.y,
+        ctx->camera.position.z,
+        0.0f,
+        ctx->camera.clippingPlanes.x,
+        ctx->camera.clippingPlanes.y,
+    };
+    ctx->dataBuffer = api->CreateUniformBuffer(
+        sizeof(f32) * 6,
+        &dataBuffer[0]
+    );
+    api->UniformBufferSetBindingPoint(
+        &ctx->dataBuffer,
+        RENDERER_DATA_BINDING_POINT
+    );
+
+    ctx->lights.ambient.color         = smath::vec3( 0.01f );
+    ctx->lights.directional.direction = (smath::vec3::up() + smath::vec3::right() + smath::vec3::forward()).normal();
+    ctx->lights.directional.diffuse   = smath::vec3(1.0f);
+
+    ctx->lightsBuffer = api->CreateUniformBuffer(
+        320,
+        &ctx->lights
+    );
+    api->UniformBufferSetBindingPoint(
+        &ctx->lightsBuffer,
+        RENDERER_LIGHTS_BINDING_POINT
+    );
+
     api->SetUnPackAlignment( RENDERER_PACK_ALIGNMENT_1 );
     ctx->fontAtlasTexture = api->CreateTexture2D(
         app->defaultFontAtlas.width,
@@ -219,6 +479,37 @@ bool InitializeRenderContext( Core::AppContext* app ) {
         Platform::TextureWrapMode::CLAMP,
         Platform::TextureMinFilter::LINEAR,
         Platform::TextureMagFilter::LINEAR
+    );
+
+    u8 tex[] = {
+        255, 255, 255
+    };
+    ctx->modelAlbedoTexture = api->CreateTexture2D(
+        1, 1, tex,
+        Platform::TextureFormat::RGB,
+        Platform::DataType::UNSIGNED_BYTE,
+        Platform::TextureWrapMode::CLAMP,
+        Platform::TextureWrapMode::CLAMP,
+        Platform::TextureMinFilter::NEAREST_MIPMAP_NEAREST,
+        Platform::TextureMagFilter::NEAREST
+    );
+    ctx->modelSpecularTexture = api->CreateTexture2D(
+        1, 1, tex,
+        Platform::TextureFormat::RGB,
+        Platform::DataType::UNSIGNED_BYTE,
+        Platform::TextureWrapMode::CLAMP,
+        Platform::TextureWrapMode::CLAMP,
+        Platform::TextureMinFilter::NEAREST_MIPMAP_NEAREST,
+        Platform::TextureMagFilter::NEAREST
+    );
+    ctx->modelNormalTexture = api->CreateTexture2D(
+        1, 1, tex,
+        Platform::TextureFormat::RGB,
+        Platform::DataType::UNSIGNED_BYTE,
+        Platform::TextureWrapMode::CLAMP,
+        Platform::TextureWrapMode::CLAMP,
+        Platform::TextureMinFilter::NEAREST_MIPMAP_NEAREST,
+        Platform::TextureMagFilter::NEAREST
     );
     api->SetUnPackAlignment( RENDERER_PACK_ALIGNMENT_DEFAULT );
 
@@ -317,6 +608,77 @@ bool InitializeRenderContext( Core::AppContext* app ) {
         boundsIndexBuffer
     );
 
+    Core::vertex bpVertices[] = {
+        { /*POS*/ {  0.5f,  0.5f, -0.5f }, /*UV*/ { 1.0f, 1.0f }, /*NORM*/ { 0.0, 0.0f, -1.0f }, {}, {} },
+        { /*POS*/ {  0.5f, -0.5f, -0.5f }, /*UV*/ { 1.0f, 0.0f }, /*NORM*/ { 0.0, 0.0f, -1.0f }, {}, {} },
+        { /*POS*/ { -0.5f,  0.5f, -0.5f }, /*UV*/ { 0.0f, 1.0f }, /*NORM*/ { 0.0, 0.0f, -1.0f }, {}, {} },
+        { /*POS*/ { -0.5f, -0.5f, -0.5f }, /*UV*/ { 0.0f, 0.0f }, /*NORM*/ { 0.0, 0.0f, -1.0f }, {}, {} },
+
+        { /*POS*/ {  0.5f,  0.5f, 0.5f }, /*UV*/ { 1.0f, 1.0f }, /*NORM*/ { 0.0f, 0.0f, 1.0f }, {}, {} },
+        { /*POS*/ {  0.5f, -0.5f, 0.5f }, /*UV*/ { 1.0f, 0.0f }, /*NORM*/ { 0.0f, 0.0f, 1.0f }, {}, {} },
+        { /*POS*/ { -0.5f,  0.5f, 0.5f }, /*UV*/ { 0.0f, 1.0f }, /*NORM*/ { 0.0f, 0.0f, 1.0f }, {}, {} },
+        { /*POS*/ { -0.5f, -0.5f, 0.5f }, /*UV*/ { 0.0f, 0.0f }, /*NORM*/ { 0.0f, 0.0f, 1.0f }, {}, {} },
+
+        { /*POS*/ { -0.5f,  0.5f,  0.5f, }, /*UV*/ { 1.0f, 1.0f }, /*NORM*/ { -1.0f, 0.0f, 0.0f, }, {}, {} },
+        { /*POS*/ { -0.5f,  0.5f, -0.5f, }, /*UV*/ { 1.0f, 0.0f }, /*NORM*/ { -1.0f, 0.0f, 0.0f, }, {}, {} },
+        { /*POS*/ { -0.5f, -0.5f,  0.5f, }, /*UV*/ { 0.0f, 1.0f }, /*NORM*/ { -1.0f, 0.0f, 0.0f, }, {}, {} },
+        { /*POS*/ { -0.5f, -0.5f, -0.5f, }, /*UV*/ { 0.0f, 0.0f }, /*NORM*/ { -1.0f, 0.0f, 0.0f, }, {}, {} },
+
+        { /*POS*/ {  0.5f,  0.5f,  0.5f, }, /*UV*/ { 1.0f, 1.0f }, /*NORM*/ { 1.0f, 0.0f, 0.0f, }, {}, {} },
+        { /*POS*/ {  0.5f,  0.5f, -0.5f, }, /*UV*/ { 1.0f, 0.0f }, /*NORM*/ { 1.0f, 0.0f, 0.0f, }, {}, {} },
+        { /*POS*/ {  0.5f, -0.5f,  0.5f, }, /*UV*/ { 0.0f, 1.0f }, /*NORM*/ { 1.0f, 0.0f, 0.0f, }, {}, {} },
+        { /*POS*/ {  0.5f, -0.5f, -0.5f, }, /*UV*/ { 0.0f, 0.0f }, /*NORM*/ { 1.0f, 0.0f, 0.0f, }, {}, {} },
+
+        { /*POS*/ {  0.5f,  0.5f,  0.5f, }, /*UV*/ { 1.0f, 1.0f }, /*NORM*/ { 0.0f, 1.0f, 0.0f, }, {}, {} },
+        { /*POS*/ {  0.5f,  0.5f, -0.5f, }, /*UV*/ { 1.0f, 0.0f }, /*NORM*/ { 0.0f, 1.0f, 0.0f, }, {}, {} },
+        { /*POS*/ { -0.5f,  0.5f,  0.5f, }, /*UV*/ { 0.0f, 1.0f }, /*NORM*/ { 0.0f, 1.0f, 0.0f, }, {}, {} },
+        { /*POS*/ { -0.5f,  0.5f, -0.5f, }, /*UV*/ { 0.0f, 0.0f }, /*NORM*/ { 0.0f, 1.0f, 0.0f, }, {}, {} },
+
+        { /*POS*/ {  0.5f, -0.5f,  0.5f, }, /*UV*/ { 1.0f, 1.0f }, /*NORM*/ { 0.0f, -1.0f, 0.0f, }, {}, {} },
+        { /*POS*/ {  0.5f, -0.5f, -0.5f, }, /*UV*/ { 1.0f, 0.0f }, /*NORM*/ { 0.0f, -1.0f, 0.0f, }, {}, {} },
+        { /*POS*/ { -0.5f, -0.5f,  0.5f, }, /*UV*/ { 0.0f, 1.0f }, /*NORM*/ { 0.0f, -1.0f, 0.0f, }, {}, {} },
+        { /*POS*/ { -0.5f, -0.5f, -0.5f, }, /*UV*/ { 0.0f, 0.0f }, /*NORM*/ { 0.0f, -1.0f, 0.0f, }, {}, {} },
+    };
+
+    Core::calculateTangentBasis( sizeof(bpVertices) / sizeof(Core::vertex), bpVertices );
+
+    u32 bpIndices[] {
+        0, 1, 2,
+        3, 2, 1,
+
+        6, 5, 4,
+        5, 6, 7,
+
+         8,  9, 10,
+        11, 10,  9,
+
+        14, 13, 12,
+        13, 14, 15,
+
+        16, 17, 18,
+        19, 18, 17,
+
+        22, 21, 20,
+        21, 22, 23,
+    };
+
+    ctx->modelVertexArray = api->CreateVertexArray();
+    api->UseVertexArray( &ctx->modelVertexArray );
+
+    Platform::VertexBuffer bpvb = api->CreateVertexBuffer(
+        sizeof(bpVertices),
+        &bpVertices,
+        Core::vertexLayout()
+    );
+    api->VertexArrayBindVertexBuffer( &ctx->modelVertexArray, bpvb );
+
+    Platform::IndexBuffer bpib = api->CreateIndexBuffer(
+        sizeof(bpIndices) / sizeof(u32),
+        bpIndices,
+        Platform::DataType::UNSIGNED_INT
+    );
+    api->VertexArrayBindIndexBuffer( &ctx->modelVertexArray, bpib );
+
     return true;
 }
 
@@ -363,6 +725,9 @@ void Core::OnResolutionUpdate( AppContext* app, i32 width, i32 height ) {
         ortho.valuePtr()
     );
 
+    app->renderContext.camera.aspectRatio = (f32)width / (f32)height;
+    app->renderContext.camera.recalculateProjection();
+
     Render( app );
 }
 
@@ -373,12 +738,20 @@ void Core::OnAppActivated( AppContext* app ) {
 void Core::OnAppDeactivated( AppContext* app ) {
     LOG_INFO("App inactive");
     app->input = {};
+    Platform::SetCursorLocked(false);
 }
 
 void LoadMesh( void* params ) {
     Core::AppContext* app = (Core::AppContext*)params;
     Platform::File meshFile = {};
     if( Platform::UserLoadFile( "Load Mesh", &meshFile ) ) {
+
+        Platform::VertexArray va = {};
+        if( Core::ParseOBJ( &meshFile, &va, &app->rendererAPI ) ) {
+            app->rendererAPI.DeleteVertexArrays( 1, &app->renderContext.modelVertexArray );
+            app->renderContext.modelVertexArray = va;
+        }
+
         Platform::FreeFile( &meshFile );
     }
     app->input = {};
@@ -388,6 +761,37 @@ void LoadAlbedo( void* params ) {
     Core::AppContext* app = (Core::AppContext*)params;
     Platform::File albedoFile = {};
     if( Platform::UserLoadFile( "Load Albedo Texture", &albedoFile ) ) {
+
+        Core::Image image = {};
+        if( Core::ReadImage( albedoFile.size, albedoFile.data, &image ) ) {
+
+            app->rendererAPI.DeleteTextures2D( 1, &app->renderContext.modelAlbedoTexture );
+
+            Platform::TextureFormat textureFormat = Platform::TextureFormat::R;
+            switch( image.colorComponentCount ) {
+                case 1: textureFormat = Platform::TextureFormat::R; break;
+                case 2: textureFormat = Platform::TextureFormat::RG; break;
+                case 3: textureFormat = Platform::TextureFormat::RGB; break;
+                case 4: textureFormat = Platform::TextureFormat::RGBA; break;
+                default: break;
+            }
+
+            app->renderContext.modelAlbedoTexture = app->rendererAPI.CreateTexture2D(
+                image.width,
+                image.height,
+                image.data,
+                textureFormat,
+                Platform::DataType::UNSIGNED_BYTE,
+                Platform::TextureWrapMode::CLAMP,
+                Platform::TextureWrapMode::CLAMP,
+                Platform::TextureMinFilter::LINEAR,
+                Platform::TextureMagFilter::LINEAR
+            );
+
+            Core::FreeImage( &image );
+
+        }
+
         Platform::FreeFile( &albedoFile );
     }
     app->input = {};
@@ -397,6 +801,42 @@ void LoadNormal( void* params ) {
     Core::AppContext* app = (Core::AppContext*)params;
     Platform::File normalFile = {};
     if( Platform::UserLoadFile( "Load Normal Texture", &normalFile ) ) {
+
+        Core::Image image = {};
+        if( Core::ReadImage( normalFile.size, normalFile.data, &image ) ) {
+
+            app->rendererAPI.DeleteTextures2D( 1, &app->renderContext.modelNormalTexture );
+
+            Platform::TextureFormat textureFormat = Platform::TextureFormat::R;
+            switch( image.colorComponentCount ) {
+                case 1: textureFormat = Platform::TextureFormat::R; break;
+                case 2: textureFormat = Platform::TextureFormat::RG; break;
+                case 3: textureFormat = Platform::TextureFormat::RGB; break;
+                case 4: textureFormat = Platform::TextureFormat::RGBA; break;
+                default: break;
+            }
+
+            app->renderContext.modelNormalTexture = app->rendererAPI.CreateTexture2D(
+                image.width,
+                image.height,
+                image.data,
+                textureFormat,
+                Platform::DataType::UNSIGNED_BYTE,
+                Platform::TextureWrapMode::CLAMP,
+                Platform::TextureWrapMode::CLAMP,
+                Platform::TextureMinFilter::NEAREST,
+                Platform::TextureMagFilter::NEAREST
+            );
+            app->rendererAPI.UniformInt(
+                &app->renderContext.blinnPhongShader,
+                app->renderContext.blinnPhongUniformNormalTexturePresent,
+                1
+            );
+
+            Core::FreeImage( &image );
+
+        }
+
         Platform::FreeFile( &normalFile );
     }
     app->input = {};
@@ -406,7 +846,39 @@ void LoadSpecular( void* params ) {
     Core::AppContext* app = (Core::AppContext*)params;
     Platform::File specularFile = {};
     if( Platform::UserLoadFile( "Load Specular Texture", &specularFile ) ) {
+
+        Core::Image image = {};
+        if( Core::ReadImage( specularFile.size, specularFile.data, &image ) ) {
+
+            app->rendererAPI.DeleteTextures2D( 1, &app->renderContext.modelSpecularTexture );
+
+            Platform::TextureFormat textureFormat = Platform::TextureFormat::R;
+            switch( image.colorComponentCount ) {
+                case 1: textureFormat = Platform::TextureFormat::R; break;
+                case 2: textureFormat = Platform::TextureFormat::RG; break;
+                case 3: textureFormat = Platform::TextureFormat::RGB; break;
+                case 4: textureFormat = Platform::TextureFormat::RGBA; break;
+                default: break;
+            }
+
+            app->renderContext.modelSpecularTexture = app->rendererAPI.CreateTexture2D(
+                image.width,
+                image.height,
+                image.data,
+                textureFormat,
+                Platform::DataType::UNSIGNED_BYTE,
+                Platform::TextureWrapMode::CLAMP,
+                Platform::TextureWrapMode::CLAMP,
+                Platform::TextureMinFilter::NEAREST,
+                Platform::TextureMagFilter::NEAREST
+            );
+
+            Core::FreeImage( &image );
+
+        }
+
         Platform::FreeFile( &specularFile );
     }
     app->input = {};
 }
+

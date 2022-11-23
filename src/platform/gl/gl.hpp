@@ -64,7 +64,7 @@ void OpenGLUniformMat4( Shader* shader, i32 uniform, smath::mat4* value );
 Texture2D OpenGLCreateTexture2D(
     i32 width,
     i32 height,
-    u8* data,
+    void* data,
     TextureFormat format,
     DataType dataType,
     TextureWrapMode wrapX,

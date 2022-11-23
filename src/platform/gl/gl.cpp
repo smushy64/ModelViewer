@@ -17,6 +17,7 @@ GLenum TextureWrapModeToGLenum( Platform::TextureWrapMode mode );
 GLenum TextureMinFilterToGLenum( Platform::TextureMinFilter filter );
 GLenum TextureMagFilterToGLenum( Platform::TextureMagFilter filter );
 GLenum TextureFormatToGLenum( Platform::TextureFormat format );
+GLenum InternalTextureFormatToGLenum( Platform::TextureFormat format );
 GLenum DataTypeToGLenum( Platform::DataType format );
 GLenum BlendFactorToGLenum( Platform::BlendFactor factor );
 GLenum BlendEqToGLenum( Platform::BlendEq eq );
@@ -34,10 +35,10 @@ void Platform::OpenGLDrawVertexArray( VertexArray* vertexArray ) {
             nullptr
         );
     } else {
-        // TODO(alicia): make sure at some point that this works
         glDrawArrays(
             GL_TRIANGLES,
-            0, vertexArray->totalVertexCount
+            0,
+            vertexArray->totalVertexCount
         );
     }
 }
@@ -318,7 +319,7 @@ void Platform::OpenGLUseTexture2D( Texture2D* texture, u32 unit ) {
 Platform::Texture2D Platform::OpenGLCreateTexture2D(
     i32 width,
     i32 height,
-    u8* data,
+    void* data,
     TextureFormat format,
     DataType dataType,
     TextureWrapMode wrapX,
@@ -329,18 +330,22 @@ Platform::Texture2D Platform::OpenGLCreateTexture2D(
     Texture2D result = {};
     result.width     = width;
     result.height    = height;
-    usize dataSize   = result.width * result.height;
-    result.data      = (u8*)Platform::Alloc( result.width * result.height );
-    Platform::MemCopy( dataSize, data, result.data );
+    result.dataSize  = result.width * result.height * DataTypeSize( dataType ) * TextureFormatComponentCount( format );
+    result.data      = (u8*)Platform::Alloc( result.dataSize );
+    Platform::MemCopy( result.dataSize, data, result.data );
     result.format    = format;
     result.dataType  = dataType;
 
     glGenTextures( 1, &result.id );
     glBindTexture( GL_TEXTURE_2D, result.id );
+
+    Platform::OpenGLSetTexture2DWrapMode( &result, wrapX, wrapY );
+    Platform::OpenGLSetTexture2DFilter( &result, minFilter, magFilter );
+
     glTexImage2D(
         GL_TEXTURE_2D,
         AUTO_MIPMAP,
-        TextureFormatToGLenum( result.format ),
+        InternalTextureFormatToGLenum( result.format ),
         result.width, result.height,
         TEX_NO_BORDER,
         TextureFormatToGLenum(result.format),
@@ -348,9 +353,6 @@ Platform::Texture2D Platform::OpenGLCreateTexture2D(
         result.data
     );
     glGenerateMipmap( GL_TEXTURE_2D );
-
-    Platform::OpenGLSetTexture2DWrapMode( &result, wrapX, wrapY );
-    Platform::OpenGLSetTexture2DFilter( &result, minFilter, magFilter );
 
     return result;
 }
@@ -734,6 +736,17 @@ GLenum BlendEqToGLenum( Platform::BlendEq eq ) {
         case BlendEq::REV_SUB: return GL_FUNC_REVERSE_SUBTRACT;
         case BlendEq::MIN:     return GL_MIN;
         case BlendEq::MAX:     return GL_MAX;
+        default: return GL_INVALID_ENUM;
+    }
+}
+
+GLenum InternalTextureFormatToGLenum( Platform::TextureFormat format ) {
+    using namespace Platform;
+    switch( format ) {
+        case TextureFormat::R:    return GL_R8;
+        case TextureFormat::RG:   return GL_RG8;
+        case TextureFormat::RGB:  return GL_RGB8;
+        case TextureFormat::RGBA: return GL_RGBA8;
         default: return GL_INVALID_ENUM;
     }
 }

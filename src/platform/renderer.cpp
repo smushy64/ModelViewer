@@ -126,6 +126,16 @@ const char* Platform::TextureFormatToString( TextureFormat format ) {
     }
 }
 
+usize Platform::TextureFormatComponentCount( TextureFormat format ) {
+    switch( format ) {
+        case TextureFormat::R:    return 1;
+        case TextureFormat::RG:   return 2;
+        case TextureFormat::RGB:  return 3;
+        case TextureFormat::RGBA: return 4;
+        default: return 0;
+    }
+}
+
 const char* Platform::DataTypeToString( DataType type ) {
     switch(type) {
         case DataType::UNSIGNED_BYTE:  return "UNSIGNED_BYTE";

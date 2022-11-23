@@ -28,11 +28,15 @@ namespace smath {
         f32 x, y;
 
         vec2() {}
+        vec2( f32 scalar ) : x(scalar), y(scalar) {}
         vec2( f32 x, f32 y ) : x(x), y(y) {}
 
         /// @brief Normalize vector
         static void normalize( vec2& v ) {
-            v /= v.mag();
+            f32 m = v.mag();
+            if( m != 0.0f ) {
+                v /= m;
+            }
         }
         /// @brief Component-wise scale lhs by rhs 
         static void scale( vec2& lhs, const vec2& rhs ) {
@@ -68,7 +72,14 @@ namespace smath {
         /// @brief Get magnitude 
         f32 mag() const { return sqrtf(sqrmag()); }
         /// @brief Clone this vector and normalize it 
-        vec2 normal() const { return vec2(*this) /= mag(); }
+        vec2 normal() const {
+            f32 m = mag();
+            if( m != 0.0f ) {
+                return vec2(*this) /= m;
+            } else {
+                return {};
+            }
+        }
         /// @brief Clamp magnitude
         /// @param max if magnitude is greater than max, normalize and multiply by max
         void clamp( f32 max ) {
@@ -158,8 +169,8 @@ namespace smath {
         }
         /// @brief clamp x and y between min and max
         void clamp( const ivec2& min, const ivec2& max ) {
-            x = smath::clampi( x, min.x, max.x );
-            y = smath::clampi( y, min.y, max.y );
+            x = smath::clamp( x, min.x, max.x );
+            y = smath::clamp( y, min.y, max.y );
         }
 
         /// @brief Get square magnitude 
@@ -239,11 +250,15 @@ namespace smath {
         f32 x, y, z;
         
         vec3() {}
+        vec3( f32 scalar ) : x(scalar), y(scalar), z(scalar) {}
         vec3( f32 x, f32 y, f32 z ) : x(x), y(y), z(z) {}
 
         /// @brief Normalize vector
         static void normalize( vec3& v ) {
-            v /= v.mag();
+            f32 m = v.mag();
+            if( m != 0.0f ) {
+                v /= m;
+            }
         }
         /// @brief Component-wise scale lhs by rhs 
         static void scale( vec3& lhs, const vec3& rhs ) {
@@ -293,7 +308,14 @@ namespace smath {
         /// @brief Get magnitude 
         f32 mag() const { return sqrtf(sqrmag()); }
         /// @brief Clone this vector and normalize it 
-        vec3 normal() const { return vec3(*this) /= mag(); }
+        vec3 normal() const {
+            f32 m = mag();
+            if( m != 0.0f ) {
+                return vec3(*this) /= m;
+            } else {
+                return {};
+            }
+        }
         /// @brief Clamp magnitude
         /// @param max if magnitude is greater than max, normalize and multiply by max
         void clamp( f32 max ) {
@@ -379,11 +401,16 @@ namespace smath {
         f32 x, y, z, w;
 
         vec4() {}
+        vec4( const smath::vec3& vec3 ) : x(vec3.x), y(vec3.y), z(vec3.z), w(1.0f) {}
+        vec4( f32 scalar ) : x(scalar), y(scalar), z(scalar), w(scalar) {}
         vec4( f32 x, f32 y, f32 z, f32 w ) : x(x), y(y), z(z), w(w) {}
 
         /// @brief Normalize vector
         static void normalize( vec4& v ) {
-            v /= v.mag();
+            f32 m = v.mag();
+            if( m != 0.0f ) {
+                v /= m;
+            }
         }
         /// @brief Compare two vectors
         /// @return true if they are approx. the same
@@ -399,7 +426,14 @@ namespace smath {
         /// @brief Get magnitude 
         f32 mag() const { return sqrtf(sqrmag()); }
         /// @brief Clone this vector and normalize it 
-        vec4 normal() const { return vec4(*this) /= mag(); }
+        vec4 normal() const {
+            f32 m = mag();
+            if( m != 0.0f ) {
+                return vec4(*this) /= m;
+            } else {
+                return {};
+            }
+        }
 
         vec4& operator-() {
             return *this *= -1.0f;
@@ -473,6 +507,9 @@ namespace smath {
     struct quat {
         f32 w, x, y, z;
 
+        quat() {}
+        quat( f32 scalar, f32 i, f32 j, f32 k ) : w(scalar), x(i), y(j), z(k) {}
+
         /// @brief spherically interpolate from a to b 
         static quat slerp( const quat& a, const quat& b, f32 t ) {
             f32 dot    = quat::dot( a, b );
@@ -498,7 +535,10 @@ namespace smath {
         }
         /// @brief Normalize quaternion
         static void normalize( quat& v ) {
-            v /= v.mag();
+            f32 m = v.mag();
+            if( m != 0.0f ) {
+                v /= m;
+            }
         }
         /// @brief Get the dot product between two quaternions
         static f32 dot( const quat& lhs, const quat& rhs ) {
@@ -514,7 +554,14 @@ namespace smath {
             return sqrtf( sqrMag() );
         }
         /// @brief Clone this quaternion and normalize it 
-        quat normal() const { return quat(*this) /= mag(); }
+        quat normal() const {
+            f32 m = mag();
+            if( m != 0.0f ) {
+                return quat(*this) /= m;
+            } else {
+                return {};
+            }
+        }
         /// @brief get conjugate 
         quat conjugate() const { return { w, -x, -y, -z }; }
         /// @brief get inverse
@@ -623,9 +670,9 @@ namespace smath {
 
     /// @brief 3x3 matrix
     struct mat3 {
-        f32 _c0r0, _c1r0, _c2r0;
-        f32 _c0r1, _c1r1, _c2r1;
-        f32 _c0r2, _c1r2, _c2r2;
+        f32 _c0r0, _c0r1, _c0r2;
+        f32 _c1r0, _c1r1, _c1r2;
+        f32 _c2r0, _c2r1, _c2r2;
 
         /// @brief get matrix as row-major
         mat3 transpose() const {
@@ -637,8 +684,9 @@ namespace smath {
         }
         /// @brief get determinant 
         f32 determinant() const {
-            return ( (*this)[0] * ( ( (*this)[4] * (*this)[8] ) - ( (*this)[7] * (*this)[5] ) ) ) +
-            -( (*this)[3] * ( ( (*this)[1] * (*this)[8] ) - ( (*this)[7] * (*this)[2] ) ) ) +
+            return
+             ( (*this)[0] * ( ( (*this)[4] * (*this)[8] ) - ( (*this)[7] * (*this)[5] ) ) ) -
+             ( (*this)[3] * ( ( (*this)[1] * (*this)[8] ) - ( (*this)[7] * (*this)[2] ) ) ) +
              ( (*this)[6] * ( ( (*this)[1] * (*this)[5] ) - ( (*this)[4] * (*this)[2] ) ) );
         }
         /// @brief swap columns with rows
@@ -781,14 +829,15 @@ namespace smath {
     inline vec3 operator*( const mat4& lhs, const vec3& rhs );
     /// @brief 4x4 matrix
     struct mat4 {
-        f32 _c0r0, _c1r0, _c2r0, _c3r0;
-        f32 _c0r1, _c1r1, _c2r1, _c3r1;
-        f32 _c0r2, _c1r2, _c2r2, _c3r2;
-        f32 _c0r3, _c1r3, _c2r3, _c3r3;
+        f32 _c0r0, _c0r1, _c0r2, _c0r3;
+        f32 _c1r0, _c1r1, _c1r2, _c1r3;
+        f32 _c2r0, _c2r1, _c2r2, _c2r3;
+        f32 _c3r0, _c3r1, _c3r2, _c3r3;
 
         /// @brief get determinant of matrix 
         f32 determinant() const {
-            return ( (*this)[0] * cellSubMatrix( 0, 0 ).determinant() ) -
+            return
+            ( (*this)[0] * cellSubMatrix( 0, 0 ).determinant() ) -
             ( (*this)[4] * cellSubMatrix( 0, 1 ).determinant() ) +
             ( (*this)[8] * cellSubMatrix( 0, 2 ).determinant() ) -
             ( (*this)[12] * cellSubMatrix( 0, 3 ).determinant() );
@@ -803,19 +852,19 @@ namespace smath {
             };
         }
         /// @brief get sub matrix of given index 
-        mat3 cellSubMatrix( usize row, usize col ) const {
+        mat3 cellSubMatrix( usize row, usize column ) const {
             mat3 result = {};
             usize i = 0;
-            for( usize c = 0; c < 4; c++ ) {
-                if( c == col ) {
+            for( usize col = 0; col < 4; col++ ) {
+                if( col == column ) {
                     continue;
                 }
-                f32 column[4];
-                getColumn( c, column );
+                f32 columnBuffer[4];
+                getColumn( col, columnBuffer );
 
                 for( usize r = 0; r < 4; r++ ) {
                     if( r != row ) {
-                        result[i] = column[r];
+                        result[i] = columnBuffer[r];
                     }
                     i++;
                 }
@@ -1020,40 +1069,49 @@ namespace smath {
         static mat4 perspective( f32 fov, f32 aspect, f32 near, f32 far ) {
             mat4 result = mat4::zero();
             // TODO(alicia): tanf!
-            result[ 0] = 1.0f / tanf( aspect * ( fov / 2.0f ) );
+            result[ 0] = 1.0f / ( aspect * tanf( fov / 2.0f ) );
             result[ 5] = 1.0f / tanf( fov / 2.0f );
             result[10] = -(( far + near ) / ( far - near ));
             result[11] = -1.0f;
             result[14] = -(( 2.0f * far * near ) / ( far - near ));
             return result;
         }
-        static mat4 translate( const vec3& translation ) {
+        static mat4 translate( f32 x, f32 y, f32 z ) {
             mat4 result = mat4::identity();
-            result[12] = translation.x;
-            result[13] = translation.y;
-            result[14] = translation.z;
+            result[12] = x;
+            result[13] = y;
+            result[14] = z;
+            return result;
+        }
+        static mat4 translate( const vec3& translation ) {
+            return translate( translation.x, translation.y, translation.z );
+        }
+        static mat4 rotation( f32 w, f32 x, f32 y, f32 z ) {
+            // TODO(alicia): SIMD!
+            mat4 result = mat4::identity();
+            result[0]   = 1.0f - ( 2.0f * sqrf( y ) ) - ( 2.0f * sqrf( z ) );
+            result[1]   = ( 2.0f * ( x * y ) ) + ( 2.0f * ( w * z ) );
+            result[2]   = ( 2.0f * ( x * z ) ) - ( 2.0f * ( w * y ) );
+            result[4]   = ( 2.0f * ( x * y ) ) - ( 2.0f * ( w * z ) );
+            result[5]   = 1.0f - ( 2.0f * sqrf( x ) ) - ( 2.0f * sqrf( z ) );
+            result[6]   = ( 2.0f * ( y * z ) ) + ( 2.0f * ( w * x ) );
+            result[8]   = ( 2.0f * ( x * z ) ) + ( 2.0f * ( w * y ) );
+            result[9]   = ( 2.0f * ( y * z ) ) - ( 2.0f * ( w * x ) );
+            result[10]  = 1.0f - ( 2.0f * sqrf( x ) ) - ( 2.0f * sqrf( y ) );
             return result;
         }
         static mat4 rotation( const quat& rotation ) {
-            // TODO(alicia): SIMD!
+            return mat4::rotation( rotation.w, rotation.x, rotation.y, rotation.z );
+        }
+        static mat4 scale( f32 x, f32 y, f32 z ) {
             mat4 result = mat4::identity();
-            result[0]   = 1.0f - ( 2.0f * sqrf( rotation.y ) ) - ( 2.0f * sqrf( rotation.z ) );
-            result[1]   = ( 2.0f * ( rotation.x * rotation.y ) ) + ( 2.0f * ( rotation.w * rotation.z ) );
-            result[2]   = ( 2.0f * ( rotation.x * rotation.z ) ) - ( 2.0f * ( rotation.w * rotation.y ) );
-            result[4]   = ( 2.0f * ( rotation.x * rotation.y ) ) - ( 2.0f * ( rotation.w * rotation.z ) );
-            result[5]   = 1.0f - ( 2.0f * sqrf( rotation.x ) ) - ( 2.0f * sqrf( rotation.z ) );
-            result[6]   = ( 2.0f * ( rotation.y * rotation.z ) ) + ( 2.0f * ( rotation.w * rotation.x ) );
-            result[8]   = ( 2.0f * ( rotation.x * rotation.z ) ) + ( 2.0f * ( rotation.w * rotation.y ) );
-            result[9]   = ( 2.0f * ( rotation.y * rotation.z ) ) - ( 2.0f * ( rotation.w * rotation.x ) );
-            result[10]  = 1.0f - ( 2.0f * sqrf( rotation.x ) ) - ( 2.0f * sqrf( rotation.y ) );
+            result[0]   = x;
+            result[5]   = y;
+            result[10]  = z;
             return result;
         }
         static mat4 scale( const vec3& scale ) {
-            mat4 result = mat4::identity();
-            result[0]   = scale.x;
-            result[5]   = scale.y;
-            result[10]  = scale.z;
-            return result;
+            return mat4::scale( scale.x, scale.y, scale.z );
         }
         static mat4 transform( const vec3& translation, const quat& rotation, const vec3& scale ) {
             return mat4::translate( translation ) * mat4::rotation( rotation ) * mat4::scale( scale );
@@ -1154,7 +1212,7 @@ namespace smath {
     /// @param t 0.0-1.0 fraction
     /// @return blend between a and b, based on fraction t
     inline vec2 clampedLerp( const vec2& a, const vec2& b, const f32& t ) {
-        return lerp( a, b, clampf( t, 0.0f, 1.0f ) );
+        return lerp( a, b, clamp( t, 0.0f, 1.0f ) );
     }
     /// @brief Linear interpolation, t is clamped between 0.0-1.0
     /// @param a minimum value
@@ -1162,7 +1220,7 @@ namespace smath {
     /// @param t 0.0-1.0 fraction
     /// @return blend between a and b, based on fraction t
     inline vec3 clampedLerp( const vec3& a, const vec3& b, const f32& t ) {
-        return lerp( a, b, clampf( t, 0.0f, 1.0f ) );
+        return lerp( a, b, clamp( t, 0.0f, 1.0f ) );
     }
     /// @brief Linear interpolation, t is clamped between 0.0-1.0
     /// @param a minimum value
@@ -1170,7 +1228,7 @@ namespace smath {
     /// @param t 0.0-1.0 fraction
     /// @return blend between a and b, based on fraction t
     inline vec4 clampedLerp( const vec4& a, const vec4& b, const f32& t ) {
-        return lerp( a, b, clampf( t, 0.0f, 1.0f ) );
+        return lerp( a, b, clamp( t, 0.0f, 1.0f ) );
     }
     /// @brief Linear interpolation, t is clamped between 0.0-1.0
     /// @param a minimum value
@@ -1178,7 +1236,7 @@ namespace smath {
     /// @param t 0.0-1.0 fraction
     /// @return blend between a and b, based on fraction t
     inline quat clampedLerp( const quat& a, const quat& b, const f32& t ) {
-        return lerp( a, b, clampf( t, 0.0f, 1.0f ) );
+        return lerp( a, b, clamp( t, 0.0f, 1.0f ) );
     }
 
     inline bool mat3::normalMat( const mat4* transform, mat3* result ) {
@@ -1192,4 +1250,5 @@ namespace smath {
     }
 
 } // namespace smath
+
 

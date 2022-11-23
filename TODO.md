@@ -14,9 +14,12 @@
 - Other model formats
 - Font Atlases at different point sizes
 - Reorder struct members to remove unnecessary padding bytes
+- settings.ini
+  - camera sensitivity
 
 ### Minor Bugs
 - Clicking and holding while moving mouse out of window, letting go and then coming back to window registers a click anyway
+- Camera stutter when looking completely up/down
 
 ### Refactor 2
 - [x] Quad is not drawing properly? 
@@ -138,7 +141,9 @@
   - [x] break ui out to separate header/source
   - [x] OOP so far has made a bit of sense here, might not work out too great with alloc/free char buffer but we'll see
     - works ok, twice the work of just using structs tho lol
-- [ ] 
+- [x] Loading images
+- [x] Loading objs
+- [x] Model viewing!
 
 ### Normal Map Support + Fixes and Tweaks - Completed 11/2/2022
 - [x] DrawArrays caused segfault

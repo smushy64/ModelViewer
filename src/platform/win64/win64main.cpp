@@ -11,6 +11,7 @@
 #include "util.hpp"
 #include "platform/io.hpp"
 
+void CenterCursor( HWND window );
 Platform::CursorStyle CURSOR_STYLE = Platform::CursorStyle::ARROW;
 Platform::CursorStyle DESIRED_CURSOR_STYLE = Platform::CursorStyle::ARROW;
 bool CURSOR_VISIBLE = true;
@@ -25,14 +26,6 @@ void WinSwapBuffers() {
 static i32 WINDOW_WIDTH  = 1280;
 static i32 WINDOW_HEIGHT = 720;
 
-void CenterCursor( HWND window ) {
-    POINT screen = {};
-    screen.x = WINDOW_WIDTH;
-    screen.y = WINDOW_HEIGHT;
-    ClientToScreen( window, &screen );
-    SetCursorPos( screen.x, screen.y );
-}
-
 i32 APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE, PSTR, i32 ) {
     INIT_CONSOLE();
 
@@ -46,7 +39,7 @@ i32 APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE, PSTR, i32 ) {
     );
 #if DEBUG
 
-    const char* debugTitleAppend = "| DEBUG";
+    const char* debugTitleAppend = "-- DEBUG --";
     stringConcat(
         Core::PROGRAM_TITLE_LEN,
         Core::PROGRAM_TITLE,
@@ -140,6 +133,7 @@ i32 APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE, PSTR, i32 ) {
 
 void WinProcessMessages( HWND window, Core::AppContext* appContext ) {
     MSG message = {};
+    appContext->input.mouseWheel = 0;
     while(PeekMessage(
         &message,
         window,
@@ -148,15 +142,15 @@ void WinProcessMessages( HWND window, Core::AppContext* appContext ) {
     ) == TRUE) {
         switch( message.message ) {
             case WM_MOUSEMOVE: {
+                smath::ivec2 pixelPos = { (i32)GET_X_LPARAM(message.lParam), WINDOW_HEIGHT - (i32)GET_Y_LPARAM(message.lParam) };
+                smath::vec2 screenPos = { (f32)pixelPos.x / (f32)WINDOW_WIDTH, (f32)pixelPos.y /(f32)WINDOW_HEIGHT };
+
+                appContext->input.pixelMousePos      = pixelPos;
+                appContext->input.lastScreenMousePos = appContext->input.screenMousePos;
+                appContext->input.screenMousePos     = screenPos;
                 if( CURSOR_LOCKED ) {
                     CenterCursor( window );
-                    appContext->input.pixelMousePos = { WINDOW_WIDTH/2, WINDOW_HEIGHT/2 };
-                    appContext->input.screenMousePos = { 0.5f, 0.5f };
-                } else {
-                    smath::ivec2 pixelPos = { (i32)GET_X_LPARAM(message.lParam), WINDOW_HEIGHT - (i32)GET_Y_LPARAM(message.lParam) };
-                    smath::vec2 screenPos = { (f32)pixelPos.x / (f32)WINDOW_WIDTH, (f32)pixelPos.y /(f32)WINDOW_HEIGHT };
-                    appContext->input.pixelMousePos  = pixelPos;
-                    appContext->input.screenMousePos = screenPos;
+                    appContext->input.lastScreenMousePos = smath::vec2(0.5f);
                 }
             } break;
             case WM_KEYDOWN:
@@ -524,23 +518,28 @@ void Platform::SetCursorVisibility( bool visible ) {
 }
 bool Platform::IsCursorVisible() { return CURSOR_VISIBLE; }
 
-void CenterCursor() {
-    HWND window = GetActiveWindow();
+void CenterCursor( HWND window ) {
     POINT screen = {};
-    screen.x = WINDOW_WIDTH;
-    screen.y = WINDOW_HEIGHT;
+    screen.x = WINDOW_WIDTH / 2;
+    screen.y = WINDOW_HEIGHT / 2;
     ClientToScreen( window, &screen );
     SetCursorPos( screen.x, screen.y );
-
-    CloseHandle( window );
 }
 
 void Platform::SetCursorLocked( bool lock ) {
     if( CURSOR_LOCKED == lock ) {
         return;
     }
-    CenterCursor();
     CURSOR_LOCKED = lock;
+
+    if( CURSOR_LOCKED ) {
+        HWND window = GetActiveWindow();
+        CenterCursor( window );
+        CloseHandle( window );
+        SetCursorVisibility( false );
+    } else {
+        SetCursorVisibility( true );
+    }
 }
 bool Platform::IsCursorLocked() { return CURSOR_LOCKED; }
 

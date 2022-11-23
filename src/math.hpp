@@ -68,7 +68,7 @@ namespace smath {
     /// @param min minimum range, inclusive
     /// @param max maximum range, inclusive
     /// @return clamped value
-    inline i8 clampi( i8 value, i8 min, i8 max ) {
+    inline i8 clamp( i8 value, i8 min, i8 max ) {
         const i8 t = value < min ? min : value;
         return t > max ? max : t;
     }
@@ -77,7 +77,7 @@ namespace smath {
     /// @param min minimum range, inclusive
     /// @param max maximum range, inclusive
     /// @return clamped value
-    inline i16 clampi( i16 value, i16 min, i16 max ) {
+    inline i16 clamp( i16 value, i16 min, i16 max ) {
         const i16 t = value < min ? min : value;
         return t > max ? max : t;
     }
@@ -86,7 +86,7 @@ namespace smath {
     /// @param min minimum range, inclusive
     /// @param max maximum range, inclusive
     /// @return clamped value
-    inline i32 clampi( i32 value, i32 min, i32 max ) {
+    inline i32 clamp( i32 value, i32 min, i32 max ) {
         const i32 t = value < min ? min : value;
         return t > max ? max : t;
     }
@@ -95,7 +95,7 @@ namespace smath {
     /// @param min minimum range, inclusive
     /// @param max maximum range, inclusive
     /// @return clamped value
-    inline i64 clampi( i64 value, i64 min, i64 max ) {
+    inline i64 clamp( i64 value, i64 min, i64 max ) {
         const i64 t = value < min ? min : value;
         return t > max ? max : t;
     }
@@ -104,7 +104,7 @@ namespace smath {
     /// @param min minimum range, inclusive
     /// @param max maximum range, inclusive
     /// @return clamped value
-    inline u8 clampui( u8 value, u8 min, u8 max ) {
+    inline u8 clamp( u8 value, u8 min, u8 max ) {
         const u8 t = value < min ? min : value;
         return t > max ? max : t;
     }
@@ -113,7 +113,7 @@ namespace smath {
     /// @param min minimum range, inclusive
     /// @param max maximum range, inclusive
     /// @return clamped value
-    inline u16 clampui( u16 value, u16 min, u16 max ) {
+    inline u16 clamp( u16 value, u16 min, u16 max ) {
         const u16 t = value < min ? min : value;
         return t > max ? max : t;
     }
@@ -122,7 +122,7 @@ namespace smath {
     /// @param min minimum range, inclusive
     /// @param max maximum range, inclusive
     /// @return clamped value
-    inline u32 clampui( u32 value, u32 min, u32 max ) {
+    inline u32 clamp( u32 value, u32 min, u32 max ) {
         const u32 t = value < min ? min : value;
         return t > max ? max : t;
     }
@@ -131,7 +131,7 @@ namespace smath {
     /// @param min minimum range, inclusive
     /// @param max maximum range, inclusive
     /// @return clamped value
-    inline u64 clampui( u64 value, u64 min, u64 max ) {
+    inline u64 clamp( u64 value, u64 min, u64 max ) {
         const u64 t = value < min ? min : value;
         return t > max ? max : t;
     }
@@ -140,7 +140,7 @@ namespace smath {
     /// @param min minimum range, inclusive
     /// @param max maximum range, inclusive
     /// @return clamped value
-    inline f32 clampf( f32 value, f32 min, f32 max ) {
+    inline f32 clamp( f32 value, f32 min, f32 max ) {
         const f32 t = value < min ? min : value;
         return t > max ? max : t;
     }
@@ -149,7 +149,7 @@ namespace smath {
     /// @param min minimum range, inclusive
     /// @param max maximum range, inclusive
     /// @return clamped value
-    inline f64 clampd( f64 value, f64 min, f64 max ) {
+    inline f64 clamp( f64 value, f64 min, f64 max ) {
         const f64 t = value < min ? min : value;
         return t > max ? max : t;
     }
@@ -175,7 +175,7 @@ namespace smath {
     /// @param t 0.0-1.0 fraction
     /// @return blend between a and b, based on fraction t
     inline f32 clampedLerp( const f32& a, const f32& b, const f32& t ) {
-        return lerp( a, b, clampf( t, 0.0f, 1.0f ) );
+        return lerp( a, b, clamp( t, 0.0f, 1.0f ) );
     }
     /// @brief Linear interpolation, t is clamped between 0.0-1.0
     /// @param a minimum value
@@ -183,7 +183,7 @@ namespace smath {
     /// @param t 0.0-1.0 fraction
     /// @return blend between a and b, based on fraction t
     inline f64 clampedLerp( const f64& a, const f64& b, const f64& t ) {
-        return lerp( a, b, clampd( t, 0.0, 1.0 ) );
+        return lerp( a, b, clamp( t, 0.0, 1.0 ) );
     }
     /// @brief Inverse linear interpolation
     /// @param a minimum

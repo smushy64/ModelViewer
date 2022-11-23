@@ -47,7 +47,7 @@
 #define uforrange( from, to ) for( usize i = from; i < to; ++i )
 
 /// @brief loop between from and to in reverse
-#define forrange_rev( from, to ) for( isize i = to; i > from; --i )
+#define forrange_rev( from, to ) for( isize i = to-1; i >= from; --i )
 
 /// @brief loop for given cycles
 /// DEPRECATED

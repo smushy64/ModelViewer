@@ -229,7 +229,6 @@ void LabelButton::renderButton( Platform::RendererAPI* api, Core::RenderContext*
 #if DEBUG
 
     api->SetWireframeEnabled(true);
-    api->SetBlendingEnable(true);
 
     api->UseShader( &ctx->boundsShader );
     api->UseVertexArray( &ctx->boundsVertexArray );
@@ -253,7 +252,6 @@ void LabelButton::renderButton( Platform::RendererAPI* api, Core::RenderContext*
     );
 
     api->DrawVertexArray( &ctx->boundsVertexArray );
-    api->SetBlendingEnable(false);
     api->SetWireframeEnabled(false);
 
 #endif
@@ -391,7 +389,6 @@ void RenderText(
 ) {
     usize textBufferLenNoNull = textBufferLen - 1;
 
-    api->SetBlendingEnable( true );
     api->SetBlendFunction(
         Platform::BlendFactor::SRC_ALPHA,
         Platform::BlendFactor::ONE_MINUS_SRC_ALPHA,
@@ -478,5 +475,4 @@ void RenderText(
         originX += charMetrics->advance * scale;
     }
 
-    api->SetBlendingEnable( false );
 }

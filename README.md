@@ -20,15 +20,18 @@ This project is written such that when I learn other rendering APIs I can come b
 ![Version 0.1](screenshots/ver0.1/scr01.jpeg)
 
 ## Camera Controls
-| Key                 | Action                    |
-|---------------------|---------------------------|
-| W/A/S/D             | Pan Up/Left/Down/Right    |
-| Right Click + Mouse | Rotate Camera             |
-| Scroll Wheel        | Zoom In/Out               |
-| Ctrl + M            | Quick Load Mesh           |
-| Ctrl + A            | Quick Load Albedo Texture |
-| Ctrl + G            | Quick Load Spec   Texture |
-| Ctrl + N            | Quick Load Normal Texture |
+| Key                      | Action                      |
+|--------------------------|-----------------------------|
+| Right Click + W/A/S/D    | Move Forward/Left/Down/Back |
+| Right Click + Q/E        | Move Down/Up                |
+| Right Click + Move Mouse | Look                        |
+| Scroll Wheel             | Zoom In/Out                 |
+| Middle Mouse Click       | Reset Zoom                  |
+| R                        | Reset Position/Rotation     |
+| Ctrl + M                 | Quick Load Mesh             |
+| Ctrl + A                 | Quick Load Albedo Texture   |
+| Ctrl + G                 | Quick Load Spec   Texture   |
+| Ctrl + N                 | Quick Load Normal Texture   |
 
 ## Download and Installation
 

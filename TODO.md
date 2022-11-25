@@ -10,10 +10,10 @@
 - Material Editor
 - Lights Editor
 - Multiple Meshes
-- Screenshot
+- Screenshot feature
 - Other model formats
 - Font Atlases at different point sizes
-- Reorder struct members to remove unnecessary padding bytes
+- Reorder struct members to prevent unnecessary padding bytes
 - settings.ini
   - camera sensitivity
 
@@ -144,6 +144,7 @@
 - [x] Loading images
 - [x] Loading objs
 - [x] Model viewing!
+- [x] integrate new smath library
 
 ### Normal Map Support + Fixes and Tweaks - Completed 11/2/2022
 - [x] DrawArrays caused segfault
@@ -202,7 +203,7 @@
   - [x] Font shader not being deleted when renderer is deleted?
   - [x] Shader Files not being cleaned up
 
-### Refactor - Completed 10/16/2022
+### Refactor 1 - Completed 10/16/2022
 
 - [x] Win64 layer
   - [x] Window Creation

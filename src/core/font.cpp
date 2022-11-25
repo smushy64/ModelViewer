@@ -116,7 +116,7 @@ bool Core::CreateFontAtlas(
     stbtt_pack_range packRange                 = {};
     packRange.font_size                        = result->pointSize;
     packRange.first_unicode_codepoint_in_range = from;
-    packRange.num_chars                        = smath::clampTrunc64to32((isize)glyphCount);
+    packRange.num_chars                        = (i32)glyphCount;
     packRange.chardata_for_range               = glyphMetrics;
 
     u8* fontPtr = (u8*)fontFile->data;
@@ -155,7 +155,7 @@ bool Core::CreateFontAtlas(
     f32 emScale = stbtt_ScaleForMappingEmToPixels( &fontInfo, result->pointSize );
 
     cycles( (isize)glyphCount ) {
-        char character = from + (char)smath::clampTrunc64to8(i);
+        char character = from + (char)i;
         FontMetrics metrics = {};
         stbtt_packedchar packedChar = glyphMetrics[i];
 

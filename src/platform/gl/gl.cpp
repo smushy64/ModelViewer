@@ -377,19 +377,19 @@ void Platform::OpenGLUniformInt( Shader* shader, i32 uniform, i32 value ) {
     glProgramUniform1i( shader->id, uniform, value );
 }
 void Platform::OpenGLUniformVec2( Shader* shader, i32 uniform, smath::vec2* value ) {
-    glProgramUniform2fv( shader->id, uniform, 1, value->valuePtr() );
+    glProgramUniform2fv( shader->id, uniform, 1, value->ptr() );
 }
 void Platform::OpenGLUniformVec3( Shader* shader, i32 uniform, smath::vec3* value ) {
-    glProgramUniform3fv( shader->id, uniform, 1, value->valuePtr() );
+    glProgramUniform3fv( shader->id, uniform, 1, value->ptr() );
 }
 void Platform::OpenGLUniformVec4( Shader* shader, i32 uniform, smath::vec4* value ) {
-    glProgramUniform4fv( shader->id, uniform, 1, value->valuePtr() );
+    glProgramUniform4fv( shader->id, uniform, 1, value->ptr() );
 }
 void Platform::OpenGLUniformMat3( Shader* shader, i32 uniform, smath::mat3* value ) {
-    glProgramUniformMatrix3fv( shader->id, uniform, 1, GL_FALSE, value->valuePtr() );
+    glProgramUniformMatrix3fv( shader->id, uniform, 1, GL_FALSE, value->ptr() );
 }
 void Platform::OpenGLUniformMat4( Shader* shader, i32 uniform, smath::mat4* value ) {
-    glProgramUniformMatrix4fv( shader->id, uniform, 1, GL_FALSE, value->valuePtr() );
+    glProgramUniformMatrix4fv( shader->id, uniform, 1, GL_FALSE, value->ptr() );
 }
 bool Platform::OpenGLGetUniformID( Shader* shader, const char* uniformName, i32* result ) {
     i32 id = 0;

@@ -66,7 +66,7 @@ namespace F32 {
     /// @brief Positive infinity
     inline const f32 NEG_INFINITY = -1.0f / 0.0f;
     /// @brief Pi constant
-    inline const f32 PI = 3.141592741f;
+    inline const constexpr f32 PI = 3.141592741f;
     /// @brief Tau constant
     inline const f32 TAU = 2.0f * PI;
 };

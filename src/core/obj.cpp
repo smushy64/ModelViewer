@@ -66,7 +66,7 @@ bool Core::ParseOBJ( Platform::File* sourceFile, Platform::VertexArray* result, 
             } else {
                 vertex->uv.x = vertex->position.x;
                 vertex->uv.y = vertex->position.y;
-                smath::vec2::normalize( vertex->uv );
+                smath::normalize( vertex->uv );
             }
 
             if( idx.normal_index >= 0 ) {
@@ -74,7 +74,7 @@ bool Core::ParseOBJ( Platform::File* sourceFile, Platform::VertexArray* result, 
                 vertex->normal.y = attrib.normals[ 3 * idx.normal_index + 1 ];
                 vertex->normal.z = attrib.normals[ 3 * idx.normal_index + 2 ];
             } else {
-                vertex->normal = vertex->position.normal();
+                vertex->normal = smath::normalize(vertex->position);
             }
         }
         idxOffset += fv;

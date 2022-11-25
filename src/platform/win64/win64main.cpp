@@ -61,7 +61,7 @@ i32 APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE, PSTR, i32 ) {
     }
 
     Core::AppContext app = Core::CreateContext();
-    app.windowDimensions = smath::ivec2( WINDOW_WIDTH, WINDOW_HEIGHT );
+    app.windowDimensions = smath::vec2( WINDOW_WIDTH, WINDOW_HEIGHT );
     HWND window = WinCreateWindow(
         hInstance,
         windowTitle,
@@ -142,7 +142,7 @@ void WinProcessMessages( HWND window, Core::AppContext* appContext ) {
     ) == TRUE) {
         switch( message.message ) {
             case WM_MOUSEMOVE: {
-                smath::ivec2 pixelPos = { (i32)GET_X_LPARAM(message.lParam), WINDOW_HEIGHT - (i32)GET_Y_LPARAM(message.lParam) };
+                smath::vec2 pixelPos = { (f32)GET_X_LPARAM(message.lParam), WINDOW_HEIGHT - (f32)GET_Y_LPARAM(message.lParam) };
                 smath::vec2 screenPos = { (f32)pixelPos.x / (f32)WINDOW_WIDTH, (f32)pixelPos.y /(f32)WINDOW_HEIGHT };
 
                 appContext->input.pixelMousePos      = pixelPos;

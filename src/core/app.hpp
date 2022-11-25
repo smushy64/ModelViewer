@@ -22,8 +22,9 @@ inline const char* PROGRAM_TITLE     = "Model Viewer | Version 0.2 ";
 inline const usize PROGRAM_TITLE_LEN = 27;
 
 inline const f32 MAX_CAMERA_Y_ROTATION  = 0.959930888888889f;
-inline const f32 CAMERA_SENSITIVITY     = 150.0f;
-inline const f32 CAMERA_LERP_SPEED      = 50.0f;
+inline const f32 CAMERA_SENSITIVITY     = 200.0f;
+inline const f32 CAMERA_MOVE_LERP_SPEED = 50.0f;
+inline const f32 CAMERA_ROT_LERP_SPEED  = 30.0f;
 inline const f32 CAMERA_FOV             = 1.1345f;
 inline const f32 CAMERA_MIN_FOV         = 0.001f;
 inline const f32 CAMERA_MAX_FOV         = 2.094f;
@@ -46,7 +47,7 @@ struct Input {
     /// @brief 0-width/height mouse position
     /// x-axis: 0 is left and width is right 
     /// y-axis: 0 is bottom and height is top
-    smath::ivec2 pixelMousePos;
+    smath::vec2 pixelMousePos;
     /// @brief 0.0-1.0 mouse position. 
     /// x-axis: 0.0f is left and 1.0f is right 
     /// y-axis: 0.0f is bottom and 1.0f is top
@@ -111,9 +112,9 @@ struct RenderContext {
 
     f32 cameraTargetFOV;
     f32 cameraFOVDelta;
-    smath::ivec2 viewport;
+    smath::vec2 viewport;
     smath::vec2 eulerCameraRotation;
-    smath::quat targetCameraRotation;
+    smath::vec2 targetCameraRotationEuler;
     smath::vec3 targetCameraPosition;
     Core::camera camera;
     Core::lightBuffer lights;
@@ -125,7 +126,7 @@ struct AppContext {
     Time time;
     Platform::RendererAPI rendererAPI;
     Input input;
-    smath::ivec2 windowDimensions;
+    smath::vec2 windowDimensions;
     Core::FontAtlas defaultFontAtlas;
     RenderContext renderContext;
 };

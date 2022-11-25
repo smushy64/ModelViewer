@@ -165,7 +165,7 @@ public:
     ) {}
     void renderButton( Platform::RendererAPI* api, Core::RenderContext* ctx );
     void updateState( Core::Input* playerInput );
-    void onResolutionChange( const smath::ivec2* resolutionPtr );
+    void onResolutionChange( const smath::vec2* resolutionPtr );
 public: // getter
     const smath::vec4& normalColor() const { return m_normalColor; }
     const smath::vec4& highlightColor() const { return m_highlightColor; }
@@ -190,7 +190,7 @@ private:
     smath::vec4 m_pressedColor;
     smath::vec4 m_boundingBox;
     smath::vec4 m_screenSpaceBoundingBox;
-    const smath::ivec2* m_resolutionPtr = nullptr;
+    const smath::vec2* m_resolutionPtr = nullptr;
     ButtonCallbackFN m_callback = nullptr;
     void* m_callbackParams      = nullptr;
     ButtonState m_state;
@@ -203,7 +203,7 @@ public:
     
     void renderInterface( Platform::RendererAPI* api, Core::RenderContext* ctx );
     void updateInterface( Core::Input* input );
-    void onResolutionChange( const smath::ivec2* newResolution );
+    void onResolutionChange( const smath::vec2* newResolution );
 public: // getters
     LabelButton& loadMeshButton() { return m_loadMesh; }
     LabelButton& loadAlbedoTextureButton() { return m_loadAlbedoTexture; }

@@ -34,7 +34,7 @@ void Render( Core::AppContext* app ) {
         &ctx->dataBuffer,
         0,
         sizeof( smath::vec3 ),
-        ctx->camera.position.valuePtr()
+        ctx->camera.position.ptr()
     );
 
     api->ClearBuffer();
@@ -73,7 +73,7 @@ void Core::OnUpdate( AppContext* app ) {
         Core::camera* camera = &app->renderContext.camera;
         smath::vec2* eulerCameraRotation = &app->renderContext.eulerCameraRotation;
         smath::vec3* targetCameraPosition = &app->renderContext.targetCameraPosition;
-        smath::quat* targetCameraRotation = &app->renderContext.targetCameraRotation;
+        smath::vec2* targetCameraRotationEuler = &app->renderContext.targetCameraRotationEuler;
 
         if( app->input.rightMouse ) {
             Platform::SetCursorLocked( true );
@@ -97,7 +97,7 @@ void Core::OnUpdate( AppContext* app ) {
                 vertical = -1.0f;
             }
 
-            smath::vec2::normalize( lateral );
+            smath::normalize( lateral );
 
             smath::vec3 movement =
                 (lateral.x * camera->right) +
@@ -109,37 +109,34 @@ void Core::OnUpdate( AppContext* app ) {
             smath::vec2 deltaMouse = app->input.screenMousePos - app->input.lastScreenMousePos;
             deltaMouse *= app->time.deltaTime * CAMERA_SENSITIVITY;
             
-            *eulerCameraRotation -= deltaMouse;
-            eulerCameraRotation->y = smath::clamp(
-                eulerCameraRotation->y,
+            *targetCameraRotationEuler -= deltaMouse;
+            targetCameraRotationEuler->y = smath::clamp(
+                targetCameraRotationEuler->y,
                 -MAX_CAMERA_Y_ROTATION,
                 MAX_CAMERA_Y_ROTATION
             );
-
-            smath::quat xRot = smath::quat::angleAxis( eulerCameraRotation->x, smath::vec3::up() );
-            smath::quat yRot = smath::quat::angleAxis( eulerCameraRotation->y, camera->right );
-
-            *targetCameraRotation = yRot * xRot;
 
         } else {
             Platform::SetCursorLocked( false );
             app->ui->updateInterface( &app->input );
             if( app->input.IsKeyDown( KeyCode::R ) ) {
                 *targetCameraPosition = DEFAULT_CAMERA_POSITION;
-                *targetCameraRotation = DEFAULT_CAMERA_ROTATION;
+                *targetCameraRotationEuler = DEFAULT_CAMERA_EROTATION;
                 *eulerCameraRotation  = DEFAULT_CAMERA_EROTATION;
             }
         }
-        f32 t = app->time.deltaTime * CAMERA_LERP_SPEED;
-        camera->rotation = smath::lerp(
-            camera->rotation,
-            *targetCameraRotation,
-            t
+        *eulerCameraRotation = smath::lerp(
+            *eulerCameraRotation,
+            *targetCameraRotationEuler,
+            app->time.deltaTime * CAMERA_ROT_LERP_SPEED
         );
+        smath::quat rotX = smath::quat::angleAxis( eulerCameraRotation->y, camera->right );
+        smath::quat rotY = smath::quat::angleAxis( eulerCameraRotation->x, smath::vec3::up() );
+        camera->rotation = rotX * rotY;
         camera->position = smath::lerp(
             camera->position,
             *targetCameraPosition,
-            t
+            app->time.deltaTime * CAMERA_MOVE_LERP_SPEED
         );
 
         f32 lastFOVDelta = app->renderContext.cameraFOVDelta;
@@ -185,7 +182,7 @@ bool Core::OnInit( AppContext* app ) {
     app->rendererAPI.Initialize();
     app->renderContext.viewport = app->windowDimensions;
 
-    u64 random = (u64)smath::randi( Platform::GetSystemTime() ) % (u64)NUMBER_OF_CLEAR_COLORS;
+    u64 random = (u64)smath::rand( Platform::GetSystemTime() ) % (u64)NUMBER_OF_CLEAR_COLORS;
     const smath::vec3& clearColor = CLEAR_COLORS[random];
 
     app->rendererAPI.SetClearColor(
@@ -235,7 +232,7 @@ bool InitializeRenderContext( Core::AppContext* app ) {
     ctx->camera.position      = Core::DEFAULT_CAMERA_POSITION;
     ctx->targetCameraPosition = ctx->camera.position;
     ctx->camera.rotation      = Core::DEFAULT_CAMERA_ROTATION;
-    ctx->targetCameraRotation = ctx->camera.rotation;
+    ctx->targetCameraRotationEuler = Core::DEFAULT_CAMERA_EROTATION;
     ctx->eulerCameraRotation  = Core::DEFAULT_CAMERA_EROTATION;
 
     Platform::File fontVertFile = {};
@@ -345,7 +342,7 @@ bool InitializeRenderContext( Core::AppContext* app ) {
     );
 
     smath::mat3 bpNormalMat = smath::mat3::identity();
-    if(!smath::mat3::normalMat( &bpTransform, &bpNormalMat )) {
+    if(!smath::mat3::normalMat( bpTransform, bpNormalMat )) {
         LOG_DEBUG("normal mat failed!");
     }
     api->UniformMat3(
@@ -422,7 +419,7 @@ bool InitializeRenderContext( Core::AppContext* app ) {
     );
     ctx->matrices2DBuffer = api->CreateUniformBuffer(
         sizeof( smath::mat4 ),
-        mat2d.valuePtr()
+        mat2d.ptr()
     );
     api->UniformBufferSetBindingPoint(
         &ctx->matrices2DBuffer,
@@ -456,7 +453,7 @@ bool InitializeRenderContext( Core::AppContext* app ) {
     );
 
     ctx->lights.ambient.color         = smath::vec3( 0.01f );
-    ctx->lights.directional.direction = (smath::vec3::up() + smath::vec3::right() + smath::vec3::forward()).normal();
+    ctx->lights.directional.direction = smath::normalize(smath::vec3::up() + smath::vec3::right() + smath::vec3::forward());
     ctx->lights.directional.diffuse   = smath::vec3(1.0f);
 
     ctx->lightsBuffer = api->CreateUniformBuffer(
@@ -722,7 +719,7 @@ void Core::OnResolutionUpdate( AppContext* app, i32 width, i32 height ) {
     app->rendererAPI.UniformBufferData(
         &app->renderContext.matrices2DBuffer,
         sizeof(smath::mat4),
-        ortho.valuePtr()
+        ortho.ptr()
     );
 
     app->renderContext.camera.aspectRatio = (f32)width / (f32)height;

@@ -219,7 +219,7 @@ void LabelButton::setState( ButtonState state ) {
         } break;
     }
 }
-void LabelButton::onResolutionChange( const smath::ivec2* resolutionPtr ) {
+void LabelButton::onResolutionChange( const smath::vec2* resolutionPtr ) {
     m_resolutionPtr = resolutionPtr;
     recalculateScreenSpaceBounds();
 }
@@ -330,7 +330,7 @@ void UserInterface::updateInterface( Core::Input* input ) {
         getLabelButtons()[i].updateState( input );
     }
 }
-void UserInterface::onResolutionChange( const smath::ivec2* newResolution ) {
+void UserInterface::onResolutionChange( const smath::vec2* newResolution ) {
     ucycles( m_labelButtonCount ) {
         getLabelButtons()[i].onResolutionChange( newResolution );
     }

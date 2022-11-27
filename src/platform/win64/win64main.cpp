@@ -101,6 +101,10 @@ i32 APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE, PSTR, i32 ) {
         } break;
     }
 
+    u64 frameCount = 0;
+    f32 dt         = 0.0f;
+    f32 updateRate = 4.0f;
+
     if(!Core::OnInit( &app )) {
         return ERROR_RETURN_CODE;
     }
@@ -111,8 +115,17 @@ i32 APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE, PSTR, i32 ) {
         app.time.deltaTime = elapsedTime - app.time.elapsedTime;
         app.time.elapsedTime = elapsedTime;
 
+        frameCount++;
+        dt += app.time.deltaTime;
+        if( dt > 1.0f / updateRate ) {
+            app.time.fps = (f32)frameCount / dt;
+            frameCount = 0;
+            dt -= 1.0f / updateRate;
+        }
+
         WinProcessMessages( window, &app );
         Core::OnUpdate( &app );
+        app.input.mouseUpdated = false;
     }
 
     if( openGLContext ) {
@@ -142,8 +155,17 @@ void WinProcessMessages( HWND window, Core::AppContext* appContext ) {
     ) == TRUE) {
         switch( message.message ) {
             case WM_MOUSEMOVE: {
-                smath::vec2 pixelPos = { (f32)GET_X_LPARAM(message.lParam), WINDOW_HEIGHT - (f32)GET_Y_LPARAM(message.lParam) };
-                smath::vec2 screenPos = { (f32)pixelPos.x / (f32)WINDOW_WIDTH, (f32)pixelPos.y /(f32)WINDOW_HEIGHT };
+                if( appContext->input.mouseUpdated ) {
+                    break;
+                }
+                smath::vec2 pixelPos  = {
+                    (f32)GET_X_LPARAM(message.lParam),
+                    (f32)WINDOW_HEIGHT - (f32)GET_Y_LPARAM(message.lParam)
+                };
+                smath::vec2 screenPos = {
+                    (f32)pixelPos.x / (f32)WINDOW_WIDTH,
+                    (f32)pixelPos.y / (f32)WINDOW_HEIGHT
+                };
 
                 appContext->input.pixelMousePos      = pixelPos;
                 appContext->input.lastScreenMousePos = appContext->input.screenMousePos;
@@ -152,6 +174,7 @@ void WinProcessMessages( HWND window, Core::AppContext* appContext ) {
                     CenterCursor( window );
                     appContext->input.lastScreenMousePos = smath::vec2(0.5f);
                 }
+                appContext->input.mouseUpdated = true;
             } break;
             case WM_KEYDOWN:
             case WM_KEYUP: {
@@ -586,7 +609,6 @@ bool WinLoadFileFromHandle( HANDLE fileHandle, Platform::File* result ) {
         return false;
     }
 
-    CloseHandle( fileHandle );
     LOG_INFO("Windows x64 > Successfully loaded \"%s\" from disk!", result->filePath);
     return true;
 }
@@ -622,7 +644,10 @@ bool Platform::LoadFile( const char* filePath, File* result ) {
         return false;
     }
 
-    return WinLoadFileFromHandle( fileHandle, result );
+    bool success = WinLoadFileFromHandle( fileHandle, result );
+    CloseHandle( fileHandle );
+
+    return success;
 }
 
 bool Platform::UserLoadFile( const char* dialogTitle, File* result ) {
@@ -671,7 +696,8 @@ bool Platform::UserLoadFile( const char* dialogTitle, File* result ) {
 
     bool success = WinLoadFileFromHandle( fileHandle, result );
 
-    CloseHandle(window);
+    CloseHandle( fileHandle );
+    CloseHandle( window );
 
     return success;
 }

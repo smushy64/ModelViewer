@@ -22,8 +22,6 @@ void Render( Core::AppContext* app ) {
     Platform::RendererAPI* api = &app->rendererAPI;
     Core::RenderContext*   ctx = &app->renderContext;
 
-    ctx->camera.recalculateView();
-
     api->UniformBufferData(
         &ctx->matrices3DBuffer,
         sizeof( smath::mat4 ) * ctx->camera.matrixCount(),
@@ -34,7 +32,7 @@ void Render( Core::AppContext* app ) {
         &ctx->dataBuffer,
         0,
         sizeof( smath::vec3 ),
-        ctx->camera.position.ptr()
+        &ctx->camera.position[0]
     );
 
     api->ClearBuffer();
@@ -55,115 +53,116 @@ void Render( Core::AppContext* app ) {
 }
 
 void Core::OnUpdate( AppContext* app ) {
+    Core::Input*         input  = &app->input;
+    Core::RenderContext* ctx    = &app->renderContext;
+    Core::camera*        camera = &ctx->camera;
+    Core::Time*          time   = &app->time;
+
     if( Platform::IsAppActive() ) {
-        Platform::ResetCursorStyle();
-        
-        if( app->input.IsKeyDown( KeyCode::CTRL ) ) {
-            if( app->input.IsKeyDown( KeyCode::M ) ) {
-                LoadMesh( app );
-            } else if( app->input.IsKeyDown( KeyCode::A ) ) {
-                LoadAlbedo( app );
-            } else if( app->input.IsKeyDown( KeyCode::G ) ) {
-                LoadSpecular( app );
-            } else if( app->input.IsKeyDown( KeyCode::N ) ) {
-                LoadNormal( app );
-            }
-        }
 
-        Core::camera* camera = &app->renderContext.camera;
-        smath::vec2* eulerCameraRotation = &app->renderContext.eulerCameraRotation;
-        smath::vec3* targetCameraPosition = &app->renderContext.targetCameraPosition;
-        smath::vec2* targetCameraRotationEuler = &app->renderContext.targetCameraRotationEuler;
-
-        if( app->input.rightMouse ) {
+        if( input->rightMouse ) {
             Platform::SetCursorLocked( true );
-            smath::vec2 lateral = smath::vec2(0.0f);
-            f32 vertical = 0.0f;
-            if( app->input.IsKeyDown( KeyCode::W ) ) {
-                lateral.y = 1.0f;
-            } else if( app->input.IsKeyDown( KeyCode::S ) ) {
-                lateral.y = -1.0f;
+
+            f32 zoomDelta = (f32)input->mouseWheel * time->deltaTime;
+            ctx->targetCameraFOV = smath::clamp(ctx->targetCameraFOV - zoomDelta, CAMERA_MIN_FOV, CAMERA_MAX_FOV);
+
+            smath::vec2 lateralMovement  = {};
+            f32         verticalMovement = 0.0f;
+            if( input->IsKeyDown( KeyCode::A ) ) {
+                lateralMovement.x = 1.0f;
+            } else if( input->IsKeyDown( KeyCode::D ) ) {
+                lateralMovement.x = -1.0f;
             }
 
-            if( app->input.IsKeyDown( KeyCode::A ) ) {
-                lateral.x = 1.0f;
-            } else if( app->input.IsKeyDown( KeyCode::D ) ) {
-                lateral.x = -1.0f;
+            if( input->IsKeyDown( KeyCode::W ) ) {
+                lateralMovement.y = 1.0f;
+            } else if( input->IsKeyDown( KeyCode::S ) ) {
+                lateralMovement.y = -1.0f;
             }
 
-            if( app->input.IsKeyDown( KeyCode::E ) ) {
-                vertical = 1.0f;
-            } else if( app->input.IsKeyDown( KeyCode::Q ) ) {
-                vertical = -1.0f;
+            if( input->IsKeyDown( KeyCode::E ) ) {
+                verticalMovement = 1.0f;
+            } else if( input->IsKeyDown( KeyCode::Q ) ) {
+                verticalMovement = -1.0f;
             }
 
-            smath::normalize( lateral );
+            smath::vec3 movement = normalize((lateralMovement.x * camera->right) + (lateralMovement.y * camera->forward)) +
+                (verticalMovement  * smath::vec3::up());
 
-            smath::vec3 movement =
-                (lateral.x * camera->right) +
-                (vertical * smath::vec3::up()) +
-                (lateral.y * camera->forward);
+            ctx->targetCameraPosition += movement * time->deltaTime;
 
-            *targetCameraPosition += movement * app->time.deltaTime;
+            smath::vec2 deltaMouse = input->screenMousePos - input->lastScreenMousePos;
+            deltaMouse *= time->deltaTime * CAMERA_SENSITIVITY;
 
-            smath::vec2 deltaMouse = app->input.screenMousePos - app->input.lastScreenMousePos;
-            deltaMouse *= app->time.deltaTime * CAMERA_SENSITIVITY;
-            
-            *targetCameraRotationEuler -= deltaMouse;
-            targetCameraRotationEuler->y = smath::clamp(
-                targetCameraRotationEuler->y,
+            ctx->eulerCameraRotation.x -= deltaMouse.x;
+            ctx->eulerCameraRotation.y -= deltaMouse.y;
+
+            ctx->eulerCameraRotation.y = smath::clamp(
+                ctx->eulerCameraRotation.y,
                 -MAX_CAMERA_Y_ROTATION,
                 MAX_CAMERA_Y_ROTATION
             );
 
+            smath::quat rotX = smath::quat::angleAxis( ctx->eulerCameraRotation.x, smath::vec3::up() );
+            smath::quat rotY = smath::quat::angleAxis( ctx->eulerCameraRotation.y, camera->right );
+
+            ctx->targetCameraRotation = rotY * rotX;
+
         } else {
+            Platform::ResetCursorStyle();
             Platform::SetCursorLocked( false );
-            app->ui->updateInterface( &app->input );
-            if( app->input.IsKeyDown( KeyCode::R ) ) {
-                *targetCameraPosition = DEFAULT_CAMERA_POSITION;
-                *targetCameraRotationEuler = DEFAULT_CAMERA_EROTATION;
-                *eulerCameraRotation  = DEFAULT_CAMERA_EROTATION;
+
+            if( input->IsKeyDown( KeyCode::CTRL ) ) {
+                if( input->IsKeyDown( KeyCode::M ) ) {
+                    LoadMesh( app );
+                } else if( input->IsKeyDown( KeyCode::A ) ) {
+                    LoadAlbedo( app );
+                } else if( input->IsKeyDown( KeyCode::G ) ) {
+                    LoadSpecular( app );
+                } else if( input->IsKeyDown( KeyCode::N ) ) {
+                    LoadNormal( app );
+                }
+                
+                if( input->IsKeyDown( KeyCode::R ) ) {
+                    ctx->targetCameraPosition = DEFAULT_CAMERA_POSITION;
+                    ctx->targetCameraRotation = DEFAULT_CAMERA_ROTATION;
+                    ctx->eulerCameraRotation  = DEFAULT_CAMERA_EROTATION;
+                    ctx->targetCameraFOV = CAMERA_FOV;
+                }
             }
+
+            app->ui->updateInterface( input );
+
         }
-        *eulerCameraRotation = smath::lerp(
-            *eulerCameraRotation,
-            *targetCameraRotationEuler,
-            app->time.deltaTime * CAMERA_ROT_LERP_SPEED
-        );
-        smath::quat rotX = smath::quat::angleAxis( eulerCameraRotation->y, camera->right );
-        smath::quat rotY = smath::quat::angleAxis( eulerCameraRotation->x, smath::vec3::up() );
-        camera->rotation = rotX * rotY;
+
         camera->position = smath::lerp(
             camera->position,
-            *targetCameraPosition,
-            app->time.deltaTime * CAMERA_MOVE_LERP_SPEED
+            ctx->targetCameraPosition,
+            time->deltaTime * CAMERA_MOVE_LERP_SPEED
         );
 
-        f32 lastFOVDelta = app->renderContext.cameraFOVDelta;
-        app->renderContext.cameraFOVDelta -= (f32)app->input.mouseWheel * app->time.deltaTime * CAMERA_ZOOM_SPEED;
-        if( app->input.middleMouse ) {
-            app->renderContext.cameraFOVDelta = 0.0f;
-        }
-
-        app->renderContext.cameraTargetFOV = CAMERA_FOV + app->renderContext.cameraFOVDelta;
-        if( app->renderContext.cameraTargetFOV > CAMERA_MAX_FOV ) {
-            app->renderContext.cameraTargetFOV = CAMERA_MAX_FOV;
-            app->renderContext.cameraFOVDelta = lastFOVDelta;
-        } else if( app->renderContext.cameraTargetFOV < CAMERA_MIN_FOV ) {
-            app->renderContext.cameraTargetFOV = CAMERA_MIN_FOV;
-            app->renderContext.cameraFOVDelta = lastFOVDelta;
-        }
-
-        f32 lastFOV = camera->fovRad;
         camera->fovRad = smath::lerp(
             camera->fovRad,
-            app->renderContext.cameraTargetFOV,
-            app->time.deltaTime * CAMERA_ZOOM_LERP_SPEED
+            ctx->targetCameraFOV,
+            time->deltaTime * CAMERA_ZOOM_LERP_SPEED
         );
-        if( lastFOV != camera->fovRad ) {
-            camera->recalculateProjection();
+
+        f32 cameraRotTargetRotDifference = smath::unsignedAngle( camera->rotation, ctx->targetCameraRotation );
+        if( cameraRotTargetRotDifference > 0.00001f ) {
+            f32 rotationLerpSpeed = smath::remap(
+                CAMERA_MIN_FOV, CAMERA_MAX_FOV,
+                CAMERA_MAX_ROT_LERP_SPEED, CAMERA_MIN_ROT_LERP_SPEED,
+                camera->fovRad
+            );
+            camera->rotation = smath::lerp(
+                camera->rotation,
+                ctx->targetCameraRotation,
+                time->deltaTime * rotationLerpSpeed
+            );
         }
 
+        camera->recalculateView();
+        camera->recalculateProjection();
         camera->recalculateBasis();
         Render(app);
     }
@@ -181,16 +180,6 @@ bool Core::OnInit( AppContext* app ) {
     app->isRunning = true;
     app->rendererAPI.Initialize();
     app->renderContext.viewport = app->windowDimensions;
-
-    u64 random = (u64)smath::rand( Platform::GetSystemTime() ) % (u64)NUMBER_OF_CLEAR_COLORS;
-    const smath::vec3& clearColor = CLEAR_COLORS[random];
-
-    app->rendererAPI.SetClearColor(
-        clearColor.x,
-        clearColor.y,
-        clearColor.z,
-        1.0f
-    );
     
     const char* openSansFilePath = "./resources/open_sans/OpenSans-Regular.ttf";
     Platform::File openSansFile = {};
@@ -229,11 +218,27 @@ bool InitializeRenderContext( Core::AppContext* app ) {
     Core::RenderContext*   ctx = &app->renderContext;
     Platform::RendererAPI* api = &app->rendererAPI;
 
+    u64 random = (u64)smath::rand( Platform::GetSystemTime() ) % (u64)NUMBER_OF_CLEAR_COLORS;
+    const smath::vec3& clearColor = CLEAR_COLORS[random];
+
+    api->SetClearColor(
+        clearColor.x,
+        clearColor.y,
+        clearColor.z,
+        1.0f
+    );
     ctx->camera.position      = Core::DEFAULT_CAMERA_POSITION;
     ctx->targetCameraPosition = ctx->camera.position;
     ctx->camera.rotation      = Core::DEFAULT_CAMERA_ROTATION;
-    ctx->targetCameraRotationEuler = Core::DEFAULT_CAMERA_EROTATION;
+    ctx->targetCameraRotation = ctx->camera.rotation;
     ctx->eulerCameraRotation  = Core::DEFAULT_CAMERA_EROTATION;
+    ctx->camera.aspectRatio   = (f32)(ctx->viewport.x / ctx->viewport.y);
+    ctx->camera.fovRad        = Core::CAMERA_FOV;
+    ctx->targetCameraFOV      = ctx->camera.fovRad;
+
+    ctx->camera.recalculateView();
+    ctx->camera.recalculateBasis();
+    ctx->camera.recalculateProjection();
 
     Platform::File fontVertFile = {};
     if(!Platform::LoadFile( "./resources/shaders/font/font.glslVert", &fontVertFile )) {
@@ -452,12 +457,24 @@ bool InitializeRenderContext( Core::AppContext* app ) {
         RENDERER_DATA_BINDING_POINT
     );
 
-    ctx->lights.ambient.color         = smath::vec3( 0.01f );
-    ctx->lights.directional.direction = smath::normalize(smath::vec3::up() + smath::vec3::right() + smath::vec3::forward());
-    ctx->lights.directional.diffuse   = smath::vec3(1.0f);
+    ctx->lights.ambient.color         = smath::vec4(0.01f, 0.0096f, 0.0085f, 0.0f);
+    ctx->lights.directional.direction = smath::vec4( smath::normalize(
+        smath::vec3::up() + smath::vec3::right() + (smath::vec3::forward() * 1.2f)
+    ));
+    ctx->lights.directional.diffuse   = smath::vec4(0.9f, 0.95f, 1.0f, 0.0f) * 0.75f;
+
+    ctx->lights.point0.isActive = true;
+    ctx->lights.point0.position = smath::vec4( 1.0f, 1.6f, 0.5f, 0.0f );
+    ctx->lights.point0.diffuse  = smath::vec4(1.0f, 0.94f, 0.89f, 0.0f);
+    ctx->lights.point0.specular = ctx->lights.point0.diffuse * 0.5f;
+
+    ctx->lights.point1.isActive = true;
+    ctx->lights.point1.position = smath::vec4( -1.0f, -1.6f, 0.5f, 0.0f );
+    ctx->lights.point1.diffuse  = smath::vec4(1.0f, 0.92f, 0.87f, 0.0f);
+    ctx->lights.point1.specular = ctx->lights.point1.diffuse * 0.5f;
 
     ctx->lightsBuffer = api->CreateUniformBuffer(
-        320,
+        sizeof( Core::lightBuffer ),
         &ctx->lights
     );
     api->UniformBufferSetBindingPoint(
@@ -822,7 +839,7 @@ void LoadNormal( void* params ) {
                 Platform::TextureWrapMode::CLAMP,
                 Platform::TextureWrapMode::CLAMP,
                 Platform::TextureMinFilter::NEAREST,
-                Platform::TextureMagFilter::NEAREST
+                Platform::TextureMagFilter::LINEAR
             );
             app->rendererAPI.UniformInt(
                 &app->renderContext.blinnPhongShader,
@@ -867,7 +884,7 @@ void LoadSpecular( void* params ) {
                 Platform::TextureWrapMode::CLAMP,
                 Platform::TextureWrapMode::CLAMP,
                 Platform::TextureMinFilter::NEAREST,
-                Platform::TextureMagFilter::NEAREST
+                Platform::TextureMagFilter::LINEAR
             );
 
             Core::FreeImage( &image );

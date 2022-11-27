@@ -42,107 +42,119 @@ typedef float  f32;
 // 64-bit floating-point number
 typedef double f64;
 
-// Float 32-bit constants
+/// @brief Float 32-bit constants
 namespace F32 {
-    // Largest finite f32 value
+    /// @brief Largest finite f32 value
     inline const constexpr f32 MAX = 3.40282347E+38f;
-    // Smallest finite f32 value
+    /// @brief Smallest finite f32 value
     inline const constexpr f32 MIN = -3.40282347E+38f;
-    // Not a number
+    /// @brief Not a number
     inline const f32 NaN = 0.0f / 0.0f;
-    // Smallest positive f32 value
+    /// @brief Smallest positive f32 value
     inline const constexpr f32 MIN_POS = 1.17549435E-38f;
-    // Positive infinity
+    /// @brief Positive infinity
     inline const f32 POS_INFINITY = 1.0f / 0.0f;
-    // Positive infinity
+    /// @brief Positive infinity
     inline const f32 NEG_INFINITY = -1.0f / 0.0f;
-    // Pi constant
+    /// @brief Pi constant
     inline const constexpr f32 PI = 3.141592741f;
-    // Tau constant
+    /// @brief Tau constant
     inline const constexpr f32 TAU = 2.0f * PI;
+    /// @brief Epsilon constant
+    inline const constexpr f32 EPSILON = 1.1920929E-7f;
+    /// @brief Approximate number of significant digits in base-10
+    inline const constexpr u32 SIGNIFICANT_DIGITS = 6;
+    /// @brief Number of significant digits in base-2
+    inline const constexpr u32 MANTISSA_DIGITS = 24;
 };
 
-// Float 64-bit constants
+/// @brief Float 64-bit constants
 namespace F64 {
-    // Largest finite f64 value
+    /// @brief Largest finite f64 value
     inline const constexpr f64 MAX = 1.7976931348623157E+308;
-    // Smallest finite f64 value
+    /// @brief Smallest finite f64 value
     inline const constexpr f64 MIN = -1.7976931348623157E+308;
-    // Not a number
+    /// @brief Not a number
     inline const f64 NaN = 0.0 / 0.0;
-    // Smallest positive f32 value
+    /// @brief Smallest positive f32 value
     inline const constexpr f64 MIN_POS = 2.2250738585072014E-308;
-    // Positive infinity
+    /// @brief Positive infinity
     inline const f64 POS_INFINITY = 1.0 / 0.0;
-    // Positive infinity
+    /// @brief Positive infinity
     inline const f64 NEG_INFINITY = -1.0 / 0.0;
-    // Pi constant
+    /// @brief Pi constant
     inline const constexpr f64 PI = 3.14159265358979323846;
-    // Tau constant
+    /// @brief Tau constant
     inline const constexpr f64 TAU = 2.0 * PI;
+    /// @brief Epsilon constant
+    inline const constexpr f64 EPSILON = 2.2204460492503131E-16;
+    /// @brief Approximate number of significant digits in base-10
+    inline const constexpr u32 SIGNIFICANT_DIGITS = 15;
+    /// @brief Number of significant digits in base-2
+    inline const constexpr u32 MANTISSA_DIGITS = 54;
 };
 
-// Unsigned integer 8-bit constants
+/// @brief Unsigned integer 8-bit constants
 namespace U8 {
-    // Largest u8 value
+    /// @brief Largest u8 value
     inline const constexpr u8 MAX = 255;
-    // Smallest u8 value
+    /// @brief Smallest u8 value
     inline const constexpr u8 MIN = 0;
 };
 
-// Unsigned integer 16-bit constants
+/// @brief Unsigned integer 16-bit constants
 namespace U16 {
-    // Largest u16 value
+    /// @brief Largest u16 value
     inline const constexpr u16 MAX = 65535;
-    // Smallest u16 value
+    /// @brief Smallest u16 value
     inline const constexpr u16 MIN = 0;
 };
 
-// Unsigned integer 32-bit constants
+/// @brief Unsigned integer 32-bit constants
 namespace U32 {
-    // Largest u32 value
+    /// @brief Largest u32 value
     inline const constexpr u32 MAX = 4294967295;
-    // Smallest u32 value
+    /// @brief Smallest u32 value
     inline const constexpr u32 MIN = 0;
 };
 
-// Unsigned integer 64-bit constants
+/// @brief Unsigned integer 64-bit constants
 namespace U64 {
-    // Largest u64 value
+    /// @brief Largest u64 value
     inline const constexpr u64 MAX = 18446744073709551615ULL;
-    // Smallest u64 value
-    inline const constexpr u64 MIN = 0ULL;
+    /// @brief Smallest u64 value
+    inline const constexpr u64 MIN = 0;
 };
 
-// Integer 8-bit constants
+/// @brief Integer 8-bit constants
 namespace I8 {
-    // Largest i8 value
+    /// @brief Largest i8 value
     inline const constexpr i8 MAX = 127;
-    // Smallest i8 value
+    /// @brief Smallest i8 value
     inline const constexpr i8 MIN = -128;
 };
 
-// Integer 16-bit constants
+/// @brief Integer 16-bit constants
 namespace I16 {
-    // Largest i16 value
+    /// @brief Largest i16 value
     inline const constexpr i16 MAX = 32767;
-    // Smallest i16 value
+    /// @brief Smallest i16 value
     inline const constexpr i16 MIN = -32768;
 };
 
-// Integer 32-bit constants
+/// @brief Integer 32-bit constants
 namespace I32 {
-    // Largest i32 value
+    /// @brief Largest i32 value
     inline const constexpr i32 MAX = 2147483647;
-    // Smallest i32 value
+    /// @brief Smallest i32 value
     inline const constexpr i32 MIN = -2147483648;
 };
 
-// Integer 64-bit constants
+/// @brief Integer 64-bit constants
 namespace I64 {
-    // Largest i64 value
+    /// @brief Largest i64 value
     inline const constexpr i64 MAX = 9223372036854775807LL;
-    // Smallest i64 value
+    /// @brief Smallest i64 value
     inline const constexpr i64 MIN = -9223372036854775807 - 1;
 };
 
@@ -279,46 +291,6 @@ inline f64 sqrt( f64 x ) {
     return _mm_cvtsd_f64( temp );
 }
 
-// raise to the power of 2
-inline constexpr i8 sqr( i8 x ) {
-    return x * x;
-}
-// raise to the power of 2
-inline constexpr i16 sqr( i16 x ) {
-    return x * x;
-}
-// raise to the power of 2
-inline constexpr i32 sqr( i32 x ) {
-    return x * x;
-}
-// raise to the power of 2
-inline constexpr i64 sqr( i64 x ) {
-    return x * x;
-}
-// raise to the power of 2
-inline constexpr u8 sqr( u8 x ) {
-    return x * x;
-}
-// raise to the power of 2
-inline constexpr u16 sqr( u16 x ) {
-    return x * x;
-}
-// raise to the power of 2
-inline constexpr u32 sqr( u32 x ) {
-    return x * x;
-}
-// raise to the power of 2
-inline constexpr u64 sqr( u64 x ) {
-    return x * x;
-}
-// raise to the power of 2
-inline constexpr f32 sqr( f32 x ) {
-    return x * x;
-}
-// raise to the power of 2
-inline constexpr f64 sqr( f64 x ) {
-    return x * x;
-}
 // raise x to the power of exp
 inline constexpr f32 pow( f32 x, f32 exp ) {
     return __builtin_powf( x, exp );
@@ -630,13 +602,16 @@ inline void mul(
 const f32 VEC_CMP_THRESHOLD = 0.0001f;
 
 struct vec2;
+struct ivec2;
 struct vec3;
+struct ivec3;
 struct vec4;
+struct ivec4;
 struct quat;
 struct mat2;
 struct mat3;
 struct mat4;
-// TODO(alicia): MAT2
+// TODO(alicia): MAT2, IVEC3, IVEC4
 
 inline vec2 operator+( const vec2& lhs, const vec2& rhs );
 inline vec2 operator-( const vec2& lhs, const vec2& rhs );
@@ -683,6 +658,7 @@ struct vec2 {
     vec2() : x(0.0f), y(0.0f) {}
     vec2( f32 scalar ) : x(scalar), y(scalar) {}
     vec2( f32 x, f32 y ) : x(x), y(y) {}
+    explicit vec2( const ivec2& iv );
 
     // get pointer to struct as f32
     f32* ptr() { return &x; }
@@ -800,9 +776,9 @@ inline f32 dot( const vec2& lhs, const vec2& rhs ) {
     // NOTE(alicia): SSE
     // TODO(alicia): further optimizations? FMA?
 
-    __m128 a = _mm_set_ps( 0.0f, 0.0f, lhs.x, lhs.y );
-    __m128 b = _mm_set_ps( 0.0f, 0.0f, rhs.x, rhs.y );
-    f32 result[2];
+    __m128 a = _mm_set_ps( 0.0f, 0.0f, lhs.y, lhs.x );
+    __m128 b = _mm_set_ps( 0.0f, 0.0f, rhs.y, rhs.x );
+    f32 result[4];
     _mm_storeu_ps( result, _mm_mul_ps( a, b ) );
 
     return result[0] + result[1];
@@ -810,19 +786,19 @@ inline f32 dot( const vec2& lhs, const vec2& rhs ) {
 inline vec2 mul( const vec2& lhs, const vec2& rhs ) {
     // NOTE(alicia): SSE
 
-    __m128 a = _mm_set_ps( 0.0f, 0.0f, lhs.x, lhs.y );
-    __m128 b = _mm_set_ps( 0.0f, 0.0f, rhs.x, rhs.y );
-    f32 result[2];
+    __m128 a = _mm_set_ps( 0.0f, 0.0f, lhs.y, lhs.x );
+    __m128 b = _mm_set_ps( 0.0f, 0.0f, rhs.y, rhs.x );
+    f32 result[4];
     _mm_storeu_ps( result, _mm_mul_ps( a, b ) );
 
-    return { result[1], result[0] };
+    return { result[0], result[1] };
 }
 inline f32 sqrMag( const vec2& v ) {
     // NOTE(alicia): SSE
     // TODO(alicia): further optimizations? FMA?
 
     __m128 a = _mm_set_ps( 0.0f, 0.0f, v.x, v.y );
-    f32 result[2];
+    f32 result[4];
     _mm_storeu_ps( result, _mm_mul_ps( a, a ) );
 
     return result[0] + result[1];
@@ -841,6 +817,162 @@ inline vec2 lerp( const vec2& a, const vec2& b, f32 t ) {
 }
 inline vec2 clampedLerp( const vec2& a, const vec2& b, f32 t ) {
     return lerp( a, b, clamp( t, 0.0f, 1.0f ) );
+}
+
+inline ivec2 operator+( const ivec2& lhs, const ivec2& rhs );
+inline ivec2 operator-( const ivec2& lhs, const ivec2& rhs );
+inline ivec2 operator*( const ivec2& lhs, i32 rhs );
+inline ivec2 operator*( i32 lhs, const ivec2& rhs );
+inline ivec2 operator/( const ivec2& lhs, i32 rhs );
+// compare two vectors
+inline bool cmp( const ivec2& lhs, const ivec2& rhs );
+// dot product
+inline f32 dot( const ivec2& lhs, const ivec2& rhs );
+// scale vectors component-wise
+inline ivec2 mul( const ivec2& lhs, const ivec2& rhs );
+// square magnitude
+inline f32 sqrMag( const ivec2& v );
+// magnitude
+inline f32 mag( const ivec2& v );
+// signed angle between two vectors
+inline f32 angle( const ivec2& lhs, const ivec2& rhs );
+// unsigned angle between two vectors
+inline f32 unsignedAngle( const ivec2& lhs, const ivec2& rhs );
+// 2-component integer vector
+struct ivec2 {
+    i32 x, y;
+
+    ivec2() : x(0), y(0) {}
+    ivec2( i32 scalar ) : x(scalar), y(scalar) {}
+    ivec2( i32 x, i32 y ) : x(x), y(y) {}
+    explicit ivec2( const vec2& v ) : x((i32)v.x), y((i32)v.y) {}
+
+    // get pointer to struct as i32
+    i32* ptr() { return &x; }
+    // get pointer to struct as i32
+    const i32* ptr() const { return &x; }
+    i32& operator[]( usize index ) {
+        return ptr()[index];
+    }
+    i32 operator[]( usize index ) const {
+        return ptr()[index];
+    }
+    ivec2& operator-() { return *this *= -1; }
+    bool operator==( const ivec2& rhs ) { return cmp( *this, rhs ); }
+    bool operator!=( const ivec2& rhs ) { return !(*this == rhs); }
+    ivec2& operator+=( const ivec2& rhs ) {
+        // NOTE(alicia): SSE
+
+        __m128i _a = _mm_set_epi32( 0, 0, this->y, this->x );
+        __m128i _b = _mm_set_epi32( 0, 0, rhs.y, rhs.x );
+
+        i32 result[4];
+        _mm_storeu_epi32( result, _mm_add_epi32( _a, _b ) );
+
+        this->x = result[0];
+        this->y = result[1];
+        return *this;
+    }
+    ivec2& operator-=( const ivec2& rhs ) {
+        // NOTE(alicia): SSE
+
+        __m128i _a = _mm_set_epi32( 0, 0, this->y, this->x );
+        __m128i _b = _mm_set_epi32( 0, 0, rhs.y, rhs.x );
+
+        i32 result[4];
+        _mm_storeu_epi32( result, _mm_sub_epi32( _a, _b ) );
+
+        this->x = result[0];
+        this->y = result[1];
+        return *this;
+    }
+    ivec2& operator*=( const i32& rhs ) {
+        // NOTE(alicia): SSE
+
+        __m128i _a = _mm_set_epi32( 0, 0, this->y, this->x );
+        __m128i _b = _mm_set1_epi32( rhs );
+
+        i32 result[4];
+        _mm_storeu_epi32( result, _mm_mul_epi32( _a, _b ) );
+
+        this->x = result[0];
+        this->y = result[1];
+        return *this;
+    }
+    ivec2& operator/=( const i32& rhs ) {
+        // NOTE(alicia): SSE
+        // NOTE(alicia): Floating-point divide because there is no _mm_div_epi32 :(
+
+        __m128 _a = _mm_set_ps( 0.0f, 0.0f, (f32)this->y, (f32)this->x );
+        __m128 _b = _mm_set1_ps( (f32)rhs );
+        f32 result[4];
+        _mm_storeu_ps( result, _mm_div_ps( _a, _b ) );
+
+        this->x = (i32)result[0];
+        this->y = (i32)result[1];
+        return *this;
+    }
+
+    // (  1,  1 ) 
+    static ivec2 one()   { return {  1,  1 }; }
+    // (  0,  0 ) 
+    static ivec2 zero()  { return {  0,  0 }; }
+    // ( -1,  0 ) 
+    static ivec2 left()  { return { -1,  0 }; }
+    // (  1,  0 ) 
+    static ivec2 right() { return {  1,  0 }; }
+    // (  0,  1 ) 
+    static ivec2 up()    { return {  0,  1 }; }
+    // (  0, -1 ) 
+    static ivec2 down()  { return {  0, -1 }; }
+};
+inline ivec2 operator+( const ivec2& lhs, const ivec2& rhs ) {
+    return ivec2(lhs) += rhs;
+}
+inline ivec2 operator-( const ivec2& lhs, const ivec2& rhs ) {
+    return ivec2(lhs) -= rhs;
+}
+inline ivec2 operator*( const ivec2& lhs, i32 rhs ) {
+    return ivec2(lhs) *= rhs;
+}
+inline ivec2 operator*( i32 lhs, const ivec2& rhs ) {
+    return ivec2(rhs) *= lhs;
+}
+inline ivec2 operator/( const ivec2& lhs, i32 rhs ) {
+    return ivec2(lhs) /= rhs;
+}
+inline bool cmp( const ivec2& lhs, const ivec2& rhs ) {
+    // TODO(alicia): SIMD?
+    return lhs.x == rhs.x && lhs.y == rhs.y;
+}
+inline f32 dot( const ivec2& lhs, const ivec2& rhs ) {
+    return smath::dot( smath::vec2(lhs), smath::vec2(rhs) );
+}
+inline f32 sqrMag( const ivec2& v ) {
+    return smath::sqrMag( smath::vec2(v) );
+}
+inline f32 mag( const ivec2& v ) {
+    return smath::mag( smath::vec2(v) );
+}
+inline f32 angle( const ivec2& lhs, const ivec2& rhs ) {
+    return smath::angle( smath::vec2(lhs), smath::vec2(rhs) );
+}
+inline f32 unsignedAngle( const ivec2& lhs, const ivec2& rhs ) {
+    return smath::unsignedAngle( smath::vec2(lhs), smath::vec2(rhs) );
+}
+inline ivec2 mul( const ivec2& lhs, const ivec2& rhs ) {
+    // NOTE(alicia): SSE
+    ivec2 result = {};
+
+    __m128i _a = _mm_set_epi32( 0, 0, lhs.y, lhs.x );
+    __m128i _b = _mm_set_epi32( 0, 0, rhs.y, rhs.x );
+
+    i32 _mul[4];
+    _mm_storeu_epi32( _mul, _mm_mul_epi32( _a, _b ) );
+
+    result.x = result[0];
+    result.y = result[1];
+    return result;
 }
 
 inline vec3 operator+( const vec3& lhs, const vec3& rhs );
@@ -886,14 +1018,16 @@ inline vec3 clampedLerp( const vec3& a, const vec3& b, f32 t );
 struct vec3 {
     union {
         struct { f32 x, y, z; };
+        struct { f32 pitch, yaw, roll; };
         struct { f32 r, g, b; };
     };
 
     vec3() : x(0.0f), y(0.0f), z(0.0f) {}
     vec3( f32 scalar ) : x(scalar), y(scalar), z(scalar) {}
-    vec3( const vec2& v ) : x(v.x), y(v.y), z(0.0f) {}
-    vec3( const vec4& v );
     vec3( f32 x, f32 y, f32 z ) : x(x), y(y), z(z) {}
+    explicit vec3( const vec2& v ) : x(v.x), y(v.y), z(0.0f) {}
+    explicit vec3( const vec4& v );
+    explicit vec3( const ivec3& iv );
 
     // get pointer to struct as f32
     f32* ptr() { return &x; }
@@ -1073,6 +1207,177 @@ inline vec3 clampedLerp( const vec3& a, const vec3& b, f32 t ) {
     return lerp( a, b, clamp( t, 0.0f, 1.0f ) );
 }
 
+inline ivec3 operator+( const ivec3& lhs, const ivec3& rhs );
+inline ivec3 operator-( const ivec3& lhs, const ivec3& rhs );
+inline ivec3 operator*( const ivec3& lhs, i32 rhs );
+inline ivec3 operator*( i32 lhs, const ivec3& rhs );
+inline ivec3 operator/( const ivec3& lhs, i32 rhs );
+// compare two vectors
+inline bool cmp( const ivec3& lhs, const ivec3& rhs );
+// dot product
+inline f32 dot( const ivec3& lhs, const ivec3& rhs );
+// cross product
+inline ivec3 cross( const ivec3& lhs, const ivec3& rhs );
+// scale vectors component-wise
+inline ivec3 mul( const ivec3& lhs, const ivec3& rhs );
+// square magnitude
+inline f32 sqrMag( const ivec3& v );
+// magnitude
+inline f32 mag( const ivec3& v );
+// signed angle between two vectors
+inline f32 angle( const ivec3& lhs, const ivec3& rhs );
+// unsigned angle between two vectors
+inline f32 unsignedAngle( const ivec3& lhs, const ivec3& rhs );
+// 2-component integer vector
+struct ivec3 {
+    i32 x, y, z;
+
+    ivec3() : x(0), y(0), z(0) {}
+    ivec3( i32 scalar ) : x(scalar), y(scalar), z(scalar) {}
+    ivec3( i32 x, i32 y, i32 z ) : x(x), y(y), z(z) {}
+    explicit ivec3( const vec3& v ) : x((i32)v.x), y((i32)v.y), z((i32)v.z) {}
+
+    // get pointer to struct as i32
+    i32* ptr() { return &x; }
+    // get pointer to struct as i32
+    const i32* ptr() const { return &x; }
+    i32& operator[]( usize index ) {
+        return ptr()[index];
+    }
+    i32 operator[]( usize index ) const {
+        return ptr()[index];
+    }
+    ivec3& operator-() { return *this *= -1; }
+    bool operator==( const ivec3& rhs ) { return cmp( *this, rhs ); }
+    bool operator!=( const ivec3& rhs ) { return !(*this == rhs); }
+    ivec3& operator+=( const ivec3& rhs ) {
+        // NOTE(alicia): SSE
+
+        __m128i _a = _mm_set_epi32( 0, this->z, this->y, this->x );
+        __m128i _b = _mm_set_epi32( 0, rhs.z, rhs.y, rhs.x );
+
+        i32 result[4];
+        _mm_storeu_epi32( result, _mm_add_epi32( _a, _b ) );
+
+        this->x = result[0];
+        this->y = result[1];
+        this->z = result[2];
+        return *this;
+    }
+    ivec3& operator-=( const ivec3& rhs ) {
+        // NOTE(alicia): SSE
+
+        __m128i _a = _mm_set_epi32( 0, this->z, this->y, this->x );
+        __m128i _b = _mm_set_epi32( 0, rhs.z, rhs.y, rhs.x );
+
+        i32 result[4];
+        _mm_storeu_epi32( result, _mm_sub_epi32( _a, _b ) );
+
+        this->x = result[0];
+        this->y = result[1];
+        this->z = result[2];
+        return *this;
+    }
+    ivec3& operator*=( const i32& rhs ) {
+        // NOTE(alicia): SSE
+
+        __m128i _a = _mm_set_epi32( 0, this->z, this->y, this->x );
+        __m128i _b = _mm_set1_epi32( rhs );
+
+        i32 result[4];
+        _mm_storeu_epi32( result, _mm_mul_epi32( _a, _b ) );
+
+        this->x = result[0];
+        this->y = result[1];
+        this->z = result[2];
+        return *this;
+    }
+    ivec3& operator/=( const i32& rhs ) {
+        // NOTE(alicia): SSE
+        // NOTE(alicia): Floating-point divide because there is no _mm_div_epi32 :(
+
+        __m128 _a = _mm_set_ps( 0.0f, (f32)this->z, (f32)this->y, (f32)this->x );
+        __m128 _b = _mm_set1_ps( (f32)rhs );
+        f32 result[4];
+        _mm_storeu_ps( result, _mm_div_ps( _a, _b ) );
+
+        this->x = (i32)result[0];
+        this->y = (i32)result[1];
+        this->z = (i32)result[2];
+        return *this;
+    }
+
+    // (  1,  1,  1 ) 
+    static ivec3 one()     { return {  1,  1,  1 }; }
+    // (  0,  0,  0 ) 
+    static ivec3 zero()    { return {  0,  0,  0 }; }
+    // ( -1,  0,  0 ) 
+    static ivec3 left()    { return { -1,  0,  0 }; }
+    // (  1,  0,  0 ) 
+    static ivec3 right()   { return {  1,  0,  0 }; }
+    // (  0,  1,  0 ) 
+    static ivec3 up()      { return {  0,  1,  0 }; }
+    // (  0, -1,  0 ) 
+    static ivec3 down()    { return {  0, -1,  0 }; }
+    // (  0,  0,  1 ) 
+    static ivec3 forward() { return {  0,  0,  1 }; }
+    // (  0,  0, -1 ) 
+    static ivec3 back()    { return {  0,  0, -1 }; }
+};
+inline ivec3 operator+( const ivec3& lhs, const ivec3& rhs ) {
+    return ivec3(lhs) += rhs;
+}
+inline ivec3 operator-( const ivec3& lhs, const ivec3& rhs ) {
+    return ivec3(lhs) -= rhs;
+}
+inline ivec3 operator*( const ivec3& lhs, i32 rhs ) {
+    return ivec3(lhs) *= rhs;
+}
+inline ivec3 operator*( i32 lhs, const ivec3& rhs ) {
+    return ivec3(rhs) *= lhs;
+}
+inline ivec3 operator/( const ivec3& lhs, i32 rhs ) {
+    return ivec3(lhs) /= rhs;
+}
+inline bool cmp( const ivec3& lhs, const ivec3& rhs ) {
+    // TODO(alicia): SIMD?
+    return lhs.x == rhs.x && lhs.y == rhs.y && lhs.z == rhs.z;
+}
+inline f32 dot( const ivec3& lhs, const ivec3& rhs ) {
+    return smath::dot( smath::vec3(lhs), smath::vec3(rhs) );
+}
+inline f32 sqrMag( const ivec3& v ) {
+    return smath::sqrMag( smath::vec3(v) );
+}
+inline f32 mag( const ivec3& v ) {
+    return smath::mag( smath::vec3(v) );
+}
+inline f32 angle( const ivec3& lhs, const ivec3& rhs ) {
+    return smath::angle( smath::vec3(lhs), smath::vec3(rhs) );
+}
+inline f32 unsignedAngle( const ivec3& lhs, const ivec3& rhs ) {
+    return smath::unsignedAngle( smath::vec3(lhs), smath::vec3(rhs) );
+}
+inline ivec3 cross( const ivec3& lhs, const ivec3& rhs ) {
+    // TODO(alicia): maybe write this explicitly?
+    return smath::ivec3( smath::cross( smath::vec3(lhs), smath::vec3(rhs) ) );
+}
+inline ivec3 mul( const ivec3& lhs, const ivec3& rhs ) {
+    // NOTE(alicia): SSE
+    ivec3 result = {};
+
+    __m128i _a = _mm_set_epi32( 0, lhs.z, lhs.y, lhs.x );
+    __m128i _b = _mm_set_epi32( 0, rhs.z, rhs.y, rhs.x );
+
+    i32 _mul[4];
+    _mm_storeu_epi32( _mul, _mm_mul_epi32( _a, _b ) );
+
+    result.x = result[0];
+    result.y = result[1];
+    result.z = result[2];
+    return result;
+}
+
 inline vec4 operator+( const vec4& lhs, const vec4& rhs );
 inline vec4 operator-( const vec4& lhs, const vec4& rhs );
 inline vec4 operator*( const vec4& lhs, f32 rhs );
@@ -1113,9 +1418,10 @@ struct vec4 {
 
     vec4() : x(0.0f), y(0.0f), z(0.0f), w(0.0f) {}
     vec4( f32 scalar ) : x(scalar), y(scalar), z(scalar), w(scalar) {}
-    vec4( const vec2& v ) : x(v.x), y(v.y), z(0.0f), w(0.0f) {}
-    vec4( const vec3& v ) : x(v.x), y(v.y), z(v.z), w(1.0f) {}
     vec4( f32 x, f32 y, f32 z, f32 w ) : x(x), y(y), z(z), w(w) {}
+    explicit vec4( const vec2& v ) : x(v.x), y(v.y), z(0.0f), w(0.0f) {}
+    explicit vec4( const vec3& v ) : x(v.x), y(v.y), z(v.z), w(1.0f) {}
+    explicit vec4( const ivec4& iv );
 
     // get pointer to struct as f32
     f32* ptr() { return &x; }
@@ -1248,6 +1554,149 @@ inline vec4 clampedLerp( const vec4& a, const vec4& b, f32 t ) {
     return lerp( a, b, clamp( t, 0.0f, 1.0f ) );
 }
 
+inline ivec4 operator+( const ivec4& lhs, const ivec4& rhs );
+inline ivec4 operator-( const ivec4& lhs, const ivec4& rhs );
+inline ivec4 operator*( const ivec4& lhs, i32 rhs );
+inline ivec4 operator*( i32 lhs, const ivec4& rhs );
+inline ivec4 operator/( const ivec4& lhs, i32 rhs );
+// compare two vectors
+inline bool cmp( const ivec4& lhs, const ivec4& rhs );
+// dot product
+inline f32 dot( const ivec4& lhs, const ivec4& rhs );
+// scale vectors component-wise
+inline ivec4 mul( const ivec4& lhs, const ivec4& rhs );
+// square magnitude
+inline f32 sqrMag( const ivec4& v );
+// magnitude
+inline f32 mag( const ivec4& v );
+// 4-component vector
+struct ivec4 {
+    i32 x, y, z, w;
+
+    ivec4() : x(0), y(0), z(0), w(0) {}
+    ivec4( i32 scalar ) : x(scalar), y(scalar), z(scalar), w(scalar) {}
+    ivec4( i32 x, i32 y, i32 z, i32 w ) : x(x), y(y), z(z), w(w) {}
+    explicit ivec4( const ivec2& v ) : x(v.x), y(v.y), z(0), w(0) {}
+    explicit ivec4( const ivec3& v ) : x(v.x), y(v.y), z(v.z), w(1) {}
+
+    // get pointer to struct as i32
+    i32* ptr() { return &x; }
+    // get pointer to struct as i32
+    const i32* ptr() const { return &x; }
+
+    i32& operator[]( usize index ) {
+        return ptr()[index];
+    }
+    i32 operator[]( usize index ) const {
+        return ptr()[index];
+    }
+    ivec4& operator-() { return *this *= -1; }
+    bool operator==( const ivec4& rhs ) { return cmp( *this, rhs ); }
+    bool operator!=( const ivec4& rhs ) { return !(*this == rhs); }
+    ivec4& operator+=( const ivec4& rhs ) {
+        // NOTE(alicia): SSE
+
+        __m128i _a = _mm_set_epi32( this->w, this->z, this->y, this->x );
+        __m128i _b = _mm_set_epi32( rhs.w, rhs.z, rhs.y, rhs.x );
+
+        _mm_storeu_epi32( &this->ptr()[0], _mm_add_epi32( _a, _b ) );
+        return *this;
+    }
+    ivec4& operator-=( const ivec4& rhs ) {
+        // NOTE(alicia): SSE
+
+        __m128i _a = _mm_set_epi32( this->w, this->z, this->y, this->x );
+        __m128i _b = _mm_set_epi32( rhs.w, rhs.z, rhs.y, rhs.x );
+
+        _mm_storeu_epi32( &this->ptr()[0], _mm_sub_epi32( _a, _b ) );
+        return *this;
+    }
+    ivec4& operator*=( const i32& rhs ) {
+        // NOTE(alicia): SSE
+
+        __m128i _a = _mm_set_epi32( this->w, this->z, this->y, this->x );
+        __m128i _b = _mm_set1_epi32( rhs );
+
+        _mm_storeu_epi32( &this->ptr()[0], _mm_mul_epi32( _a, _b ) );
+        return *this;
+    }
+    ivec4& operator/=( const i32& rhs ) {
+        // NOTE(alicia): SSE
+        // NOTE(alicia): Floating-point divide because there is no _mm_div_epi32 :(
+
+        __m128 _a = _mm_set_ps( (f32)this->w, (f32)this->z, (f32)this->y, (f32)this->x );
+        __m128 _b = _mm_set1_ps( (f32)rhs );
+        f32 result[4];
+        _mm_storeu_ps( result, _mm_div_ps( _a, _b ) );
+
+        this->x = (i32)result[0];
+        this->y = (i32)result[1];
+        this->z = (i32)result[2];
+        this->w = (i32)result[3];
+        return *this;
+    }
+
+    // ( 1, 1, 1, 1 ) 
+    static ivec4 one()   { return {  1,  1,  1,  1 }; }
+    // ( 0, 0, 0, 0 ) 
+    static ivec4 zero()  { return {  0,  0,  0,  0 }; }
+};
+inline ivec4 operator+( const ivec4& lhs, const ivec4& rhs ) {
+    return ivec4(lhs) += rhs;
+}
+inline ivec4 operator-( const ivec4& lhs, const ivec4& rhs ) {
+    return ivec4(lhs) -= rhs;
+}
+inline ivec4 operator*( const ivec4& lhs, i32 rhs ) {
+    return ivec4(lhs) *= rhs;
+}
+inline ivec4 operator*( i32 lhs, const ivec4& rhs ) {
+    return ivec4(rhs) *= lhs;
+}
+inline ivec4 operator/( const ivec4& lhs, i32 rhs ) {
+    return ivec4(lhs) /= rhs;
+}
+inline ivec4 normalize( const ivec4& v ) {
+    f32 m = mag( v );
+    if( m != 0.0f ) {
+        return v / m;
+    } else {
+        return ivec4::zero();
+    }
+}
+inline bool cmp( const ivec4& lhs, const ivec4& rhs ) {
+    return sqrMag(lhs - rhs) < VEC_CMP_THRESHOLD;
+}
+inline ivec4 clamp( const ivec4& v, f32 max ) {
+    f32 magnitude = mag(v);
+    if( magnitude > max ) {
+        ivec4 result = v / magnitude;
+        result *= max;
+        return result;
+    } else {
+        return v;
+    }
+}
+inline f32 dot( const ivec4& lhs, const ivec4& rhs ) {
+    return smath::dot( smath::vec4(lhs), smath::vec4(rhs) );
+}
+inline ivec4 mul( const ivec4& lhs, const ivec4& rhs ) {
+    // NOTE(alicia): SSE
+
+    __m128i a = _mm_set_epi32( lhs.w, lhs.z, lhs.y, lhs.x );
+    __m128i b = _mm_set_epi32( rhs.w, rhs.z, rhs.y, rhs.x );
+    ivec4 result = {};
+    _mm_storeu_epi32( &result.ptr()[0], _mm_mul_epi32( a, b ) );
+
+    return result;
+}
+inline f32 sqrMag( const ivec4& v ) {
+    return smath::sqrMag( smath::vec4(v) );
+}
+inline f32 mag( const ivec4& v ) {
+    return smath::mag( smath::vec4(v) );
+}
+
 inline quat operator+( const quat& lhs, const quat& rhs );
 inline quat operator-( const quat& lhs, const quat& rhs );
 inline quat operator*( const quat& lhs, const quat& rhs );
@@ -1269,18 +1718,30 @@ inline f32 mag( const quat& q );
 inline quat conjugate( const quat& q );
 // invert quaternion
 inline quat inverse( const quat& q );
-/// @brief Linear interpolation
+/// @brief Spherical linear interpolation
 /// @param a minimum value
 /// @param b maximum value
 /// @param t fraction
 /// @return blend between a and b, based on fraction t
 inline quat slerp( const quat& a, const quat& b, f32 t );
-/// @brief Linear interpolation
+/// @brief Spherical linear interpolation
 /// @param a minimum value
 /// @param b maximum value
 /// @param t fraction
 /// @return blend between a and b, based on fraction t
 inline quat clampedSlerp( const quat& a, const quat& b, f32 t );
+/// @brief Linear interpolation
+/// @param a minimum value
+/// @param b maximum value
+/// @param t fraction
+/// @return blend between a and b, based on fraction t
+inline quat lerp( const quat& a, const quat& b, f32 t );
+/// @brief Linear interpolation, t is clamped between 0.0-1.0
+/// @param a minimum value
+/// @param b maximum value
+/// @param t 0.0-1.0 fraction
+/// @return blend between a and b, based on fraction t
+inline quat clampedLerp( const quat& a, const quat& b, f32 t );
 // quaternion rotation
 struct quat {
     union {
@@ -1289,8 +1750,8 @@ struct quat {
     };
 
     quat() : w(0.0f), x(0.0f), y(0.0f), z(0.0f) {}
-    quat( const vec4& v ) : w(v.w), x(v.x), y(v.y), z(v.z) {}
     quat( f32 w, f32 x, f32 y, f32 z ) : w(w), x(x), y(y), z(z) {}
+    explicit quat( const vec4& v ) : w(v.w), x(v.x), y(v.y), z(v.z) {}
 
     // get pointer to struct as f32
     f32* ptr() { return &w; }
@@ -1344,7 +1805,7 @@ struct quat {
     /// @param axis [out] axis
     void toAngleAxis( f32& angle, vec3& axis ) {
         angle = 2.0f * acos(w);
-        f32 invW2sqrt = sqrt(1.0f - sqr(w));
+        f32 invW2sqrt = sqrt(1.0f - (w * w));
 
         // NOTE(alicia): SSE
         __m128 a = _mm_set_ps( 1.0f, z, y, x );
@@ -1359,15 +1820,26 @@ struct quat {
         };
     }
     /// @brief convert to euler angles
-    /// @param euler [out] euler angles
-    void toEuler( vec3& euler ) {
-        // TODO(alicia): SIMD!
-        f32 x2 = x * x;
-        f32 y2 = y * y;
-        f32 z2 = z * z;
-        euler.x = atan2( 2.0f * ( w * x + y * z ), 1.0f - 2.0f * ( x2 + y2 ) );
-        euler.y = asinNoNaN( 2.0f * ( ( w * y ) - ( z * x ) ) );
-        euler.z = atan2( 2.0f * ( w * z + x * y ), 1.0f - 2.0f * ( y2 + z2 ) );
+    vec3 toEuler() {
+        // NOTE(alicia): SSE
+        // TODO(alicia): further optimization!
+        
+        __m128 _xyz = _mm_set_ps( 0.0f, z, y, x );
+
+        f32 xyz2[4];
+        _mm_storeu_ps( xyz2, _mm_mul_ps( _xyz, _xyz ) );
+
+        f32 w_xyz[4];
+        _mm_storeu_ps( w_xyz, _mm_mul_ps( _mm_set1_ps(w), _xyz ) );
+
+        f32 xyz_yzx[4];
+        _mm_storeu_ps( xyz_yzx, _mm_mul_ps(_xyz, _mm_set_ps( 0.0f, x, z, y )) );
+
+        return {
+            atan2(     2.0f * ( w_xyz[0] + xyz_yzx[1] ), 1.0f - 2.0f * ( xyz2[0] + xyz2[1] ) ),
+            asinNoNaN( 2.0f * ( w_xyz[1] - xyz_yzx[2] ) ),
+            atan2(     2.0f * ( w_xyz[2] + xyz_yzx[0] ), 1.0f - 2.0f * ( xyz2[1] + xyz2[2] ) )
+        };
     }
     // identity quaternion
     static quat identity() { return { 1.0f, 0.0f, 0.0f, 0.0f }; }
@@ -1460,9 +1932,12 @@ inline quat operator*( const quat& lhs, const quat& rhs ) {
 
 }
 inline vec3 operator*( const quat& lhs, const vec3& rhs ) {
-    smath::vec3 qxyz = { lhs.x, lhs.y, lhs.z };
-    smath::vec3 t = 2.0f * smath::cross( qxyz, rhs );
-    return rhs + t * lhs.w + smath::cross( qxyz, t );
+    // smath::vec3 qxyz = { lhs.x, lhs.y, lhs.z };
+    // smath::vec3 t = 2.0f * smath::cross( qxyz, rhs );
+    // return rhs + t * lhs.w + smath::cross( qxyz, t );
+    smath::quat p = { 0.0f, rhs.x, rhs.y, rhs.z };
+    smath::quat result = lhs * p * conjugate( lhs );
+    return { result.x, result.y, result.z };
 }
 inline quat operator*( const quat& lhs, f32 rhs ) {
     return quat(lhs) *= rhs;
@@ -1480,6 +1955,13 @@ inline quat normalize( const quat& q ) {
     } else {
         return {};
     }
+}
+inline f32 angle( const quat& lhs, const quat& rhs ) {
+    quat qd = inverse( lhs ) * rhs;
+    return 2.0f * atan2( mag(smath::vec3( qd.x, qd.y, qd.z )), qd.w );
+}
+inline f32 unsignedAngle( const quat& lhs, const quat& rhs ) {
+    return abs(angle(lhs, rhs));
 }
 inline bool cmp( const quat& lhs, const quat& rhs ) {
     return sqrMag(lhs - rhs) < VEC_CMP_THRESHOLD;
@@ -1518,31 +2000,27 @@ inline quat inverse( const quat& q ) {
     return conjugate( q ) / sqrMag( q );
 }
 inline quat slerp( const quat& a, const quat& b, f32 t ) {
-    f32 dotProd = dot( a, b );
-    f32 lambda  = t / 2.0f;
-    f32 theta   = abs( acos( dotProd ) );
-
-    f32 thetaSin = sin( theta );
-    f32 coeff1 = sin( ( 1.0f - theta ) * theta ) / thetaSin;
-    f32 coeff2 = sin( lambda * theta ) / thetaSin;
-
-    // NOTE(alicia): SSE
-
-    __m128 a1 = _mm_set_ps( a.z, a.y, a.x, a.w );
-    __m128 a2 = _mm_set_ps( b.z, b.y, b.x, b.w );
-    __m128 b1 = _mm_set1_ps( coeff1 );
-    __m128 b2 = _mm_set1_ps( coeff2 );
-
-    __m128 c1 = _mm_mul_ps( a1, b1 );
-    __m128 c2 = _mm_mul_ps( a2, b2 );
-
-    quat result = {};
-    _mm_storeu_ps( result.ptr(), _mm_add_ps( c1, c2 ) );
-
-    return normalize( result );
+    quat _b = b;
+    f32 theta = dot(a, b);
+    f32 cosTheta = cos( theta );
+    if( cosTheta < 0.0f ) {
+        _b = -_b;
+        cosTheta = -cosTheta;
+    }
+    if( cosTheta > 1.0f - F32::EPSILON ) {
+        return lerp( a, b, t );
+    } else {
+        return normalize(( sin( ( 1.0f - t ) * theta ) * a + sin( t * theta ) * _b ) / sin( theta ));
+    }
 }
 inline quat clampedSlerp( const quat& a, const quat& b, f32 t ) {
     return slerp( a, b, clamp( t, 0.0f, 1.0f ) );
+}
+inline quat lerp( const quat& a, const quat& b, f32 t ) {
+    return normalize(( 1.0f - t ) * a + b * t);
+}
+inline quat clampedLerp( const quat& a, const quat& b, f32 t ) {
+    return lerp( a, b, clamp( t, 0.0f, 1.0f ) );
 }
 
 inline mat3 operator+( const mat3& lhs, const mat3& rhs );
@@ -1572,7 +2050,7 @@ struct mat3 {
     ) : _m00(_m00), _m01(_m01), _m02(_m02),
         _m10(_m10), _m11(_m11), _m12(_m12),
         _m20(_m20), _m21(_m21), _m22(_m22) {}
-    mat3( const mat4& m );
+    explicit mat3( const mat4& m );
 
     // get pointer to struct as f32
     f32* ptr() { return &_m00; }
@@ -1725,12 +2203,6 @@ inline f32 determinant( const mat3& m ) {
     f32 _result[4];
     _mm_storeu_ps( _result, _mm_mul_ps( _a, _mm_sub_ps( _b, _c ) ) );
     return _result[0] - _result[1] + _result[2];
-
-    // before SIMD
-    // return
-    // ( m[0] * ( ( m[4] * m[8] ) - ( m[7] * m[5] ) ) ) -
-    // ( m[3] * ( ( m[1] * m[8] ) - ( m[7] * m[2] ) ) ) +
-    // ( m[6] * ( ( m[1] * m[5] ) - ( m[4] * m[2] ) ) );
 }
 
 inline mat4 operator+( const mat4& lhs, const mat4& rhs );
@@ -2135,7 +2607,7 @@ inline vec4 operator*( const mat4& lhs, const vec4& rhs ) {
     return result;
 }
 inline vec3 operator*( const mat4& lhs, const vec3& rhs ) {
-    return lhs * vec4(rhs);
+    return smath::vec3(lhs * smath::vec4( rhs ));
 }
 inline mat4 transpose( const mat4& m ) {
     return {
@@ -2222,11 +2694,26 @@ inline bool mat3::normalMat( const mat4& transform, mat3& result ) {
 }
 
 // NOTE(alicia): conversions
+
+inline vec2::vec2( const ivec2& iv ) : x((f32)iv.x), y((f32)iv.y) {}
+inline vec3::vec3( const ivec3& iv ) : x((f32)iv.x), y((f32)iv.y), z((f32)iv.z) {}
 inline vec3::vec3( const vec4& v ) : x(v.x), y(v.y), z(v.z) {}
+inline vec4::vec4( const ivec4& iv ) : x((f32)iv.x), y((f32)iv.y), z((f32)iv.z), w((f32)iv.w) {}
 inline mat3::mat3( const mat4& m )
 : _m00(m[0]), _m01(m[1]), _m02(m[2]),
   _m10(m[4]), _m11(m[5]), _m12(m[6]),
   _m20(m[8]), _m21(m[9]), _m22(m[10]) {}
+
+// NOTE(alicia): more functions
+
+// degrees to radians euler angles
+inline vec3 toRad( const vec3& deg ) {
+    return deg * ( F32::PI / 180.0f );
+}
+// radians to degrees euler angles
+inline vec3 toDeg( const vec3& rad ) {
+    return rad * ( 180.0f / F32::PI );
+}
 
 } // namespace smath
 

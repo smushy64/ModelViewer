@@ -23,26 +23,29 @@ inline const usize PROGRAM_TITLE_LEN = 27;
 
 inline const f32 MAX_CAMERA_Y_ROTATION  = 0.959930888888889f;
 inline const f32 CAMERA_SENSITIVITY     = 200.0f;
-inline const f32 CAMERA_MOVE_LERP_SPEED = 50.0f;
-inline const f32 CAMERA_ROT_LERP_SPEED  = 30.0f;
+inline const f32 CAMERA_MOVE_LERP_SPEED = 25.0f;
+inline const f32 CAMERA_MIN_ROT_LERP_SPEED  = 30.0f;
+inline const f32 CAMERA_MAX_ROT_LERP_SPEED  = 80.0f;
 inline const f32 CAMERA_FOV             = 1.1345f;
 inline const f32 CAMERA_MIN_FOV         = 0.001f;
 inline const f32 CAMERA_MAX_FOV         = 2.094f;
 inline const f32 CAMERA_ZOOM_SPEED      = 10.0f;
 inline const f32 CAMERA_ZOOM_LERP_SPEED = 25.0f;
-inline const smath::vec3 DEFAULT_CAMERA_POSITION  = smath::vec3( 1.110f, 0.687f, 3.855f );
-inline const smath::quat DEFAULT_CAMERA_ROTATION  = smath::quat( 0.270f, 0.057f, -0.941f, 0.197f );
-inline const smath::vec2 DEFAULT_CAMERA_EROTATION = smath::vec2( -2.582f, 0.414f );
+inline const smath::vec3 DEFAULT_CAMERA_POSITION  = smath::vec3( 1.080735f, 0.833890f, 3.577232f );
+inline const smath::quat DEFAULT_CAMERA_ROTATION  = smath::quat( 0.290f, 0.066f, -0.931f, 0.213f );
+inline const smath::vec2 DEFAULT_CAMERA_EROTATION = smath::vec2( -2.538f, 0.450f );
 
 struct Time {
     f32 elapsedTime;
     f32 deltaTime;
+    f32 fps;
 };
 
 struct Input {
     bool leftMouse;
     bool rightMouse;
     bool middleMouse;
+    bool mouseUpdated;
     i32 mouseWheel;
     /// @brief 0-width/height mouse position
     /// x-axis: 0 is left and width is right 
@@ -80,23 +83,32 @@ struct Input {
 #define RENDER_CONTEXT_UNIFORM_BUFFER_COUNT 4
 #define RENDER_CONTEXT_VERTEX_ARRAY_COUNT 3
 struct RenderContext {
+    Core::lightBuffer lights;
+    Core::camera camera;
+
     Platform::Texture2D fontAtlasTexture;
     Platform::Texture2D modelAlbedoTexture;
     Platform::Texture2D modelSpecularTexture;
     Platform::Texture2D modelNormalTexture;
 
-    Platform::Shader fontShader;
-    Platform::Shader boundsShader;
-    Platform::Shader blinnPhongShader;
+    Platform::VertexArray fontVertexArray;
+    Platform::VertexArray boundsVertexArray;
+    Platform::VertexArray modelVertexArray;
 
     Platform::UniformBuffer matrices2DBuffer;
     Platform::UniformBuffer matrices3DBuffer;
     Platform::UniformBuffer lightsBuffer;
     Platform::UniformBuffer dataBuffer;
 
-    Platform::VertexArray fontVertexArray;
-    Platform::VertexArray boundsVertexArray;
-    Platform::VertexArray modelVertexArray;
+    smath::quat targetCameraRotation;
+    smath::vec3 targetCameraPosition;
+
+    smath::vec2 viewport;
+    smath::vec2 eulerCameraRotation;
+
+    Platform::Shader fontShader;
+    Platform::Shader boundsShader;
+    Platform::Shader blinnPhongShader;
 
     i32 fontShaderUniformTransform;
     i32 fontShaderUniformFontCoords;
@@ -110,14 +122,7 @@ struct RenderContext {
     i32 blinnPhongUniformGlossiness;
     i32 blinnPhongUniformNormalTexturePresent;
 
-    f32 cameraTargetFOV;
-    f32 cameraFOVDelta;
-    smath::vec2 viewport;
-    smath::vec2 eulerCameraRotation;
-    smath::vec2 targetCameraRotationEuler;
-    smath::vec3 targetCameraPosition;
-    Core::camera camera;
-    Core::lightBuffer lights;
+    f32 targetCameraFOV;
 };
 
 struct AppContext {

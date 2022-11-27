@@ -14,6 +14,23 @@ namespace Platform {
 namespace Core {
 
 struct camera {
+    smath::mat4 viewMat       = smath::mat4::lookAt( position, position + forward, up );
+    smath::mat4 projectionMat = smath::mat4::perspective( fovRad, aspectRatio, clippingPlanes.x, clippingPlanes.y );
+
+    smath::quat rotation = smath::quat::identity();
+    smath::vec3 position = smath::vec3(0.0f);
+
+    smath::vec3 forward = smath::vec3::forward();
+    smath::vec3 right   = smath::vec3::right();
+    smath::vec3 up      = smath::vec3::up();
+
+    smath::vec2 clippingPlanes = smath::vec2( 0.001f, 100.0f );
+
+    f32 fovRad                 = TO_RAD(65.0f);
+    f32 aspectRatio            = 1.778f;
+
+    smath::mat4* matrices() { return &viewMat; }
+    usize matrixCount() const { return 2; }
     void recalculateView() {
         viewMat = smath::mat4::lookAt( position, position + forward, up );
     }
@@ -25,22 +42,6 @@ struct camera {
         right   = rotation * smath::vec3::right();
         up      = rotation * smath::vec3::up();
     }
-    smath::mat4* matrices() { return &viewMat; }
-    usize matrixCount() const { return 2; }
-
-    smath::vec3 position = smath::vec3(0.0f);
-    smath::quat rotation = smath::quat::identity();
-
-    smath::vec3 forward = smath::vec3::forward();
-    smath::vec3 right   = smath::vec3::right();
-    smath::vec3 up      = smath::vec3::up();
-
-    smath::vec2 clippingPlanes = smath::vec2( 0.001f, 100.0f );
-    f32 fovRad                 = TO_RAD(65.0f);
-    f32 aspectRatio            = 1.778f;
-
-    smath::mat4 viewMat       = smath::mat4::lookAt( position, position + forward, up );
-    smath::mat4 projectionMat = smath::mat4::perspective( fovRad, aspectRatio, clippingPlanes.x, clippingPlanes.y );
 };
 
 struct vertex {

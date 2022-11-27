@@ -55,7 +55,7 @@ enum class DataStructure {
 const char* DataStructureToString( DataStructure structure );
 usize DataStructureCount( DataStructure structure );
 
-enum class DataType {
+enum class DataType : i32 {
     UNSIGNED_BYTE,
     BYTE,
     UNSIGNED_SHORT,
@@ -68,24 +68,24 @@ enum class DataType {
 const char* DataTypeToString( DataType type );
 usize DataTypeSize( DataType type );
 
-enum class TextureFormat {
+enum class TextureFormat : i32 {
     R, RG, RGB, RGBA
 };
 const char* TextureFormatToString( TextureFormat format );
 usize TextureFormatComponentCount( Platform::TextureFormat format );
-enum class TextureWrapMode {
+enum class TextureWrapMode : i32 {
     CLAMP,
     REPEAT,
     MIRROR_REPEAT,
     MIRROR_CLAMP
 };
 const char* TextureWrapModeToString( TextureWrapMode wrapMode );
-enum class TextureMagFilter {
+enum class TextureMagFilter : i32 {
     NEAREST,
     LINEAR
 };
 const char* TextureMagFilterToString( TextureMagFilter magFilter );
-enum class TextureMinFilter {
+enum class TextureMinFilter : i32 {
     NEAREST,
     LINEAR,
     LINEAR_MIPMAP_NEAREST,
@@ -96,6 +96,8 @@ enum class TextureMinFilter {
 const char* TextureMinFilterToString( TextureMinFilter minFilter );
 
 struct Texture2D {
+    usize dataSize;
+    u8*   data;
     i32 width;
     i32 height;
     u32              id;
@@ -105,8 +107,6 @@ struct Texture2D {
     TextureWrapMode  wrapModeY;
     TextureMagFilter magFilter;
     TextureMinFilter minFilter;
-    usize            dataSize;
-    u8* data;
 };
 
 struct UniformBuffer {
@@ -154,7 +154,7 @@ struct VertexArray {
     u32 id;
 };
 
-enum class RendererBackend {
+enum class RendererBackend : i32 {
     OPENGL
 };
 /// @brief Convert renderer backend enum to string

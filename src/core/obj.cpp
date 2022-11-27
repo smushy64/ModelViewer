@@ -20,7 +20,7 @@ bool Core::ParseOBJ( Platform::File* sourceFile, Platform::VertexArray* result, 
     }
 
     tinyobj::ObjReaderConfig config;
-    // config.triangulate          = true;
+    config.triangulate          = true;
     // config.triangulation_method = "earcut";
     tinyobj::ObjReader reader;
 
@@ -33,7 +33,6 @@ bool Core::ParseOBJ( Platform::File* sourceFile, Platform::VertexArray* result, 
 
     if( !reader.Warning().empty() ) {
         LOG_WARN( "ParseOBJ > tinyobjloader > %s", reader.Warning().c_str() );
-        return false;
     }
 
     auto& attrib = reader.GetAttrib();

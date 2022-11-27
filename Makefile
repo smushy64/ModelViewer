@@ -4,14 +4,14 @@ CC = g++ -std=c++20
 # Change between DEBUG/RELEASE
 
 # RELEASE BUILD
-# CFLAGS    = $(RELEASE)
-# LNKFLAGS  = --static -mwindows
-# TARGETDIR = ./build/release
+CFLAGS    = $(RELEASE)
+LNKFLAGS  = --static -mwindows
+TARGETDIR = ./build/release
 
 # DEBUG BUILD
-CFLAGS    = $(DEBUG)
-LNKFLAGS  = --static
-TARGETDIR = ./build/debug
+# CFLAGS    = $(DEBUG)
+# LNKFLAGS  = --static
+# TARGETDIR = ./build/debug
 
 # Executable name
 EXE = ModelViewer.exe
@@ -23,7 +23,7 @@ SRC = ./src ./src/platform ./src/platform/win64 ./src/platform/gl ./src/core
 DEF = -D UNICODE -D WINDOWS
 
 # pre-compiled header
-PCH = ./src/pch.hpp
+PCH = ./src/pch
 
 # linker flags
 LNK = -static-libstdc++ -static-libgcc -lmingw32 -lgdi32 -lcomdlg32
@@ -63,10 +63,10 @@ $(BINARY): $(OBJ)
 %.o: %.cpp
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-$(PCH_TARG): $(PCH)
-	$(CC) $(CFLAGS) $(PCH)
+$(PCH_TARG): $(PCH).hpp
+	$(CC) $(CFLAGS) $(PCH).hpp -o $(PCH_TARG)
 
 clean:
-	-@rm $(BINARY); -@rm $(OBJ) $(DEPS); -@rm $(PCH_TARG)
+	-@rm $(BINARY) $(OBJ) $(DEPS) $(PCH_TARG)
 
 .PHONY: all clean

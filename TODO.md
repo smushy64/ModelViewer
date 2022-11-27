@@ -21,7 +21,7 @@
 - Clicking and holding while moving mouse out of window, letting go and then coming back to window registers a click anyway
 - Camera stutter when looking completely up/down
 
-### Refactor 2
+### Refactor 2 - Completed 11/27/2022
 - [x] Quad is not drawing properly? 
   - Not sure why but index order was what was causing it. I copied the same meshes from before the refactor so that shouldn't have been the problem but anyway, it's solved now.
 - [x] Review every call to "strLen"
@@ -145,6 +145,7 @@
 - [x] Loading objs
 - [x] Model viewing!
 - [x] integrate new smath library
+- [x] fix lighting
 
 ### Normal Map Support + Fixes and Tweaks - Completed 11/2/2022
 - [x] DrawArrays caused segfault

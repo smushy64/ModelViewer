@@ -1,6 +1,6 @@
-# Model Viewer CPP
+# Model Viewer
 
-Program written in CPP for loading + viewing .obj 3D models.
+Program written in C++ for loading + viewing .obj 3D models.
 
 Nearly all of the code is original with the exception of
 - [stb](https://github.com/nothings/stb)
